@@ -48,6 +48,8 @@ const LiveMapSimple = () => {
 
   // ESP32 dan ma'lumot olish
   useEffect(() => {
+    let lastProcessedTimestamp = null // Oxirgi qayta ishlangan timestamp
+    
     const fetchSensorData = async () => {
       try {
         const response = await fetch('https://tozahudud-production-d73f.up.railway.app/sensors/latest?limit=1')
@@ -55,10 +57,15 @@ const LiveMapSimple = () => {
         
         if (result.success && result.data && result.data.length > 0) {
           const latestReading = result.data[0]
-          console.log(`📡 ESP32 SIGNAL: ${latestReading.distance} sm`)
+          const readingTimestamp = latestReading.timestamp
           
-          // Qutini FULL holatiga o'tkazish
-          if (binStatus !== 'FULL') {
+          // Faqat yangi ma'lumot bo'lsa qayta ishlash
+          if (readingTimestamp !== lastProcessedTimestamp) {
+            lastProcessedTimestamp = readingTimestamp
+            
+            console.log(`📡 YANGI ESP32 SIGNAL: ${latestReading.distance} sm`)
+            
+            // Qutini FULL holatiga o'tkazish
             setBinStatus('FULL')
             setBinData(prev => ({
               ...prev,
@@ -82,7 +89,7 @@ const LiveMapSimple = () => {
     fetchSensorData()
     const interval = setInterval(fetchSensorData, 5000)
     return () => clearInterval(interval)
-  }, [binStatus])
+  }, [])
 
   // Quti FULL bo'lganda mashina harakatga keladi
   useEffect(() => {
