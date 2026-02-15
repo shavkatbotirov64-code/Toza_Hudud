@@ -16,54 +16,15 @@ const LiveMap = () => {
   const [mapFilter, setMapFilter] = useState('all')
   const [vehiclePositions, setVehiclePositions] = useState({})
 
-  // Mock data - Map.toza.huduh dan nusxalangan
+  // Mock data - Faqat ESP32 quti
   const mockBinsData = [
-    // Shimoliy hudud
-    { id: 'BIN-001', location: [41.3350, 69.2100], address: 'Chilonzor tumani, Qatortol ko\'chasi, 12', status: 95, capacity: 120 },
-    { id: 'BIN-002', location: [41.3280, 69.2850], address: 'Yunusobod tumani, Shota Rustaveli, 45', status: 88, capacity: 150 },
-    { id: 'BIN-003', location: [41.3450, 69.2650], address: 'Mirobod tumani, Buyuk Ipak Yo\'li, 78', status: 92, capacity: 180 },
-    
-    // Markaziy hudud
-    { id: 'BIN-004', location: [41.3150, 69.2400], address: 'Shayhontohur tumani, Amir Temur, 23', status: 75, capacity: 140 },
-    { id: 'BIN-005', location: [41.3080, 69.2750], address: 'Olmazor tumani, Mustaqillik, 56', status: 98, capacity: 160 },
-    { id: 'BIN-006', location: [41.3200, 69.2300], address: 'Mirabad tumani, Navoi ko\'chasi, 89', status: 65, capacity: 130 },
-    
-    // Janubiy hudud
-    { id: 'BIN-007', location: [41.2850, 69.2200], address: 'Sergeli tumani, Qashqadaryo, 34', status: 91, capacity: 170 },
-    { id: 'BIN-008', location: [41.2950, 69.2950], address: 'Yakkasaroy tumani, Bobur ko\'chasi, 67', status: 45, capacity: 140 },
-    { id: 'BIN-009', location: [41.2750, 69.2600], address: 'Uchtepa tumani, Abdulla Qodiriy, 90', status: 78, capacity: 155 },
-    
-    // Sharqiy hudud
-    { id: 'BIN-010', location: [41.3100, 69.3200], address: 'Yashnobod tumani, Yunus Rajabiy, 12', status: 93, capacity: 165 },
-    { id: 'BIN-011', location: [41.3300, 69.3100], address: 'Mirzo Ulug\'bek tumani, Universitet, 45', status: 67, capacity: 145 },
-    { id: 'BIN-012', location: [41.2900, 69.3050], address: 'Yashil ko\'cha tumani, Bog\'ishamol, 78', status: 89, capacity: 175 },
-    
-    // G'arbiy hudud
-    { id: 'BIN-013', location: [41.3250, 69.1850], address: 'Bektemir tumani, Farg\'ona yo\'li, 23', status: 96, capacity: 135 },
-    { id: 'BIN-014', location: [41.3000, 69.1950], address: 'Almazar tumani, Beruniy ko\'chasi, 56', status: 34, capacity: 125 },
-    { id: 'BIN-015', location: [41.2800, 69.1750], address: 'Qibray tumani, Yangi Qibray, 89', status: 82, capacity: 150 },
-    
-    // Shimoli-sharqiy hudud
-    { id: 'BIN-016', location: [41.3500, 69.2900], address: 'Bektimir tumani, Labzak ko\'chasi, 34', status: 94, capacity: 160 },
-    { id: 'BIN-017', location: [41.3400, 69.3200], address: 'Zangiota tumani, Zangota yo\'li, 67', status: 58, capacity: 140 },
-    
-    // Janubi-g'arbiy hudud
-    { id: 'BIN-018', location: [41.2650, 69.2100], address: 'Quyichirchiq tumani, Chirchiq, 12', status: 97, capacity: 170 },
-    { id: 'BIN-019', location: [41.2700, 69.2800], address: 'Parkent tumani, Parkent yo\'li, 45', status: 71, capacity: 155 },
-    
-    // Markaziy-shimoliy hudud
-    { id: 'BIN-020', location: [41.3600, 69.2400], address: 'Toshkent shahar markazi, Amir Temur maydoni, 1', status: 99, capacity: 180 }
+    // ESP32 bilan bog'liq quti
+    { id: 'ESP32-IBN-SINO', location: [41.3350, 69.2100], address: 'Ibn Sino ko\'chasi 17A', status: 45, capacity: 120 }
   ]
 
-  // 7 ta mashina
+  // 1 ta mashina
   const mockVehiclesData = [
-    { id: 'VEH-001', driver: 'Akmaljon Karimov', status: 'moving', coordinates: [41.3350, 69.2100] },
-    { id: 'VEH-002', driver: 'Bobur Toshmatov', status: 'active', coordinates: [41.2850, 69.2200] },
-    { id: 'VEH-003', driver: 'Davron Saidov', status: 'moving', coordinates: [41.3100, 69.3200] },
-    { id: 'VEH-004', driver: 'Eldor Rahimov', status: 'active', coordinates: [41.3250, 69.1850] },
-    { id: 'VEH-005', driver: 'Farrux Nazarov', status: 'moving', coordinates: [41.3150, 69.2400] },
-    { id: 'VEH-006', driver: 'Gulom Yusupov', status: 'active', coordinates: [41.3500, 69.2900] },
-    { id: 'VEH-007', driver: 'Husan Aliyev', status: 'moving', coordinates: [41.2650, 69.2100] }
+    { id: 'VEH-001', driver: 'Akmaljon Karimov', status: 'moving', coordinates: [41.3350, 69.2100] }
   ]
 
   // Ko'chalar tarmog'i - Map.toza.huduh bilan bir xil
