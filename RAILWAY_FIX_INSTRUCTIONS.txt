@@ -1,0 +1,58 @@
+RAILWAY FRONTEND SERVICE NI TO'G'RILASH
+
+Muammo: Railway Dockerfile ni topa olmayapti chunki root directory noto'g'ri.
+
+YECHIM: Railway Dashboard orqali
+
+1. Railway Dashboard ga kiring:
+   https://railway.com/project/e0ee489f-1abf-4ca2-8a38-9eb343401483
+
+2. "Toza_Hudud_frontend" service ni bosing
+
+3. "Settings" tabga o'ting
+
+4. "Source" bo'limini toping
+
+5. "Root Directory" ni "frontend" ga o'zgartiring
+   (Hozir bo'sh yoki "/" bo'lishi mumkin)
+
+6. "Save Changes" yoki "Update" bosing
+
+7. "Deployments" tabga o'ting
+
+8. "Redeploy" tugmasini bosing
+
+9. Build muvaffaqiyatli tugashini kuting (2-3 daqiqa)
+
+10. Brauzerda test qiling:
+    https://tozahududfrontend-production.up.railway.app
+    Ctrl+Shift+R (hard refresh)
+
+ALTERNATIV: Yangi Service Yaratish
+
+Agar yuqoridagi usul ishlamasa:
+
+1. Railway dashboard da "New Service" bosing
+2. "GitHub Repo" ni tanlang
+3. "saidkarimcyber01-afk/Toza_Hudud" ni tanlang
+4. "Root Directory" ga "frontend" yozing
+5. "Deploy" bosing
+
+Bu yangi service yaratadi va to'g'ri papkadan build qiladi.
+
+TEKSHIRISH
+
+Deploy tugagandan keyin:
+- Yangi fayl nomlari ko'rinishi kerak (index-Bx3lZq3b.js emas)
+- Sensor paneli dashboard da ko'rinishi kerak
+- Console da sensor API loglar ko'rinishi kerak
+
+HOZIRGI HOLAT
+
+✅ Backend ishlayapti
+✅ ESP32 ma'lumot yubormoqda
+✅ API ma'lumotlar qaytarmoqda
+✅ Frontend kodi tayyor
+❌ Railway root directory noto'g'ri
+
+Faqat Railway settings ni to'g'rilash kerak!

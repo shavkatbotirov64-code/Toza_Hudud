@@ -1,6 +1,6 @@
 {
   "name": "smart-trash-system",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Smart Trash System - Intelligent Waste Management Admin Panel",
   "private": true,
   "type": "module",

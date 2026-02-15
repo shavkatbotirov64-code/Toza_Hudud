@@ -1,0 +1,54 @@
+🎉 FRONTEND MUVAFFAQIYATLI DEPLOY QILINDI!
+
+Container ishga tushdi: 2026/02/15 15:29:19
+
+KEYINGI QADAMLAR:
+
+1. 1-2 daqiqa kuting (container to'liq ishga tushishi uchun)
+
+2. Brauzerda oching:
+   https://tozahududfrontend-production.up.railway.app
+
+3. MUHIM: Cache ni tozalang
+   - Ctrl+Shift+Delete bosing
+   - "Cached images and files" ni tanlang
+   - "Clear data" bosing
+   
+   YO'Q
+   
+   - Ctrl+Shift+R (hard refresh)
+
+4. Dashboard pastida "📡 ESP32 Sensor Ma'lumotlari" panelini ko'rasiz
+
+5. F12 bosib Console tabni oching va quyidagi loglarni ko'ring:
+   - 🔍 Fetching sensor data from: ...
+   - 📡 Response status: 200
+   - ✅ Sensor data received
+
+6. Sensor ma'lumotlari real-time ko'rinadi!
+
+TEKSHIRISH:
+
+Backend API (ishlayapti):
+https://tozahudud-production-d73f.up.railway.app/api/sensors/latest?limit=3
+
+Natija:
+{
+  "success": true,
+  "data": [
+    {
+      "distance": 10.2,
+      "binId": "ESP32-IBN-SINO",
+      "location": "Ibn Sino ko'chasi 17A",
+      ...
+    }
+  ]
+}
+
+AGAR HALI HAM ESKI VERSIYA KO'RINSA:
+
+1. Brauzer cache ni to'liq tozalang
+2. Incognito/Private mode da oching
+3. Boshqa brauzerda sinab ko'ring
+
+BARCHA TAYYOR! 🚀
