@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import '../styles/SensorDataPanel.css';
 
 const SensorDataPanel = () => {
-  const { t } = useTranslation();
   const [sensorData, setSensorData] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
