@@ -15,17 +15,19 @@ const LiveMapSimple = () => {
   const routeLineRef = useRef(null)
   const animationIntervalRef = useRef(null)
   const socketRef = useRef(null) // WebSocket reference
-  const { showToast } = useAppContext()
+  const { showToast, binsData, setBinsData } = useAppContext() // AppContext dan quti ma'lumotlari
   
-  // Quti holati
-  const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
-  const [binData, setBinData] = useState({
+  // Birinchi quti (ESP32-IBN-SINO)
+  const binData = binsData[0] || {
     id: 'ESP32-IBN-SINO',
     location: [39.6542, 66.9597],
     address: 'Samarqand',
-    status: 15, // Yashil (bo'sh)
+    status: 15,
     capacity: 120
-  })
+  }
+  
+  // Quti holati
+  const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
   
   // Mashina holati
   const [vehicleState, setVehicleState] = useState({
@@ -143,12 +145,18 @@ const LiveMapSimple = () => {
       
       // Qutini FULL holatiga o'tkazish
       setBinStatus('FULL')
-      setBinData(prev => ({
-        ...prev,
-        status: 95, // Qizil rang
-        distance: data.distance,
-        timestamp: data.timestamp
-      }))
+      
+      // AppContext dagi qutini yangilash - "Qutilar" bo'limida ham ko'rinadi
+      setBinsData(prev => prev.map(bin => 
+        bin.id === data.binId ? {
+          ...bin,
+          status: 95, // Qizil rang
+          fillLevel: 95,
+          distance: data.distance,
+          lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: data.timestamp
+        } : bin
+      ))
       
       // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
       setVehicleState(prev => ({
@@ -166,10 +174,14 @@ const LiveMapSimple = () => {
       setBinStatus(status)
       
       if (status === 'FULL') {
-        setBinData(prev => ({ ...prev, status: 95 }))
+        setBinsData(prev => prev.map(bin =>
+          bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
+        ))
         console.log('🔴 Bin marked as FULL from binStatus event')
       } else if (status === 'EMPTY') {
-        setBinData(prev => ({ ...prev, status: 15 }))
+        setBinsData(prev => prev.map(bin =>
+          bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
+        ))
         console.log('🟢 Bin marked as EMPTY from binStatus event')
       }
     })
@@ -280,10 +292,17 @@ const LiveMapSimple = () => {
             
             // Qutini EMPTY holatiga o'tkazish
             setBinStatus('EMPTY')
-            setBinData(prevBin => ({
-              ...prevBin,
-              status: 15 // Yashil rang
-            }))
+            
+            // AppContext dagi qutini yangilash
+            setBinsData(prevBins => prevBins.map(bin =>
+              bin.id === binData.id ? {
+                ...bin,
+                status: 15, // Yashil rang
+                fillLevel: 15,
+                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+              } : bin
+            ))
             
             console.log('🟢 BIN STATUS: EMPTY (Yashil)')
             

@@ -30,7 +30,26 @@ export const AppProvider = ({ children }) => {
   })
   
   // Data states - start with empty arrays, will be populated from API
-  const [binsData, setBinsData] = useState([]) // Bo'sh array - faqat API dan
+  const [binsData, setBinsData] = useState([
+    // Xarita uchun default quti - bu "Qutilar" bo'limida ham ko'rinadi
+    {
+      id: 'ESP32-IBN-SINO',
+      _backendId: null,
+      address: 'Ibn Sino ko\'chasi 17A, Samarqand',
+      district: 'Samarqand',
+      location: [39.6542, 66.9597],
+      status: 15, // Bo'sh
+      lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+      lastCleaned: 'Hech qachon',
+      capacity: 120,
+      type: 'standard',
+      sensorId: 'ESP32-IBN-SINO',
+      online: true,
+      installDate: new Date().toLocaleDateString('uz-UZ'),
+      fillLevel: 15,
+      batteryLevel: 100,
+    }
+  ])
   const [vehiclesData, setVehiclesData] = useState([]) // Bo'sh array - faqat API dan
   const [activityData, setActivityData] = useState(mockActivities)
   const [alertsData, setAlertsData] = useState([])
