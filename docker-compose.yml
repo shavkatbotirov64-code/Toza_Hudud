@@ -4,7 +4,7 @@ services:
     container_name: smart-trash-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Laziz2006.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: smart_trash_db
     ports:
       - '5432:5432'
@@ -23,9 +23,10 @@ services:
       DB_HOST: smart-trash-db
       DB_PORT: 5432
       DB_USERNAME: postgres
-      DB_PASSWORD: Laziz2006.
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: smart_trash_db
       PORT: 3002
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_production}
     command: /app/wait.sh
 
   smart-trash-frontend:

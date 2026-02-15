@@ -1,7 +1,6 @@
 // API Service - Clean version without console.logs
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? '/api'  // Local development - Vite proxy
-  : 'https://tozahudud-production-00e5.up.railway.app/api';  // Production - direct backend URL
+// Always use relative path - nginx will proxy to backend
+const API_BASE_URL = '/api';
 
 // Error handling function
 const handleApiError = (error, context) => {

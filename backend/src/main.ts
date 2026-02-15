@@ -16,15 +16,21 @@ async function bootstrap() {
   app.use(helmet());
   app.use(compression());
 
-  // CORS configuration - Allow frontend ports
+  // CORS configuration - Allow all origins in production (nginx proxy handles it)
+  const allowedOrigins = [
+    'http://localhost:80', 
+    'http://localhost:8080', 
+    'http://localhost:5173',
+  ];
+  
+  // Add production frontend URL from environment
+  const frontendUrl = configService.get('FRONTEND_URL');
+  if (frontendUrl) {
+    allowedOrigins.push(frontendUrl);
+  }
+
   app.enableCors({
-    origin: [
-      'http://localhost:80', 
-      'http://localhost:8080', 
-      'http://localhost:5173', 
-      'https://peppercornish-unadroitly-drucilla.ngrok-free.dev',
-      'https://frontend-production-5451.up.railway.app'
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],

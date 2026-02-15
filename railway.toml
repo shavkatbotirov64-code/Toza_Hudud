@@ -1,5 +1,7 @@
 # Railway Configuration for Monorepo
+# This file configures multiple services in a single repository
 
+# Backend API Service
 [[services]]
 name = "backend"
 source = "backend"
@@ -13,6 +15,7 @@ startCommand = "npm run start:prod"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
+# Frontend Service
 [[services]]
 name = "frontend"
 source = "frontend"
@@ -25,3 +28,18 @@ dockerfilePath = "Dockerfile"
 startCommand = "nginx -g 'daemon off;'"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+# Telegram Bot Service (Optional)
+# Uncomment to deploy bot
+# [[services]]
+# name = "telegram-bot"
+# source = "TozaHudud_AI-bot"
+# 
+# [services.build]
+# builder = "DOCKERFILE"
+# dockerfilePath = "Dockerfile"
+# 
+# [services.deploy]
+# startCommand = "python bot.py"
+# restartPolicyType = "ON_FAILURE"
+# restartPolicyMaxRetries = 10

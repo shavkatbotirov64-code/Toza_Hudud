@@ -1,0 +1,57 @@
+RAILWAY DEPLOY QILISH BOSQICHLARI
+==================================
+
+1. GITHUB REPOSITORY
+   - Repository'ni GitHub'ga push qiling
+   - git add .
+   - git commit -m "Ready for Railway deployment"
+   - git push origin main
+
+2. RAILWAY ACCOUNT
+   - railway.app ga kiring
+   - "New Project" bosing
+   - "Deploy from GitHub repo" tanlang
+   - Repository'ni tanlang
+
+3. POSTGRES DATABASE
+   - Railway Dashboard > Add Service > Database > PostgreSQL
+   - Yoki Neon.tech dan external database ishlating
+
+4. BACKEND SERVICE
+   Root Directory: backend
+   Environment Variables:
+   - NODE_ENV=production
+   - PORT=3002
+   - JWT_SECRET=<generate-strong-secret>
+   - DB_HOST=${{Postgres.PGHOST}}
+   - DB_PORT=${{Postgres.PGPORT}}
+   - DB_USERNAME=${{Postgres.PGUSER}}
+   - DB_PASSWORD=${{Postgres.PGPASSWORD}}
+   - DB_NAME=${{Postgres.PGDATABASE}}
+   - FRONTEND_URL=<frontend-url-after-deploy>
+
+5. FRONTEND SERVICE
+   Root Directory: frontend
+   Environment Variables:
+   - BACKEND_URL=<backend-url-after-deploy>
+   - PORT=80
+
+6. TELEGRAM BOT (Optional)
+   Root Directory: TozaHudud_AI-bot
+   Environment Variables:
+   - BOT_TOKEN=<telegram-bot-token>
+   - DB_HOST=${{Postgres.PGHOST}}
+   - DB_PORT=${{Postgres.PGPORT}}
+   - DB_USER=${{Postgres.PGUSER}}
+   - DB_PASSWORD=${{Postgres.PGPASSWORD}}
+   - DB_NAME=${{Postgres.PGDATABASE}}
+
+7. DEPLOY
+   - Railway avtomatik deploy qiladi
+   - Logs'ni kuzating
+   - Health check: <backend-url>/api/health
+
+MUHIM:
+- JWT_SECRET ni kuchli qiling: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+- FRONTEND_URL va BACKEND_URL ni to'g'ri kiriting
+- Database variables Railway Postgres plugin avtomatik beradi

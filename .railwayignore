@@ -1,5 +1,57 @@
-node_modules
-.git
-.env
+# Railway Ignore File
+# Files and directories to ignore during deployment
+
+# Documentation
+*.md
+!README.md
+docs/
+CONTRIBUTING.md
+DEPLOYMENT.md
+RAILWAY_SETUP.md
+
+# Development files
+.vscode/
+.idea/
 *.log
 .DS_Store
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+test/
+tests/
+__tests__/
+
+# Local environment
+.env.local
+.env.development
+.env.test
+
+# Git
+.git/
+.gitignore
+
+# Node modules (will be installed during build)
+node_modules/
+
+# Build artifacts (will be generated)
+dist/
+build/
+.next/
+out/
+
+# Cache
+.cache/
+.temp/
+.tmp/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.swp
+*.swo
+*~
