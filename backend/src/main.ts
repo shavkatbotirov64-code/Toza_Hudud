@@ -29,8 +29,9 @@ async function bootstrap() {
     allowedOrigins.push(frontendUrl);
   }
 
+  // CORS configuration - Allow all origins for sensors endpoint
   app.enableCors({
-    origin: allowedOrigins,
+    origin: true, // Allow all origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
