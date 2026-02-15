@@ -30,8 +30,8 @@ export const AppProvider = ({ children }) => {
   })
   
   // Data states - start with empty arrays, will be populated from API
-  const [binsData, setBinsData] = useState(mockBins)
-  const [vehiclesData, setVehiclesData] = useState(mockVehicles)
+  const [binsData, setBinsData] = useState([]) // Bo'sh array - faqat API dan
+  const [vehiclesData, setVehiclesData] = useState([]) // Bo'sh array - faqat API dan
   const [activityData, setActivityData] = useState(mockActivities)
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -210,13 +210,13 @@ export const AppProvider = ({ children }) => {
         showToast('Ma\'lumotlar muvaffaqiyatli yuklandi', 'success')
       } else {
         setApiConnected(false)
-        console.warn('⚠️ API ga ulanib bo\'lmadi, mock ma\'lumotlar ishlatiladi')
-        showToast('API ga ulanib bo\'lmadi, demo ma\'lumotlar ko\'rsatilmoqda', 'warning')
+        console.warn('⚠️ API ga ulanib bo\'lmadi')
+        showToast('API ga ulanib bo\'lmadi. Iltimos, backend ishga tushganini tekshiring.', 'warning')
       }
     } catch (error) {
       console.error('❌ API yuklash xatosi:', error)
       setApiConnected(false)
-      showToast('Ma\'lumotlarni yuklashda xatolik, demo ma\'lumotlar ko\'rsatilmoqda', 'error')
+      showToast('Ma\'lumotlarni yuklashda xatolik. Backend ishlamayapti.', 'error')
     } finally {
       setLoading(false)
       console.log('🏁 Data loading completed')
@@ -240,49 +240,12 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval)
   }, [apiConnected])
 
-  // Real-time updates simulation (only for mock data)
+  // Real-time updates - faqat API connected bo'lganda
   useEffect(() => {
-    if (apiConnected) return // Don't simulate if API is connected
+    if (!apiConnected) return // API yo'q bo'lsa, hech narsa qilmaymiz
 
-    const interval = setInterval(() => {
-      // Simulate bin status updates
-      setBinsData(prev => prev.map(bin => {
-        if (Math.random() > 0.7) {
-          const change = (Math.random() - 0.5) * 2 // -1 to +1
-          const newStatus = Math.max(0, Math.min(100, bin.status + change))
-          return {
-            ...bin,
-            status: Math.round(newStatus * 10) / 10,
-            lastUpdate: new Date().toLocaleTimeString('uz-UZ', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              second: '2-digit'
-            })
-          }
-        }
-        return bin
-      }))
-
-      // Simulate vehicle movement
-      setVehiclesData(prev => prev.map(vehicle => {
-        if (vehicle.status === 'moving' && Math.random() > 0.5) {
-          const latChange = (Math.random() - 0.5) * 0.001
-          const lngChange = (Math.random() - 0.5) * 0.001
-          return {
-            ...vehicle,
-            coordinates: [
-              vehicle.coordinates[0] + latChange,
-              vehicle.coordinates[1] + lngChange
-            ],
-            fuel: Math.max(0, vehicle.fuel - 0.1),
-            speed: 30 + Math.random() * 20
-          }
-        }
-        return vehicle
-      }))
-    }, 5000) // Update every 5 seconds
-
-    return () => clearInterval(interval)
+    // API connected bo'lsa, WebSocket orqali real-time updates keladi
+    // Bu yerda qo'shimcha kod kerak emas
   }, [apiConnected])
 
   const showToast = (message, type = 'info', duration = 5000) => {
