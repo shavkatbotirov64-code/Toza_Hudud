@@ -3,6 +3,7 @@ import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { io } from 'socket.io-client'
+import api from '../services/api'
 import 'leaflet/dist/leaflet.css'
 
 const LiveMapSimple = () => {
@@ -218,14 +219,50 @@ const LiveMapSimple = () => {
         clearInterval(animationIntervalRef.current)
       }
 
+      const startTime = Date.now()
+
       animationIntervalRef.current = setInterval(() => {
         setVehicleState(prev => {
           const nextIndex = prev.currentPathIndex + 1
           
           if (nextIndex >= prev.routePath.length) {
             // Qutiga yetdi - tozalash
+            const endTime = Date.now()
+            const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
+            
             console.log('✅ Mashina qutiga yetdi!')
             console.log('🧹 Quti tozalanmoqda...')
+            
+            // Tozalash yozuvi yaratish
+            const cleaningData = {
+              binId: binData.id,
+              vehicleId: vehicleState.id,
+              driverName: vehicleState.driver,
+              binLocation: binData.address,
+              fillLevelBefore: 95,
+              fillLevelAfter: 15,
+              distanceTraveled: calculateDistance(
+                prev.routePath[0][0],
+                prev.routePath[0][1],
+                binData.location[0],
+                binData.location[1]
+              ),
+              durationMinutes: durationMinutes,
+              notes: 'Avtomatik tozalash (ESP32 signali)',
+              status: 'completed'
+            }
+            
+            api.createCleaning(cleaningData)
+              .then(result => {
+                if (result.success) {
+                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+                } else {
+                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                }
+              })
+              .catch(error => {
+                console.error('❌ API xatolik:', error)
+              })
             
             // Qutini EMPTY holatiga o'tkazish
             setBinStatus('EMPTY')

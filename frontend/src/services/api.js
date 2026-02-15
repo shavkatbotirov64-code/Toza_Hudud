@@ -765,6 +765,93 @@ class ApiService {
       return { success: false, error: error.message };
     }
   }
+
+  // Cleaning History API
+  async createCleaning(cleaningData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleaningData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getCleaningHistory(limit = 50) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/history?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getCleaningsByBin(binId, limit = 20) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/by-bin/${binId}?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getCleaningsByVehicle(vehicleId, limit = 20) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/by-vehicle/${vehicleId}?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getCleaningStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/stats`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || {} };
+    } catch (error) {
+      return { success: false, error: error.message, data: {} };
+    }
+  }
+
+  async getDailyCleanings() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/daily`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
 }
 
 export default new ApiService();
