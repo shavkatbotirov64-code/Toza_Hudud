@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
+import { io } from 'socket.io-client'
 import 'leaflet/dist/leaflet.css'
 
 const LiveMapSimple = () => {
@@ -12,6 +13,7 @@ const LiveMapSimple = () => {
   const vehicleMarkerRef = useRef(null)
   const routeLineRef = useRef(null)
   const animationIntervalRef = useRef(null)
+  const socketRef = useRef(null) // WebSocket reference
   const { showToast } = useAppContext()
   
   // Quti holati
@@ -103,49 +105,65 @@ const LiveMapSimple = () => {
     }
   }
 
-  // ESP32 dan ma'lumot olish
+  // WebSocket - Real-time ESP32 ma'lumot olish
   useEffect(() => {
-    let lastProcessedTimestamp = null // Oxirgi qayta ishlangan timestamp
+    // WebSocket ulanish
+    const socket = io('https://tozahudud-production-d73f.up.railway.app', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    })
     
-    const fetchSensorData = async () => {
-      try {
-        const response = await fetch('https://tozahudud-production-d73f.up.railway.app/sensors/latest?limit=1')
-        const result = await response.json()
-        
-        if (result.success && result.data && result.data.length > 0) {
-          const latestReading = result.data[0]
-          const readingTimestamp = latestReading.timestamp
-          
-          // Faqat yangi ma'lumot bo'lsa qayta ishlash
-          if (readingTimestamp !== lastProcessedTimestamp) {
-            lastProcessedTimestamp = readingTimestamp
-            
-            console.log(`📡 YANGI ESP32 SIGNAL: ${latestReading.distance} sm`)
-            
-            // Qutini FULL holatiga o'tkazish
-            setBinStatus('FULL')
-            setBinData(prev => ({
-              ...prev,
-              status: 95 // Qizil rang
-            }))
-            
-            // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-            setVehicleState(prev => ({
-              ...prev,
-              hasCleanedOnce: false
-            }))
-            
-            console.log('🔴 BIN STATUS: FULL (Qizil)')
-          }
-        }
-      } catch (error) {
-        console.error('❌ Sensor xatolik:', error)
-      }
-    }
+    socketRef.current = socket
 
-    fetchSensorData()
-    const interval = setInterval(fetchSensorData, 5000)
-    return () => clearInterval(interval)
+    socket.on('connect', () => {
+      console.log('✅ WebSocket connected:', socket.id)
+    })
+
+    socket.on('disconnect', () => {
+      console.log('❌ WebSocket disconnected')
+    })
+
+    // ESP32 dan yangi ma'lumot kelganda
+    socket.on('sensorData', (data) => {
+      console.log(`📡 REAL-TIME ESP32 SIGNAL: ${data.distance} sm`)
+      
+      // Qutini FULL holatiga o'tkazish
+      setBinStatus('FULL')
+      setBinData(prev => ({
+        ...prev,
+        status: 95, // Qizil rang
+        distance: data.distance,
+        timestamp: data.timestamp
+      }))
+      
+      // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
+      setVehicleState(prev => ({
+        ...prev,
+        hasCleanedOnce: false
+      }))
+      
+      console.log('🔴 BIN STATUS: FULL (Qizil) - Real-time!')
+    })
+
+    // Quti holati o'zgarganda
+    socket.on('binStatus', ({ binId, status }) => {
+      console.log(`🗑️ REAL-TIME BIN STATUS: ${binId} = ${status}`)
+      setBinStatus(status)
+      
+      if (status === 'FULL') {
+        setBinData(prev => ({ ...prev, status: 95 }))
+      } else if (status === 'EMPTY') {
+        setBinData(prev => ({ ...prev, status: 15 }))
+      }
+    })
+
+    // Cleanup
+    return () => {
+      console.log('🔌 WebSocket disconnecting...')
+      socket.disconnect()
+    }
   }, [])
 
   // Quti FULL bo'lganda mashina harakatga keladi
