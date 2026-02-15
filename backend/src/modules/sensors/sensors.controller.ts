@@ -2,6 +2,7 @@ import { Controller, Post, Get, Delete, Body, Query, Logger } from '@nestjs/comm
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SensorsService } from './sensors.service';
 import { SensorsGateway } from './sensors.gateway';
+import { BinsService } from './bins.service';
 
 export interface SensorData {
   distance: number;
@@ -18,6 +19,7 @@ export class SensorsController {
   constructor(
     private readonly sensorsService: SensorsService,
     private readonly sensorsGateway: SensorsGateway,
+    private readonly binsService: BinsService,
   ) {}
 
   // ESP32 uchun root level endpoint (prefiksiz)
@@ -35,16 +37,31 @@ export class SensorsController {
       this.sensorsGateway.emitNewSensorData(savedData);
       this.logger.log(`📤 WebSocket: Ma'lumot barcha clientlarga yuborildi`);
       
-      // Agar 20 sm dan kam bo'lsa, alert yaratish
+      // Agar 20 sm dan kam bo'lsa, alert yaratish va qutini FULL qilish
       if (data.distance <= 20) {
         this.logger.warn(`🚨 ALERT: Chiqindi quti to'la! Masofa: ${data.distance} sm`);
         await this.sensorsService.createAlert(data);
         
+        // 🔥 Qutini FULL holatiga o'tkazish
+        const binId = data.binId || 'ESP32-IBN-SINO';
+        try {
+          await this.binsService.markBinAsFull(binId, data.distance);
+          this.logger.log(`🗑️ Bin marked as FULL in database: ${binId}`);
+        } catch (binError) {
+          // Agar quti topilmasa, yaratish
+          this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
+          await this.binsService.upsertBin({
+            binId: binId,
+            location: data.location || 'Samarqand',
+            latitude: 39.6542,
+            longitude: 66.9597,
+            capacity: 120,
+          });
+          await this.binsService.markBinAsFull(binId, data.distance);
+        }
+        
         // 🔥 Quti FULL holatini yuborish
-        this.sensorsGateway.emitBinStatusChange(
-          data.binId || 'ESP32-IBN-SINO',
-          'FULL'
-        );
+        this.sensorsGateway.emitBinStatusChange(binId, 'FULL');
       }
 
       return {
