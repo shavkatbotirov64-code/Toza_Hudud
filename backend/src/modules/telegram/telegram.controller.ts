@@ -1,8 +1,13 @@
 import { Controller, Get, Post, Body, Query, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { TelegramService } from './telegram.service';
-import { TelegramDataService } from './telegram-data.service';
-import type { TelegramStats, TelegramUser, TelegramReport, TelegramFeedback } from './telegram-data.service';
+import { 
+  TelegramDataService,
+  TelegramStats,
+  TelegramUserInterface,
+  TelegramReport,
+  TelegramFeedbackInterface
+} from './telegram-data.service';
 
 @ApiTags('telegram')
 @Controller('telegram')
