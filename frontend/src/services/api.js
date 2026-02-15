@@ -198,6 +198,46 @@ class ApiService {
     }
   }
 
+  // Sensors API
+  async getSensorData(limit = 50) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sensors/latest?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return { success: true, data: result.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getSensorAlerts(limit = 20) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sensors/alerts?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return { success: true, data: result.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getSensorStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sensors/stats`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return { success: true, data: result.data || {} };
+    } catch (error) {
+      return { success: false, error: error.message, data: {} };
+    }
+  }
+
   // Telegram API
   async getTelegramBotInfo() {
     try {

@@ -5,6 +5,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
 import LiveMap from './LiveMap'
 import ActivityFeed from './ActivityFeed'
+import SensorDataPanel from './SensorDataPanel'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -214,6 +215,9 @@ const Dashboard = () => {
         <LiveMap />
         <ActivityFeed />
       </div>
+
+      {/* ESP32 Sensor Data Panel */}
+      <SensorDataPanel />
 
       {/* Quick Stats and Charts */}
       <div className="content-row">
