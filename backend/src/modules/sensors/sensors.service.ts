@@ -94,9 +94,12 @@ export class SensorsService {
         .select('AVG(reading.distance)', 'avg')
         .getRawOne();
       
-      const lastReading = await this.sensorReadingRepository.findOne({
+      // Fix: Use find with limit 1 instead of findOne
+      const lastReadingArray = await this.sensorReadingRepository.find({
         order: { timestamp: 'DESC' },
+        take: 1,
       });
+      const lastReading = lastReadingArray.length > 0 ? lastReadingArray[0] : null;
 
       const activeAlerts = await this.sensorAlertRepository.count({
         where: { status: 'active' },
