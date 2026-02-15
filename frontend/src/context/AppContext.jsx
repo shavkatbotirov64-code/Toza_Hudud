@@ -68,7 +68,6 @@ export const AppProvider = ({ children }) => {
         console.log('📦 Bins Result:', binsResult)
         console.log('📦 Bins Result Data:', binsResult.data)
         console.log('📦 Bins Result Data Type:', typeof binsResult.data)
-        console.log('📦 Bins Result Data Length:', binsResult.data?.length)
         
         try {
           if (binsResult.success && binsResult.data) {
@@ -80,13 +79,20 @@ export const AppProvider = ({ children }) => {
               console.log('📦 Using nested data array:', binsArray)
             }
             
+            console.log('📦 BinsArray:', binsArray)
+            console.log('📦 BinsArray length:', binsArray?.length)
+            console.log('📦 BinsArray is Array:', Array.isArray(binsArray))
+            
             if (Array.isArray(binsArray) && binsArray.length > 0) {
               console.log('📦 Processing bins array:', binsArray.length, 'items')
+              console.log('📦 First bin raw data:', binsArray[0])
               
               const transformedBins = binsArray.map((bin, index) => {
                 try {
                   console.log(`📦 Transforming bin ${index + 1}:`, bin)
-                  return ApiService.transformBinData(bin)
+                  const transformed = ApiService.transformBinData(bin)
+                  console.log(`✅ Bin ${index + 1} transformed:`, transformed)
+                  return transformed
                 } catch (error) {
                   console.error(`❌ Error transforming bin ${index + 1}:`, error)
                   console.error('❌ Bin data:', bin)
@@ -95,9 +101,11 @@ export const AppProvider = ({ children }) => {
               }).filter(bin => bin !== null) // Remove failed transformations
               
               console.log('📦 Transformed Bins:', transformedBins)
+              console.log('📦 Setting binsData with', transformedBins.length, 'bins')
               
               if (transformedBins.length > 0) {
                 setBinsData(transformedBins)
+                console.log('✅ BinsData set successfully')
               } else {
                 console.warn('⚠️ No bins could be transformed')
               }
@@ -107,9 +115,12 @@ export const AppProvider = ({ children }) => {
             }
           } else {
             console.log('📦 API call failed or no data')
+            console.log('📦 binsResult.success:', binsResult.success)
+            console.log('📦 binsResult.data:', binsResult.data)
           }
         } catch (error) {
           console.error('❌ Error processing bins data:', error)
+          console.error('❌ Error stack:', error.stack)
           showToast('Qutilar ma\'lumotini yuklashda xatolik', 'error')
         }
         
