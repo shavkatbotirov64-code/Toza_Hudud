@@ -1,0 +1,135 @@
+🎉 TOZA HUDUD - RAILWAY DEPLOYMENT
+===================================
+
+📍 PRODUCTION URLS
+------------------
+Frontend: https://tozahududfrontend-production.up.railway.app
+Backend:  https://tozahudud-production-d73f.up.railway.app
+API Docs: https://tozahudud-production-d73f.up.railway.app/api/docs
+
+🔐 LOGIN CREDENTIALS
+--------------------
+Username: admin
+Password: istalgan parol (any password works)
+
+📊 SERVICES
+-----------
+✅ Backend (NestJS)
+   - Port: 3002
+   - Database: Neon PostgreSQL
+   - JWT Authentication: Enabled
+   - CORS: Configured for frontend
+   - Swagger Docs: /api/docs
+
+✅ Frontend (React + Nginx)
+   - Port: 80
+   - Nginx Reverse Proxy: /api/* → Backend
+   - Build: Vite (production)
+   - Minify: esbuild
+
+✅ Database (Neon PostgreSQL)
+   - Host: ep-sweet-star-ai94ru6h-pooler.c-4.us-east-1.aws.neon.tech
+   - Database: neondb
+   - SSL: Required
+   - Connection Pooling: Enabled
+
+🔧 RAILWAY MANAGEMENT
+---------------------
+Project: https://railway.com/project/e0ee489f-1abf-4ca2-8a38-9eb343401483
+
+Backend Service:
+  cd backend
+  railway logs          # View logs
+  railway variables     # View env vars
+  railway up --detach   # Redeploy
+
+Frontend Service:
+  cd frontend
+  railway logs          # View logs
+  railway variables     # View env vars
+  railway up --detach   # Redeploy
+
+📝 ENVIRONMENT VARIABLES
+------------------------
+Backend:
+  - NODE_ENV=production
+  - PORT=3002
+  - DATABASE_URL=postgresql://...
+  - JWT_SECRET=*** (64 char)
+  - JWT_EXPIRES_IN=24h
+  - FRONTEND_URL=https://tozahududfrontend-production.up.railway.app
+
+Frontend:
+  - PORT=80
+  - BACKEND_URL=https://tozahudud-production-d73f.up.railway.app
+
+🧪 TESTING
+----------
+1. Backend Health:
+   curl https://tozahudud-production-d73f.up.railway.app/api/health
+
+2. Frontend:
+   Open: https://tozahududfrontend-production.up.railway.app
+   Login with: admin / any
+
+3. API Test:
+   curl https://tozahudud-production-d73f.up.railway.app/api/bins
+
+4. Integration Test:
+   - Login to frontend
+   - Check if dashboard loads
+   - Verify no CORS errors in console
+
+📦 DEPLOYMENT HISTORY
+---------------------
+1. ✅ Backend deployed with Dockerfile
+2. ✅ Frontend deployed with Dockerfile + Nginx
+3. ✅ Database connected (Neon PostgreSQL)
+4. ✅ Environment variables configured
+5. ✅ CORS configured
+6. ✅ Nginx proxy configured
+7. 🔄 Final deployment in progress
+
+🚀 NEXT STEPS
+-------------
+1. Wait for frontend deployment to complete (~2 min)
+2. Test frontend: https://tozahududfrontend-production.up.railway.app
+3. Login and verify dashboard works
+4. Check browser console for any errors
+5. Test API endpoints from frontend
+
+💡 TIPS
+-------
+- Railway auto-deploys on git push to main
+- Logs are real-time: railway logs
+- Environment variables can be updated in Railway Dashboard
+- Services restart automatically when env vars change
+- Free tier: $5 credit/month
+
+🐛 TROUBLESHOOTING
+------------------
+If frontend can't connect to backend:
+  1. Check nginx logs: railway logs (in frontend dir)
+  2. Verify BACKEND_URL: railway variables
+  3. Check startup logs for "BACKEND_URL: https://..."
+
+If backend has errors:
+  1. Check DATABASE_URL is set
+  2. Verify Neon database is active
+  3. Check logs: railway logs
+
+If CORS errors:
+  1. Verify FRONTEND_URL in backend
+  2. Check backend logs for CORS config
+  3. Ensure both services are running
+
+📞 SUPPORT
+----------
+Railway Docs: https://docs.railway.app
+Railway Discord: https://discord.gg/railway
+Neon Docs: https://neon.tech/docs
+
+=====================================
+Deployment Date: 2026-02-15
+Status: ✅ Complete (pending final test)
+=====================================

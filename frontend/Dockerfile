@@ -10,6 +10,9 @@ RUN npm run build
 # serve stage
 FROM nginx:alpine
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 # Copy built files
 COPY --from=build /app/dist /usr/share/nginx/html
 
@@ -24,13 +27,14 @@ RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'export PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
     echo 'export BACKEND_URL=${BACKEND_URL:-http://localhost:3002}' >> /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
+    echo 'echo "=== Environment Variables ==="' >> /docker-entrypoint.sh && \
     echo 'echo "PORT: $PORT"' >> /docker-entrypoint.sh && \
     echo 'echo "BACKEND_URL: $BACKEND_URL"' >> /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
     echo '# Substitute environment variables in nginx config' >> /docker-entrypoint.sh && \
     echo 'envsubst '"'"'$PORT $BACKEND_URL'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
-    echo 'echo "Nginx config:"' >> /docker-entrypoint.sh && \
+    echo 'echo "=== Nginx Configuration ==="' >> /docker-entrypoint.sh && \
     echo 'cat /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
     echo '' >> /docker-entrypoint.sh && \
     echo '# Start nginx' >> /docker-entrypoint.sh && \
