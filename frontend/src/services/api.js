@@ -938,6 +938,67 @@ class ApiService {
       return { success: false, error: error.message };
     }
   }
+
+  // GPS Tracking API
+  async saveGpsLocation(vehicleId, gpsData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/gps`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(gpsData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getCurrentGpsLocation(vehicleId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/gps/current`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getGpsHistory(vehicleId, hours = 1) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/gps-history?hours=${hours}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async trackVehicle(vehicleId, limit = 50) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/track?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new ApiService();
