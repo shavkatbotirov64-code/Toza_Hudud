@@ -128,7 +128,10 @@ const LiveMapSimple = () => {
 
     // ESP32 dan yangi ma'lumot kelganda
     socket.on('sensorData', (data) => {
-      console.log(`📡 REAL-TIME ESP32 SIGNAL: ${data.distance} sm`)
+      console.log(`📡 REAL-TIME ESP32 SIGNAL:`, data)
+      console.log(`📡 Distance: ${data.distance} sm`)
+      console.log(`📡 BinId: ${data.binId}`)
+      console.log(`📡 Current binData.id: ${binData.id}`)
       
       // Qutini FULL holatiga o'tkazish
       setBinStatus('FULL')
@@ -146,6 +149,7 @@ const LiveMapSimple = () => {
       }))
       
       console.log('🔴 BIN STATUS: FULL (Qizil) - Real-time!')
+      console.log('🔴 binData.status set to: 95')
     })
 
     // Quti holati o'zgarganda
