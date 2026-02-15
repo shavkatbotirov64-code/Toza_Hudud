@@ -633,9 +633,6 @@ class ApiService {
     if (fillLevel >= 30) return 1; // Yarim
     return 0; // Bo'sh
   }
-}
-
-export default new ApiService();
 
   // Vehicle Status API
   async upsertVehicleStatus(vehicleData) {

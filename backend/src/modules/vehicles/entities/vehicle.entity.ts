@@ -24,7 +24,7 @@ export class Vehicle {
   isMoving: boolean;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  targetBinId: string; // Qaysi qutiga bormoqda
+  targetBinId: string | null; // Qaysi qutiga bormoqda
 
   @Column({ type: 'timestamp', nullable: true })
   lastCleaningTime: Date;

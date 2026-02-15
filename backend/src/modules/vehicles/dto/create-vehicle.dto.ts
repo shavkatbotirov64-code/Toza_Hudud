@@ -1,54 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, Min, Max } from 'class-validator';
-import { VehicleType, VehicleStatus } from '../entities/vehicle.entity';
+import { IsString, IsNotEmpty, IsNumber, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateVehicleDto {
-  @ApiProperty({ example: 'VEH-001', description: 'Unique vehicle code' })
+  @ApiProperty({ example: 'VEH-001', description: 'Unique vehicle ID' })
   @IsString()
   @IsNotEmpty()
-  code: string;
+  vehicleId: string;
 
-  @ApiProperty({ example: '01A123BC', description: 'Vehicle license plate' })
+  @ApiProperty({ example: 'Akmaljon Karimov', description: 'Driver full name' })
   @IsString()
   @IsNotEmpty()
-  licensePlate: string;
+  driver: string;
 
-  @ApiProperty({ example: 'Alisher Karimov', description: 'Driver full name' })
-  @IsString()
-  @IsNotEmpty()
-  driverName: string;
-
-  @ApiProperty({ example: '+998901234567', description: 'Driver phone number' })
-  @IsString()
-  @IsNotEmpty()
-  driverPhone: string;
-
-  @ApiProperty({ 
-    enum: VehicleType, 
-    example: VehicleType.MEDIUM_TRUCK,
-    description: 'Vehicle type'
-  })
-  @IsEnum(VehicleType)
-  type: VehicleType;
-
-  @ApiProperty({ 
-    enum: VehicleStatus, 
-    example: VehicleStatus.INACTIVE,
-    description: 'Vehicle status',
-    required: false
-  })
-  @IsEnum(VehicleStatus)
-  @IsOptional()
-  status?: VehicleStatus;
-
-  @ApiProperty({ example: 1000, description: 'Vehicle capacity in kg' })
+  @ApiProperty({ example: 39.6542, description: 'Latitude' })
   @IsNumber()
-  @Min(100)
-  @Max(10000)
-  capacity: number;
+  latitude: number;
 
-  @ApiProperty({ example: 'GPS-001', description: 'GPS tracker ID', required: false })
+  @ApiProperty({ example: 66.9597, description: 'Longitude' })
+  @IsNumber()
+  longitude: number;
+
+  @ApiProperty({ example: 'idle', description: 'Vehicle status', required: false })
   @IsString()
   @IsOptional()
-  gpsTrackerId?: string;
+  status?: string;
+
+  @ApiProperty({ example: false, description: 'Is vehicle moving', required: false })
+  @IsBoolean()
+  @IsOptional()
+  isMoving?: boolean;
+
+  @ApiProperty({ example: 'ESP32-IBN-SINO', description: 'Target bin ID', required: false })
+  @IsString()
+  @IsOptional()
+  targetBinId?: string;
 }

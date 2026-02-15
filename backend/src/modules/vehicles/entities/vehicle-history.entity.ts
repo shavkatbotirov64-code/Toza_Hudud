@@ -51,9 +51,10 @@ export class VehicleHistory {
   @Column({ length: 100, nullable: true })
   performedBy: string;
 
-  @ManyToOne(() => Vehicle, (vehicle) => vehicle.history, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'vehicleId' })
-  vehicle: Vehicle;
+  // Relation commented out - not used in new Vehicle entity
+  // @ManyToOne(() => Vehicle, (vehicle) => vehicle.history, { onDelete: 'CASCADE' })
+  // @JoinColumn({ name: 'vehicleId' })
+  // vehicle: Vehicle;
 
   @ApiProperty({ example: '2024-01-01T00:00:00Z' })
   @CreateDateColumn()
