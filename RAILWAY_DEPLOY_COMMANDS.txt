@@ -1,0 +1,76 @@
+RAILWAY DEPLOY - MANUAL STEPS
+==============================
+
+BACKEND (Already deployed)
+---------------------------
+URL: https://tozahudud-production-d73f.up.railway.app
+Status: ✅ Deployed
+
+Variables set:
+- NODE_ENV=production
+- PORT=3002
+- DATABASE_URL=postgresql://...
+- JWT_SECRET=...
+- JWT_EXPIRES_IN=24h
+
+FRONTEND (Need to create new service)
+--------------------------------------
+
+Option 1: Railway Dashboard (RECOMMENDED)
+------------------------------------------
+1. Go to: https://railway.com/project/e0ee489f-1abf-4ca2-8a38-9eb343401483
+
+2. Click "+ New" button
+
+3. Select "Empty Service"
+
+4. Name it: "frontend"
+
+5. Go to Settings tab:
+   - Click "Connect Repo"
+   - Select your GitHub repo
+   - Root Directory: /frontend
+   - Click "Connect"
+
+6. Go to Variables tab and add:
+   PORT=80
+   BACKEND_URL=https://tozahudud-production-d73f.up.railway.app
+
+7. Go to Settings > Networking:
+   - Click "Generate Domain"
+   - Copy the frontend URL
+
+8. Update backend FRONTEND_URL:
+   - Go to backend service
+   - Variables tab
+   - Add: FRONTEND_URL=<your-frontend-url>
+
+9. Both services will auto-deploy
+
+Option 2: Railway CLI (Alternative)
+------------------------------------
+# From project root
+railway link
+
+# Create new service via dashboard first, then:
+cd frontend
+railway service
+# Select the new frontend service
+
+railway up
+railway domain
+railway variables set PORT=80
+railway variables set BACKEND_URL=https://tozahudud-production-d73f.up.railway.app
+
+# Get frontend URL and update backend
+cd ../backend
+railway service
+# Select backend service
+railway variables set FRONTEND_URL=<frontend-url>
+
+FINAL STEP
+----------
+After both services are deployed:
+1. Test backend: https://tozahudud-production-d73f.up.railway.app/api/health
+2. Test frontend: <your-frontend-url>
+3. Login with: username=admin, password=any
