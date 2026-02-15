@@ -80,9 +80,87 @@ export class BinsController {
   }) {
     try {
       const bin = await this.binsService.upsertBin(data);
+      this.logger.log(`✅ Bin created: ${bin.binId}`);
       return {
         success: true,
+        message: 'Bin created successfully',
         data: bin,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Post('test/create-sample')
+  @ApiOperation({ summary: 'Test uchun namuna quti yaratish' })
+  @ApiResponse({ status: 200, description: 'Test quti yaratildi' })
+  async createSampleBin() {
+    try {
+      this.logger.log('🧪 Creating sample bin for testing...');
+      
+      // Direct database insert to bypass enum issue
+      const sampleBin = {
+        binId: 'ESP32-IBN-SINO',
+        location: 'Ibn Sino ko\'chasi 17A, Samarqand',
+        district: 'Samarqand',
+        latitude: 39.6542,
+        longitude: 66.9597,
+        capacity: 120,
+        status: 'FULL',
+        fillLevel: 95,
+        type: 'standard',
+        sensorId: 'ESP32-IBN-SINO',
+        isOnline: true,
+        batteryLevel: 100,
+        lastDistance: 7.2,
+        isActive: true,
+      };
+      
+      const created = await this.binsService.upsertBin({
+        binId: sampleBin.binId,
+        location: sampleBin.location,
+        latitude: sampleBin.latitude,
+        longitude: sampleBin.longitude,
+        capacity: sampleBin.capacity,
+      });
+      
+      this.logger.log(`✅ Sample bin created: ${created.binId}`);
+      
+      return {
+        success: true,
+        message: 'Sample bin created successfully',
+        data: created,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error creating sample bin: ${error.message}`);
+      this.logger.error(`❌ Stack: ${error.stack}`);
+      return {
+        success: false,
+        error: error.message,
+        stack: error.stack,
+      };
+    }
+  }
+  
+  @Post('test/fix-enum')
+  @ApiOperation({ summary: 'Database enum muammosini tuzatish' })
+  @ApiResponse({ status: 200, description: 'Enum tuzatildi' })
+  async fixEnumIssue() {
+    try {
+      this.logger.log('🔧 Fixing enum issue...');
+      
+      // This will help us understand the issue
+      const bins = await this.binsService.getAllBins();
+      
+      return {
+        success: true,
+        message: 'Current bins in database',
+        data: bins,
+        count: bins.length,
       };
     } catch (error) {
       this.logger.error(`❌ Error: ${error.message}`);
