@@ -1,0 +1,72 @@
+🧪 DEPLOYMENT TEST CHECKLIST
+============================
+
+✅ Backend Tests
+----------------
+1. Health Check:
+   curl -k https://tozahudud-production-d73f.up.railway.app/api/health
+   
+   Expected: {"success":true,"message":"Smart Trash System API is running"...}
+
+2. API Documentation:
+   https://tozahudud-production-d73f.up.railway.app/api/docs
+   
+   Expected: Swagger UI page
+
+3. Bins Endpoint:
+   curl -k https://tozahudud-production-d73f.up.railway.app/api/bins
+   
+   Expected: {"success":true,"data":[...]...}
+
+✅ Frontend Tests
+-----------------
+1. Homepage:
+   https://tozahududfrontend-production.up.railway.app
+   
+   Expected: Login page
+
+2. Login:
+   Username: admin
+   Password: any
+   
+   Expected: Dashboard page
+
+3. API Connection (from browser console):
+   fetch('/api/health').then(r => r.json()).then(console.log)
+   
+   Expected: Backend health response
+
+✅ Integration Tests
+--------------------
+1. Frontend → Backend:
+   - Login to frontend
+   - Check if dashboard loads data
+   - Check browser console for errors
+   
+2. CORS:
+   - No CORS errors in browser console
+   - API calls successful
+
+3. Database:
+   - Backend connects to Neon PostgreSQL
+   - No database connection errors in logs
+
+🔧 Troubleshooting
+------------------
+If frontend can't connect to backend:
+1. Check nginx logs: railway logs (in frontend directory)
+2. Check BACKEND_URL variable: railway variables
+3. Check backend CORS: railway logs (in backend directory)
+
+If backend has errors:
+1. Check DATABASE_URL: railway variables
+2. Check logs: railway logs
+3. Verify Neon database is active
+
+📊 Current Status
+-----------------
+Backend: ✅ Running
+Frontend: 🔄 Redeploying (nginx proxy fix)
+Database: ✅ Connected
+
+Next: Wait for frontend redeploy, then test connection

@@ -10,25 +10,30 @@ RUN npm run build
 # serve stage
 FROM nginx:alpine
 
-# Install envsubst for environment variable substitution
-RUN apk add --no-cache gettext
-
+# Copy built files
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Create startup script that properly substitutes environment variables
+# Copy nginx config template
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+
+# Create entrypoint script
 RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'set -e' >> /docker-entrypoint.sh && \
-    echo 'if [ -z "$BACKEND_URL" ]; then' >> /docker-entrypoint.sh && \
-    echo '  echo "ERROR: BACKEND_URL environment variable is not set"' >> /docker-entrypoint.sh && \
-    echo '  exit 1' >> /docker-entrypoint.sh && \
-    echo 'fi' >> /docker-entrypoint.sh && \
-    echo 'PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
-    echo 'echo "Using BACKEND_URL: $BACKEND_URL"' >> /docker-entrypoint.sh && \
-    echo 'echo "Using PORT: $PORT"' >> /docker-entrypoint.sh && \
-    echo 'export PORT BACKEND_URL' >> /docker-entrypoint.sh && \
-    echo 'envsubst '"'"'$BACKEND_URL $PORT'"'"' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo '' >> /docker-entrypoint.sh && \
+    echo '# Set defaults' >> /docker-entrypoint.sh && \
+    echo 'export PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
+    echo 'export BACKEND_URL=${BACKEND_URL:-http://localhost:3002}' >> /docker-entrypoint.sh && \
+    echo '' >> /docker-entrypoint.sh && \
+    echo 'echo "PORT: $PORT"' >> /docker-entrypoint.sh && \
+    echo 'echo "BACKEND_URL: $BACKEND_URL"' >> /docker-entrypoint.sh && \
+    echo '' >> /docker-entrypoint.sh && \
+    echo '# Substitute environment variables in nginx config' >> /docker-entrypoint.sh && \
+    echo 'envsubst '"'"'$PORT $BACKEND_URL'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo '' >> /docker-entrypoint.sh && \
+    echo 'echo "Nginx config:"' >> /docker-entrypoint.sh && \
     echo 'cat /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo '' >> /docker-entrypoint.sh && \
+    echo '# Start nginx' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 
