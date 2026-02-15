@@ -198,42 +198,65 @@ class ApiService {
     }
   }
 
-  // Sensors API
+  // Sensors API (without /api prefix - excluded in backend)
   async getSensorData(limit = 50) {
     try {
-      const response = await fetch(`${API_BASE_URL}/sensors/latest?limit=${limit}`);
+      const url = window.location.hostname === 'localhost'
+        ? `/api/sensors/latest?limit=${limit}`
+        : `https://tozahudud-production-d73f.up.railway.app/sensors/latest?limit=${limit}`;
+      
+      console.log(`🔍 Fetching sensor data from: ${url}`);
+      const response = await fetch(url);
+      console.log('📡 Response status:', response.status);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
+      console.log('✅ Sensor data received:', result);
       return { success: true, data: result.data || [] };
     } catch (error) {
+      console.error('❌ getSensorData error:', error);
       return { success: false, error: error.message, data: [] };
     }
   }
 
   async getSensorAlerts(limit = 20) {
     try {
-      const response = await fetch(`${API_BASE_URL}/sensors/alerts?limit=${limit}`);
+      const url = window.location.hostname === 'localhost'
+        ? `/api/sensors/alerts?limit=${limit}`
+        : `https://tozahudud-production-d73f.up.railway.app/sensors/alerts?limit=${limit}`;
+      
+      console.log(`🔍 Fetching sensor alerts from: ${url}`);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
+      console.log('✅ Sensor alerts received:', result);
       return { success: true, data: result.data || [] };
     } catch (error) {
+      console.error('❌ getSensorAlerts error:', error);
       return { success: false, error: error.message, data: [] };
     }
   }
 
   async getSensorStats() {
     try {
-      const response = await fetch(`${API_BASE_URL}/sensors/stats`);
+      const url = window.location.hostname === 'localhost'
+        ? `/api/sensors/stats`
+        : `https://tozahudud-production-d73f.up.railway.app/sensors/stats`;
+      
+      console.log(`🔍 Fetching sensor stats from: ${url}`);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
+      console.log('✅ Sensor stats received:', result);
       return { success: true, data: result.data || {} };
     } catch (error) {
+      console.error('❌ getSensorStats error:', error);
       return { success: false, error: error.message, data: {} };
     }
   }

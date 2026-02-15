@@ -1,0 +1,82 @@
+🎉 ESP32 SENSOR DATA PANEL QO'SHILDI
+=====================================
+
+📊 YANGI FUNKSIYALAR:
+--------------------
+✅ ESP32 dan kelayotgan sensor ma'lumotlarini real-time ko'rsatish
+✅ Sensor statistikalari (jami o'lchashlar, ogohlantirishlar, o'rtacha masofa)
+✅ Har 5 sekundda avtomatik yangilanish
+✅ Masofa bo'yicha rangli indikatorlar:
+   - Qizil: ≤10 sm (TO'LA)
+   - Sariq: 11-20 sm (OGOHLANTIRISH)
+   - Yashil: >20 sm (NORMAL)
+
+📁 QO'SHILGAN FAYLLAR:
+---------------------
+1. frontend/src/components/SensorDataPanel.jsx - Sensor ma'lumotlarini ko'rsatuvchi komponent
+2. frontend/src/styles/SensorDataPanel.css - Sensor panel uchun stillar
+3. frontend/src/services/api.js - Sensor API metodlari qo'shildi:
+   - getSensorData(limit) - Oxirgi sensor ma'lumotlarini olish
+   - getSensorAlerts(limit) - Sensor ogohlantirishlarini olish
+   - getSensorStats() - Sensor statistikasini olish
+
+🔧 O'ZGARTIRILGAN FAYLLAR:
+-------------------------
+1. frontend/src/components/Dashboard.jsx - SensorDataPanel qo'shildi
+2. backend/.env - FRONTEND_URL yangilandi
+
+🚀 DEPLOYMENT:
+--------------
+✅ Git ga push qilindi (commit: 5704c79)
+✅ Railway avtomatik deploy qilmoqda
+⏳ Deploy tugashini kuting (2-3 daqiqa)
+
+📍 FRONTEND URL:
+----------------
+https://tozahududfrontend-production.up.railway.app
+
+🧪 TEST QILISH:
+--------------
+1. Frontend URL ni oching
+2. Login qiling (admin / any)
+3. Dashboard pastida "📡 ESP32 Sensor Ma'lumotlari" panelini ko'ring
+4. ESP32 dan ma'lumot yuboring
+5. Panel avtomatik yangilanishini kuzating
+
+💡 QANDAY ISHLAYDI:
+------------------
+1. ESP32 ma'lumot yuboradi: POST /sensors/distance
+2. Backend ma'lumotni saqlaydi va log qiladi
+3. Frontend har 5 sekundda GET /api/sensors/latest so'rov yuboradi
+4. Yangi ma'lumotlar panelda ko'rsatiladi
+
+🔄 YANGILASH:
+-------------
+Panel o'zi avtomatik yangilanadi, lekin qo'lda ham yangilash mumkin:
+- "🔄 Yangilash" tugmasini bosing
+
+📊 PANEL TARKIBI:
+----------------
+1. Statistika kartochkalari:
+   - Jami o'lchashlar soni
+   - Jami ogohlantirishlar soni
+   - O'rtacha masofa
+
+2. Ma'lumotlar jadvali:
+   - Vaqt
+   - Masofa (rangli badge)
+   - Holat (TO'LA/OGOHLANTIRISH/NORMAL)
+   - Quti ID
+   - Joylashuv
+
+🎨 DIZAYN:
+----------
+- Responsive (mobil va desktop)
+- Gradient rangli statistika kartochkalari
+- Rangli indikatorlar (qizil/sariq/yashil)
+- Smooth animatsiyalar
+
+=====================================
+Yaratilgan: 2026-02-15
+Status: ✅ Deploy qilinmoqda
+=====================================

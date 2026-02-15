@@ -17,22 +17,32 @@ const SensorDataPanel = () => {
 
   const loadSensorData = async () => {
     try {
+      console.log('🔄 Loading sensor data...');
       const [dataResult, statsResult] = await Promise.all([
         api.getSensorData(10),
         api.getSensorStats()
       ]);
 
+      console.log('📊 Data result:', dataResult);
+      console.log('📈 Stats result:', statsResult);
+
       if (dataResult.success) {
+        console.log('✅ Setting sensor data:', dataResult.data);
         setSensorData(dataResult.data);
+      } else {
+        console.error('❌ Data result failed:', dataResult);
       }
 
       if (statsResult.success) {
+        console.log('✅ Setting stats:', statsResult.data);
         setStats(statsResult.data);
+      } else {
+        console.error('❌ Stats result failed:', statsResult);
       }
 
       setLoading(false);
     } catch (error) {
-      console.error('Sensor ma\'lumotlarini yuklashda xatolik:', error);
+      console.error('❌ Sensor ma\'lumotlarini yuklashda xatolik:', error);
       setLoading(false);
     }
   };
