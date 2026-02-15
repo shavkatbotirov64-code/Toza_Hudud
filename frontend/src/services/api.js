@@ -852,6 +852,92 @@ class ApiService {
       return { success: false, error: error.message, data: [] };
     }
   }
+
+  // Routes API
+  async optimizeRoute(routeData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/routes/optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(routeData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async calculateRoute(startLat, startLon, endLat, endLon) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/routes/calculate?startLat=${startLat}&startLon=${startLon}&endLat=${endLat}&endLon=${endLon}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getRouteHistory(vehicleId, limit = 20) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/routes/history/${vehicleId}?limit=${limit}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getRoute(routeId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/routes/${routeId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateRouteStatus(routeId, status) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/routes/${routeId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new ApiService();

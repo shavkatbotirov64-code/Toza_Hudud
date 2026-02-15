@@ -7,11 +7,11 @@ import { AppService } from './app.service';
 import { ESP32Controller } from './esp32.controller';
 import { BinsModule } from './modules/bins/bins.module';
 import { VehiclesModule } from './modules/vehicles/vehicles.module';
-import { RoutesModule } from './modules/routes/routes.module';
 import { AlertsModule } from './modules/alerts/alerts.module';
 import { TelegramModule } from './modules/telegram/telegram.module';
 import { SensorsModule } from './modules/sensors/sensors.module';
 import { CleaningsModule } from './modules/cleanings/cleanings.module';
+import { RoutesModule } from './modules/routes/routes.module';
 import { getDatabaseConfig } from './config/database.config';
 import appConfig from './config/app.config';
 
@@ -35,11 +35,11 @@ import appConfig from './config/app.config';
     ]),
     BinsModule,
     VehiclesModule,
-    RoutesModule,
     AlertsModule,
     TelegramModule,
     SensorsModule,
     CleaningsModule,
+    RoutesModule,
   ],
   controllers: [AppController, ESP32Controller],
   providers: [AppService],

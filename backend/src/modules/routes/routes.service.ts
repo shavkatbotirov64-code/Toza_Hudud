@@ -1,237 +1,319 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Route, RouteStatus } from './entities/route.entity';
-import { RouteBin, RouteBinStatus } from './entities/route-bin.entity';
-import { CreateRouteDto } from './dto/create-route.dto';
-import { UpdateRouteDto } from './dto/update-route.dto';
+import { Route } from './entities/route.entity';
+import axios from 'axios';
+
+interface Location {
+  lat: number;
+  lon: number;
+  binId?: string;
+}
 
 @Injectable()
 export class RoutesService {
+  private readonly logger = new Logger(RoutesService.name);
+
   constructor(
     @InjectRepository(Route)
     private routeRepository: Repository<Route>,
-    @InjectRepository(RouteBin)
-    private routeBinRepository: Repository<RouteBin>,
   ) {}
 
-  async create(createRouteDto: CreateRouteDto) {
-    const { binIds, ...routeData } = createRouteDto;
-
-    // Create route
-    const route = this.routeRepository.create({
-      ...routeData,
-      totalBins: binIds.length,
-      scheduledStartTime: createRouteDto.scheduledStartTime 
-        ? new Date(createRouteDto.scheduledStartTime) 
-        : undefined,
-    });
-
-    const savedRoute = await this.routeRepository.save(route);
-
-    // Create route bins
-    const routeBins = binIds.map((binId, index) => ({
-      routeId: savedRoute.id,
-      binId,
-      sequenceOrder: index + 1,
-      status: RouteBinStatus.PENDING,
-    }));
-
-    await this.routeBinRepository.save(routeBins);
-
-    return {
-      success: true,
-      message: 'Route created successfully',
-      data: savedRoute,
-    };
+  // Haversine formula - ikki nuqta orasidagi masofa (km)
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Yer radiusi (km)
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
   }
 
-  async findAll(filters: any = {}) {
-    const { page = 1, limit = 10, status, priority } = filters;
-    const skip = (page - 1) * limit;
+  // Nearest Neighbor Algorithm - eng yaqin qutidan boshlash
+  private findOptimalOrder(start: Location, bins: Location[]): Location[] {
+    const ordered: Location[] = [];
+    const remaining = [...bins];
+    let current = start;
 
-    const queryBuilder = this.routeRepository.createQueryBuilder('route');
+    while (remaining.length > 0) {
+      let nearestIndex = 0;
+      let nearestDistance = this.calculateDistance(
+        current.lat, current.lon,
+        remaining[0].lat, remaining[0].lon
+      );
 
-    if (status) {
-      queryBuilder.andWhere('route.status = :status', { status });
+      for (let i = 1; i < remaining.length; i++) {
+        const distance = this.calculateDistance(
+          current.lat, current.lon,
+          remaining[i].lat, remaining[i].lon
+        );
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = i;
+        }
+      }
+
+      const nearest = remaining.splice(nearestIndex, 1)[0];
+      ordered.push(nearest);
+      current = nearest;
     }
 
-    if (priority) {
-      queryBuilder.andWhere('route.priority = :priority', { priority });
-    }
-
-    const [routes, total] = await queryBuilder
-      .orderBy('route.createdAt', 'DESC')
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      success: true,
-      message: 'Routes retrieved successfully',
-      data: routes,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    };
+    return ordered;
   }
 
-  async getStatistics() {
-    const totalRoutes = await this.routeRepository.count();
-    const activeRoutes = await this.routeRepository.count({
-      where: { status: RouteStatus.IN_PROGRESS },
-    });
-    const completedRoutes = await this.routeRepository.count({
-      where: { status: RouteStatus.COMPLETED },
-    });
+  // OSRM API dan marshrut olish
+  private async fetchRouteFromOSRM(locations: Location[]): Promise<any> {
+    try {
+      // OSRM format: lon,lat;lon,lat;...
+      const coordinates = locations
+        .map(loc => `${loc.lon},${loc.lat}`)
+        .join(';');
 
-    const statusDistribution = await this.routeRepository
-      .createQueryBuilder('route')
-      .select('route.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('route.status')
-      .getRawMany();
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+      
+      this.logger.log(`🗺️ OSRM API: ${locations.length} nuqta uchun marshrut hisoblanmoqda...`);
+      
+      const response = await axios.get(url);
+      const data = response.data;
 
-    const priorityDistribution = await this.routeRepository
-      .createQueryBuilder('route')
-      .select('route.priority', 'priority')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('route.priority')
-      .getRawMany();
-
-    const averageCompletion = await this.routeRepository
-      .createQueryBuilder('route')
-      .select('AVG(route.completionPercentage)', 'avgCompletion')
-      .getRawOne();
-
-    return {
-      success: true,
-      message: 'Statistics retrieved successfully',
-      data: {
-        totalRoutes,
-        activeRoutes,
-        completedRoutes,
-        statusDistribution,
-        priorityDistribution,
-        averageCompletion: parseFloat(averageCompletion.avgCompletion) || 0,
-      },
-      timestamp: new Date().toISOString(),
-    };
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0];
+        const coordinates_result = route.geometry.coordinates;
+        
+        // GeoJSON [lon, lat] dan [lat, lon] ga o'zgartirish
+        const leafletCoordinates = coordinates_result.map((coord: number[]) => [coord[1], coord[0]]);
+        
+        const distanceKm = (route.distance / 1000).toFixed(2);
+        const durationMin = Math.round(route.duration / 60);
+        
+        this.logger.log(`✅ Marshrut topildi: ${distanceKm} km, ${durationMin} daqiqa`);
+        
+        return {
+          success: true,
+          path: leafletCoordinates,
+          distance: parseFloat(distanceKm),
+          duration: durationMin
+        };
+      }
+      
+      return { success: false };
+    } catch (error) {
+      this.logger.error(`❌ OSRM API xatolik: ${error.message}`);
+      return { success: false };
+    }
   }
 
-  async findOne(id: string) {
-    const route = await this.routeRepository.findOne({
-      where: { id },
-    });
+  // Optimal marshrut yaratish (TSP yechimi)
+  async optimizeRoute(data: {
+    vehicleId: string;
+    startLat: number;
+    startLon: number;
+    bins: Array<{ binId: string; lat: number; lon: number }>;
+  }): Promise<any> {
+    try {
+      this.logger.log(`🚛 Marshrut optimallashtirish: ${data.bins.length} ta quti`);
 
-    if (!route) {
-      throw new NotFoundException(`Route with ID ${id} not found`);
+      if (data.bins.length === 0) {
+        return {
+          success: false,
+          message: 'Qutilar ro\'yxati bo\'sh'
+        };
+      }
+
+      // 1. Eng yaqin qutidan boshlash (Nearest Neighbor)
+      const start: Location = { lat: data.startLat, lon: data.startLon };
+      const bins: Location[] = data.bins.map(b => ({
+        lat: b.lat,
+        lon: b.lon,
+        binId: b.binId
+      }));
+
+      const orderedBins = this.findOptimalOrder(start, bins);
+      
+      this.logger.log(`📊 Optimal tartib: ${orderedBins.map(b => b.binId).join(' → ')}`);
+
+      // 2. OSRM dan real marshrut olish
+      const allLocations = [start, ...orderedBins];
+      const routeResult = await this.fetchRouteFromOSRM(allLocations);
+
+      let routePath: number[][];
+      let totalDistance: number;
+      let estimatedDuration: number;
+
+      if (routeResult.success) {
+        routePath = routeResult.path;
+        totalDistance = routeResult.distance;
+        estimatedDuration = routeResult.duration;
+      } else {
+        // Backup: oddiy chiziqli marshrut
+        routePath = allLocations.map(loc => [loc.lat, loc.lon]);
+        totalDistance = 0;
+        for (let i = 0; i < allLocations.length - 1; i++) {
+          totalDistance += this.calculateDistance(
+            allLocations[i].lat,
+            allLocations[i].lon,
+            allLocations[i + 1].lat,
+            allLocations[i + 1].lon
+          );
+        }
+        estimatedDuration = Math.round(totalDistance * 2); // 30 km/h o'rtacha tezlik
+      }
+
+      // 3. Marshrut ma'lumotini saqlash
+      const route = this.routeRepository.create({
+        vehicleId: data.vehicleId,
+        binIds: orderedBins.map(b => b.binId),
+        startLatitude: data.startLat,
+        startLongitude: data.startLon,
+        routePath: JSON.stringify(routePath),
+        totalDistance: totalDistance,
+        estimatedDuration: estimatedDuration,
+        status: 'pending'
+      });
+
+      const saved = await this.routeRepository.save(route);
+
+      this.logger.log(`✅ Optimal marshrut yaratildi: ${totalDistance.toFixed(2)} km, ${estimatedDuration} daqiqa`);
+
+      return {
+        success: true,
+        data: {
+          routeId: saved.id,
+          orderedBins: orderedBins.map(b => b.binId),
+          routePath: routePath,
+          totalDistance: totalDistance,
+          estimatedDuration: estimatedDuration,
+          status: 'pending'
+        }
+      };
+    } catch (error) {
+      this.logger.error(`❌ Marshrut optimallashtirish xatolik: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
     }
-
-    // Get route bins with bin details
-    const routeBins = await this.routeBinRepository
-      .createQueryBuilder('routeBin')
-      .leftJoinAndSelect('routeBin.bin', 'bin')
-      .where('routeBin.routeId = :routeId', { routeId: id })
-      .orderBy('routeBin.sequenceOrder', 'ASC')
-      .getMany();
-
-    return {
-      success: true,
-      message: 'Route retrieved successfully',
-      data: {
-        ...route,
-        bins: routeBins,
-      },
-    };
   }
 
-  async update(id: string, updateRouteDto: UpdateRouteDto) {
-    const route = await this.routeRepository.findOne({ where: { id } });
+  // Ikki nuqta orasidagi marshrut
+  async calculateRoute(data: {
+    startLat: number;
+    startLon: number;
+    endLat: number;
+    endLon: number;
+  }): Promise<any> {
+    try {
+      this.logger.log(`📍 Marshrut hisoblash: [${data.startLat}, ${data.startLon}] → [${data.endLat}, ${data.endLon}]`);
 
-    if (!route) {
-      throw new NotFoundException(`Route with ID ${id} not found`);
+      const locations: Location[] = [
+        { lat: data.startLat, lon: data.startLon },
+        { lat: data.endLat, lon: data.endLon }
+      ];
+
+      const routeResult = await this.fetchRouteFromOSRM(locations);
+
+      if (routeResult.success) {
+        return {
+          success: true,
+          data: {
+            routePath: routeResult.path,
+            distance: routeResult.distance,
+            duration: routeResult.duration
+          }
+        };
+      }
+
+      // Backup: to'g'ri chiziq
+      const distance = this.calculateDistance(
+        data.startLat, data.startLon,
+        data.endLat, data.endLon
+      );
+
+      return {
+        success: true,
+        data: {
+          routePath: [[data.startLat, data.startLon], [data.endLat, data.endLon]],
+          distance: distance,
+          duration: Math.round(distance * 2)
+        }
+      };
+    } catch (error) {
+      this.logger.error(`❌ Marshrut hisoblash xatolik: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
     }
-
-    const updatedRoute = await this.routeRepository.save({
-      ...route,
-      ...updateRouteDto,
-      updatedAt: new Date(),
-    });
-
-    return {
-      success: true,
-      message: 'Route updated successfully',
-      data: updatedRoute,
-    };
   }
 
-  async startRoute(id: string) {
-    const route = await this.routeRepository.findOne({ where: { id } });
+  // Marshrut tarixini olish
+  async getRouteHistory(vehicleId: string, limit: number = 20): Promise<Route[]> {
+    try {
+      const routes = await this.routeRepository.find({
+        where: { vehicleId },
+        order: { createdAt: 'DESC' },
+        take: limit
+      });
 
-    if (!route) {
-      throw new NotFoundException(`Route with ID ${id} not found`);
+      this.logger.log(`📜 ${vehicleId} uchun ${routes.length} ta marshrut topildi`);
+      return routes;
+    } catch (error) {
+      this.logger.error(`❌ Marshrut tarixi xatolik: ${error.message}`);
+      return [];
     }
-
-    if (route.status !== RouteStatus.PLANNED) {
-      throw new BadRequestException(`Route must be in planned status to start`);
-    }
-
-    const updatedRoute = await this.routeRepository.save({
-      ...route,
-      status: RouteStatus.IN_PROGRESS,
-      actualStartTime: new Date(),
-      updatedAt: new Date(),
-    });
-
-    return {
-      success: true,
-      message: 'Route started successfully',
-      data: updatedRoute,
-    };
   }
 
-  async completeRoute(id: string) {
-    const route = await this.routeRepository.findOne({ where: { id } });
+  // Marshrut holatini yangilash
+  async updateRouteStatus(routeId: string, status: string): Promise<any> {
+    try {
+      const route = await this.routeRepository.findOne({ where: { id: routeId } });
+      
+      if (!route) {
+        return { success: false, message: 'Marshrut topilmadi' };
+      }
 
-    if (!route) {
-      throw new NotFoundException(`Route with ID ${id} not found`);
+      route.status = status;
+
+      if (status === 'in-progress' && !route.startedAt) {
+        route.startedAt = new Date();
+      }
+
+      if (status === 'completed' && !route.completedAt) {
+        route.completedAt = new Date();
+      }
+
+      await this.routeRepository.save(route);
+
+      this.logger.log(`✅ Marshrut holati yangilandi: ${routeId} → ${status}`);
+      return { success: true, data: route };
+    } catch (error) {
+      this.logger.error(`❌ Marshrut holati yangilash xatolik: ${error.message}`);
+      return { success: false, error: error.message };
     }
-
-    if (route.status !== RouteStatus.IN_PROGRESS) {
-      throw new BadRequestException(`Route must be in progress to complete`);
-    }
-
-    const updatedRoute = await this.routeRepository.save({
-      ...route,
-      status: RouteStatus.COMPLETED,
-      actualEndTime: new Date(),
-      completionPercentage: 100,
-      updatedAt: new Date(),
-    });
-
-    return {
-      success: true,
-      message: 'Route completed successfully',
-      data: updatedRoute,
-    };
   }
 
-  async remove(id: string) {
-    const route = await this.routeRepository.findOne({ where: { id } });
+  // Marshrut ma'lumotini olish
+  async getRoute(routeId: string): Promise<any> {
+    try {
+      const route = await this.routeRepository.findOne({ where: { id: routeId } });
+      
+      if (!route) {
+        return { success: false, message: 'Marshrut topilmadi' };
+      }
 
-    if (!route) {
-      throw new NotFoundException(`Route with ID ${id} not found`);
+      return {
+        success: true,
+        data: {
+          ...route,
+          routePath: JSON.parse(route.routePath)
+        }
+      };
+    } catch (error) {
+      this.logger.error(`❌ Marshrut olish xatolik: ${error.message}`);
+      return { success: false, error: error.message };
     }
-
-    await this.routeRepository.remove(route);
-
-    return {
-      success: true,
-      message: 'Route deleted successfully',
-    };
   }
 }

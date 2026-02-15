@@ -1,82 +1,117 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Body, Param, Query, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RoutesService } from './routes.service';
-import { CreateRouteDto } from './dto/create-route.dto';
-import { UpdateRouteDto } from './dto/update-route.dto';
 
-@ApiTags('Routes')
+@ApiTags('routes')
 @Controller('routes')
 export class RoutesController {
+  private readonly logger = new Logger(RoutesController.name);
+
   constructor(private readonly routesService: RoutesService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new route' })
-  @ApiResponse({ status: 201, description: 'Route created successfully' })
-  create(@Body() createRouteDto: CreateRouteDto) {
-    return this.routesService.create(createRouteDto);
+  @Post('optimize')
+  @ApiOperation({ summary: 'Bir nechta qutini eng qisqa yo\'l bilan tozalash marshruti' })
+  @ApiResponse({ status: 200, description: 'Optimal marshrut yaratildi' })
+  async optimizeRoute(@Body() data: {
+    vehicleId: string;
+    startLat: number;
+    startLon: number;
+    bins: Array<{ binId: string; lat: number; lon: number }>;
+  }) {
+    try {
+      this.logger.log(`🚛 Marshrut optimallashtirish so'rovi: ${data.bins.length} ta quti`);
+      const result = await this.routesService.optimizeRoute(data);
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
-  @Get()
-  @ApiOperation({ summary: 'Get all routes with pagination and filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: String })
-  @ApiQuery({ name: 'priority', required: false, type: String })
-  findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('status') status?: string,
-    @Query('priority') priority?: string,
+  @Get('calculate')
+  @ApiOperation({ summary: 'Ikki nuqta orasidagi marshrut' })
+  @ApiResponse({ status: 200, description: 'Marshrut hisoblandi' })
+  async calculateRoute(
+    @Query('startLat') startLat: string,
+    @Query('startLon') startLon: string,
+    @Query('endLat') endLat: string,
+    @Query('endLon') endLon: string,
   ) {
-    return this.routesService.findAll({ page, limit, status, priority });
+    try {
+      const result = await this.routesService.calculateRoute({
+        startLat: parseFloat(startLat),
+        startLon: parseFloat(startLon),
+        endLat: parseFloat(endLat),
+        endLon: parseFloat(endLon),
+      });
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
-  @Get('statistics')
-  @ApiOperation({ summary: 'Get route statistics' })
-  getStatistics() {
-    return this.routesService.getStatistics();
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get route by ID with bins' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.routesService.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update route' })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateRouteDto: UpdateRouteDto,
+  @Get('history/:vehicleId')
+  @ApiOperation({ summary: 'Mashina marshrut tarixi' })
+  @ApiResponse({ status: 200, description: 'Marshrut tarixi' })
+  async getRouteHistory(
+    @Param('vehicleId') vehicleId: string,
+    @Query('limit') limit: string = '20',
   ) {
-    return this.routesService.update(id, updateRouteDto);
+    try {
+      const routes = await this.routesService.getRouteHistory(vehicleId, parseInt(limit));
+      return {
+        success: true,
+        data: routes
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        data: []
+      };
+    }
   }
 
-  @Patch(':id/start')
-  @ApiOperation({ summary: 'Start route execution' })
-  startRoute(@Param('id', ParseUUIDPipe) id: string) {
-    return this.routesService.startRoute(id);
+  @Get(':routeId')
+  @ApiOperation({ summary: 'Marshrut ma\'lumotini olish' })
+  @ApiResponse({ status: 200, description: 'Marshrut ma\'lumoti' })
+  async getRoute(@Param('routeId') routeId: string) {
+    try {
+      const result = await this.routesService.getRoute(routeId);
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 
-  @Patch(':id/complete')
-  @ApiOperation({ summary: 'Complete route execution' })
-  completeRoute(@Param('id', ParseUUIDPipe) id: string) {
-    return this.routesService.completeRoute(id);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete route' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.routesService.remove(id);
+  @Put(':routeId/status')
+  @ApiOperation({ summary: 'Marshrut holatini yangilash' })
+  @ApiResponse({ status: 200, description: 'Marshrut holati yangilandi' })
+  async updateRouteStatus(
+    @Param('routeId') routeId: string,
+    @Body() data: { status: string },
+  ) {
+    try {
+      const result = await this.routesService.updateRouteStatus(routeId, data.status);
+      return result;
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
   }
 }
