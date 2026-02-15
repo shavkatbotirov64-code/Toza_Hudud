@@ -163,9 +163,11 @@ export class RoutesService {
       }
 
       // 3. Marshrut ma'lumotini saqlash
+      const binIdsList = orderedBins.map(b => b.binId).filter((id): id is string => id !== undefined);
+      
       const route = this.routeRepository.create({
         vehicleId: data.vehicleId,
-        binIds: orderedBins.map(b => b.binId),
+        binIds: binIdsList,
         startLatitude: data.startLat,
         startLongitude: data.startLon,
         routePath: JSON.stringify(routePath),
@@ -182,7 +184,7 @@ export class RoutesService {
         success: true,
         data: {
           routeId: saved.id,
-          orderedBins: orderedBins.map(b => b.binId),
+          orderedBins: binIdsList,
           routePath: routePath,
           totalDistance: totalDistance,
           estimatedDuration: estimatedDuration,
