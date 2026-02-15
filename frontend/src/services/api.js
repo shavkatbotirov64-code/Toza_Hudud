@@ -2,7 +2,7 @@
 // Use backend URL directly since nginx proxy is not working
 const API_BASE_URL = window.location.hostname === 'localhost'
   ? '/api'  // Local development
-  : 'https://tozahudud-production-d73f.up.railway.app/api';  // Production backend
+  : 'https://tozahudud-production-d73f.up.railway.app/api';  // Production backend - UPDATED URL
 
 // Error handling function
 const handleApiError = (error, context) => {
