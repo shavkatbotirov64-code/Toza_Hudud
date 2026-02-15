@@ -636,3 +636,138 @@ class ApiService {
 }
 
 export default new ApiService();
+
+  // Vehicle Status API
+  async upsertVehicleStatus(vehicleData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vehicleData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getVehicleStatus(vehicleId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/status`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateVehicleLocation(vehicleId, latitude, longitude) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/location`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latitude, longitude }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async startVehicleMoving(vehicleId, targetBinId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/start-moving`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ targetBinId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async stopVehicle(vehicleId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/stop`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async completeVehicleCleaning(vehicleId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/complete-cleaning`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async addVehicleDistance(vehicleId, distanceKm) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/add-distance`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ distanceKm }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+}
+
+export default new ApiService();

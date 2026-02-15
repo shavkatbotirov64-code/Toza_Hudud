@@ -1,122 +1,189 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Query,
-  ParseUUIDPipe,
-  Logger,
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Body, Param, Logger } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
-import { CreateVehicleDto } from './dto/create-vehicle.dto';
-import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
 
-@ApiTags('Vehicles')
+@ApiTags('vehicles')
 @Controller('vehicles')
 export class VehiclesController {
   private readonly logger = new Logger(VehiclesController.name);
 
-  constructor(private readonly vehiclesService: VehiclesService) { }
+  constructor(private readonly vehiclesService: VehiclesService) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a new vehicle' })
-  @ApiResponse({ status: 201, description: 'Vehicle created successfully' })
-  async create(@Body() createVehicleDto: CreateVehicleDto) {
+  @Post('status')
+  @ApiOperation({ summary: 'Mashina holatini yaratish yoki yangilash' })
+  @ApiResponse({ status: 200, description: 'Mashina holati saqlandi' })
+  async upsertVehicle(@Body() data: {
+    vehicleId: string;
+    driver: string;
+    latitude: number;
+    longitude: number;
+    status?: string;
+  }) {
     try {
-      this.logger.log(`🚛 Creating new vehicle: ${createVehicleDto.licensePlate}`);
-      this.logger.debug(`📝 Vehicle data: ${JSON.stringify(createVehicleDto)}`);
-
-      const result = await this.vehiclesService.create(createVehicleDto);
-
-      this.logger.log(`✅ Vehicle created successfully: ${createVehicleDto.licensePlate}`);
-      return result;
+      const vehicle = await this.vehiclesService.upsertVehicle(data);
+      return {
+        success: true,
+        data: vehicle,
+      };
     } catch (error) {
-      this.logger.error(`❌ Error creating vehicle ${createVehicleDto.licensePlate}: ${error.message}`);
-      this.logger.debug(`🔍 Error details: ${JSON.stringify(error)}`);
-      throw error;
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Get(':vehicleId/status')
+  @ApiOperation({ summary: 'Mashina holatini olish' })
+  @ApiResponse({ status: 200, description: 'Mashina holati' })
+  async getVehicleStatus(@Param('vehicleId') vehicleId: string) {
+    try {
+      const vehicle = await this.vehiclesService.getVehicleStatus(vehicleId);
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all vehicles with pagination and filters' })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiQuery({ name: 'status', required: false, type: String })
-  @ApiQuery({ name: 'type', required: false, type: String })
-  async findAll(
-    @Query('page') page?: number,
-    @Query('limit') limit?: number,
-    @Query('status') status?: string,
-    @Query('type') type?: string,
-  ) {
+  @ApiOperation({ summary: 'Barcha mashinalar' })
+  @ApiResponse({ status: 200, description: 'Mashinalar ro\'yxati' })
+  async getAllVehicles() {
     try {
-      const queryParams = { page, limit, status, type };
-      // this.logger.log(`🔍 Getting vehicles with query: ${JSON.stringify(queryParams)}`);
-
-      const result = await this.vehiclesService.findAll(queryParams);
-
-      // this.logger.log(`✅ Retrieved ${result.data.length} vehicles (total: ${result.pagination.total})`);
-      // this.logger.debug(`📊 Pagination: page ${result.pagination.page}/${result.pagination.totalPages}`);
-
-      return result;
+      const vehicles = await this.vehiclesService.getAllVehicles();
+      return {
+        success: true,
+        data: vehicles,
+      };
     } catch (error) {
-      this.logger.error(`❌ Error getting vehicles: ${error.message}`);
-      this.logger.debug(`🔍 Error details: ${JSON.stringify(error)}`);
-      throw error;
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+      };
     }
   }
 
-  @Get('statistics')
-  @ApiOperation({ summary: 'Get vehicle statistics' })
-  async getStatistics() {
+  @Put(':vehicleId/location')
+  @ApiOperation({ summary: 'Mashina lokatsiyasini yangilash' })
+  @ApiResponse({ status: 200, description: 'Lokatsiya yangilandi' })
+  async updateLocation(
+    @Param('vehicleId') vehicleId: string,
+    @Body() data: { latitude: number; longitude: number },
+  ) {
     try {
-      this.logger.log(`📊 Getting vehicle statistics`);
-
-      const result = await this.vehiclesService.getStatistics();
-
-      this.logger.log(`✅ Vehicle statistics retrieved successfully`);
-      this.logger.debug(`📈 Stats: ${JSON.stringify(result.data)}`);
-
-      return result;
+      const vehicle = await this.vehiclesService.updateLocation(
+        vehicleId,
+        data.latitude,
+        data.longitude,
+      );
+      return {
+        success: true,
+        data: vehicle,
+      };
     } catch (error) {
-      this.logger.error(`❌ Error getting vehicle statistics: ${error.message}`);
-      this.logger.debug(`🔍 Error details: ${JSON.stringify(error)}`);
-      throw error;
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
     }
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get vehicle by ID' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.vehiclesService.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update vehicle' })
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateVehicleDto: UpdateVehicleDto,
+  @Put(':vehicleId/start-moving')
+  @ApiOperation({ summary: 'Mashina harakatni boshlash' })
+  @ApiResponse({ status: 200, description: 'Harakat boshlandi' })
+  async startMoving(
+    @Param('vehicleId') vehicleId: string,
+    @Body() data: { targetBinId: string },
   ) {
-    return this.vehiclesService.update(id, updateVehicleDto);
+    try {
+      const vehicle = await this.vehiclesService.startMoving(
+        vehicleId,
+        data.targetBinId,
+      );
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 
-  @Patch(':id/location')
-  @ApiOperation({ summary: 'Update vehicle location' })
-  updateLocation(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateLocationDto: UpdateLocationDto,
+  @Put(':vehicleId/stop')
+  @ApiOperation({ summary: 'Mashinani to\'xtatish' })
+  @ApiResponse({ status: 200, description: 'Mashina to\'xtadi' })
+  async stopMoving(@Param('vehicleId') vehicleId: string) {
+    try {
+      const vehicle = await this.vehiclesService.stopMoving(vehicleId);
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Put(':vehicleId/complete-cleaning')
+  @ApiOperation({ summary: 'Tozalash tugadi' })
+  @ApiResponse({ status: 200, description: 'Tozalash tugallandi' })
+  async completeCleaning(@Param('vehicleId') vehicleId: string) {
+    try {
+      const vehicle = await this.vehiclesService.completeCleaning(vehicleId);
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Put(':vehicleId/add-distance')
+  @ApiOperation({ summary: 'Bosib o\'tgan masofani qo\'shish' })
+  @ApiResponse({ status: 200, description: 'Masofa qo\'shildi' })
+  async addDistance(
+    @Param('vehicleId') vehicleId: string,
+    @Body() data: { distanceKm: number },
   ) {
-    return this.vehiclesService.updateLocation(id, updateLocationDto);
-  }
-
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete vehicle' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.vehiclesService.remove(id);
+    try {
+      const vehicle = await this.vehiclesService.addDistance(
+        vehicleId,
+        data.distanceKm,
+      );
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 }

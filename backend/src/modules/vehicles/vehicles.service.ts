@@ -1,224 +1,178 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Vehicle, VehicleStatus } from './entities/vehicle.entity';
-import { VehicleHistory, VehicleHistoryAction } from './entities/vehicle-history.entity';
-import { CreateVehicleDto } from './dto/create-vehicle.dto';
-import { UpdateVehicleDto } from './dto/update-vehicle.dto';
-import { UpdateLocationDto } from './dto/update-location.dto';
+import { Vehicle } from './entities/vehicle.entity';
 
 @Injectable()
 export class VehiclesService {
+  private readonly logger = new Logger(VehiclesService.name);
+
   constructor(
     @InjectRepository(Vehicle)
     private vehicleRepository: Repository<Vehicle>,
-    @InjectRepository(VehicleHistory)
-    private vehicleHistoryRepository: Repository<VehicleHistory>,
   ) {}
 
-  async create(createVehicleDto: CreateVehicleDto) {
-    // Check if vehicle code already exists
-    const existingVehicle = await this.vehicleRepository.findOne({
-      where: { code: createVehicleDto.code },
-    });
-
-    if (existingVehicle) {
-      throw new NotFoundException(`Vehicle with code ${createVehicleDto.code} already exists`);
-    }
-
-    const vehicle = this.vehicleRepository.create(createVehicleDto);
-    const savedVehicle = await this.vehicleRepository.save(vehicle);
-
-    // Create history record
-    await this.vehicleHistoryRepository.save({
-      vehicleId: savedVehicle.id,
-      action: VehicleHistoryAction.STATUS_CHANGE,
-      description: 'Vehicle created and registered',
-      metadata: { status: savedVehicle.status },
-      performedBy: 'system',
-    });
-
-    return {
-      success: true,
-      message: 'Vehicle created successfully',
-      data: savedVehicle,
-    };
-  }
-
-  async findAll(filters: any = {}) {
-    const { page = 1, limit = 10, status, type } = filters;
-    const skip = (page - 1) * limit;
-
-    const queryBuilder = this.vehicleRepository.createQueryBuilder('vehicle');
-
-    if (status) {
-      queryBuilder.andWhere('vehicle.status = :status', { status });
-    }
-
-    if (type) {
-      queryBuilder.andWhere('vehicle.type = :type', { type });
-    }
-
-    const [vehicles, total] = await queryBuilder
-      .orderBy('vehicle.createdAt', 'DESC')
-      .skip(skip)
-      .take(limit)
-      .getManyAndCount();
-
-    return {
-      success: true,
-      message: 'Vehicles retrieved successfully',
-      data: vehicles,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  async getStatistics() {
-    const totalVehicles = await this.vehicleRepository.count();
-    const activeVehicles = await this.vehicleRepository.count({
-      where: { status: VehicleStatus.ACTIVE },
-    });
-    const movingVehicles = await this.vehicleRepository.count({
-      where: { status: VehicleStatus.MOVING },
-    });
-
-    const statusDistribution = await this.vehicleRepository
-      .createQueryBuilder('vehicle')
-      .select('vehicle.status', 'status')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('vehicle.status')
-      .getRawMany();
-
-    const typeDistribution = await this.vehicleRepository
-      .createQueryBuilder('vehicle')
-      .select('vehicle.type', 'type')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('vehicle.type')
-      .getRawMany();
-
-    const averageFuelLevel = await this.vehicleRepository
-      .createQueryBuilder('vehicle')
-      .select('AVG(vehicle.fuelLevel)', 'avgFuelLevel')
-      .getRawOne();
-
-    return {
-      success: true,
-      message: 'Statistics retrieved successfully',
-      data: {
-        totalVehicles,
-        activeVehicles,
-        movingVehicles,
-        statusDistribution,
-        typeDistribution,
-        averageFuelLevel: parseFloat(averageFuelLevel.avgFuelLevel) || 0,
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  async findOne(id: string) {
-    const vehicle = await this.vehicleRepository.findOne({
-      where: { id },
-    });
-
-    if (!vehicle) {
-      throw new NotFoundException(`Vehicle with ID ${id} not found`);
-    }
-
-    return {
-      success: true,
-      message: 'Vehicle retrieved successfully',
-      data: vehicle,
-    };
-  }
-
-  async update(id: string, updateVehicleDto: UpdateVehicleDto) {
-    const vehicle = await this.vehicleRepository.findOne({ where: { id } });
-
-    if (!vehicle) {
-      throw new NotFoundException(`Vehicle with ID ${id} not found`);
-    }
-
-    const updatedVehicle = await this.vehicleRepository.save({
-      ...vehicle,
-      ...updateVehicleDto,
-      updatedAt: new Date(),
-    });
-
-    // Create history record for significant changes
-    if (updateVehicleDto.status && updateVehicleDto.status !== vehicle.status) {
-      await this.vehicleHistoryRepository.save({
-        vehicleId: id,
-        action: VehicleHistoryAction.STATUS_CHANGE,
-        description: `Status changed from ${vehicle.status} to ${updateVehicleDto.status}`,
-        metadata: { 
-          oldStatus: vehicle.status, 
-          newStatus: updateVehicleDto.status 
-        },
-        performedBy: 'system',
+  // Mashina yaratish yoki yangilash
+  async upsertVehicle(data: {
+    vehicleId: string;
+    driver: string;
+    latitude: number;
+    longitude: number;
+    status?: string;
+  }): Promise<Vehicle> {
+    try {
+      let vehicle = await this.vehicleRepository.findOne({
+        where: { vehicleId: data.vehicleId },
       });
-    }
 
-    return {
-      success: true,
-      message: 'Vehicle updated successfully',
-      data: updatedVehicle,
-    };
+      if (vehicle) {
+        // Yangilash
+        vehicle.driver = data.driver;
+        vehicle.latitude = data.latitude;
+        vehicle.longitude = data.longitude;
+        vehicle.status = data.status || vehicle.status;
+      } else {
+        // Yaratish
+        vehicle = this.vehicleRepository.create({
+          vehicleId: data.vehicleId,
+          driver: data.driver,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          status: data.status || 'idle',
+        });
+      }
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`🚛 Vehicle saved: ${saved.vehicleId} at [${saved.latitude}, ${saved.longitude}]`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error saving vehicle: ${error.message}`);
+      throw error;
+    }
   }
 
-  async updateLocation(id: string, updateLocationDto: UpdateLocationDto) {
-    const vehicle = await this.vehicleRepository.findOne({ where: { id } });
+  // Mashina holatini olish
+  async getVehicleStatus(vehicleId: string): Promise<Vehicle> {
+    try {
+      const vehicle = await this.vehicleRepository.findOne({
+        where: { vehicleId },
+      });
 
-    if (!vehicle) {
-      throw new NotFoundException(`Vehicle with ID ${id} not found`);
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+      }
+
+      return vehicle;
+    } catch (error) {
+      this.logger.error(`❌ Error getting vehicle status: ${error.message}`);
+      throw error;
     }
-
-    const updatedVehicle = await this.vehicleRepository.save({
-      ...vehicle,
-      currentLatitude: updateLocationDto.latitude,
-      currentLongitude: updateLocationDto.longitude,
-      currentSpeed: updateLocationDto.speed || vehicle.currentSpeed,
-      lastLocationUpdate: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // Create history record
-    await this.vehicleHistoryRepository.save({
-      vehicleId: id,
-      action: VehicleHistoryAction.LOCATION_UPDATE,
-      description: `Location updated to ${updateLocationDto.latitude}, ${updateLocationDto.longitude}`,
-      metadata: {
-        latitude: updateLocationDto.latitude,
-        longitude: updateLocationDto.longitude,
-        speed: updateLocationDto.speed,
-      },
-      performedBy: 'gps_system',
-    });
-
-    return {
-      success: true,
-      message: 'Vehicle location updated successfully',
-      data: updatedVehicle,
-    };
   }
 
-  async remove(id: string) {
-    const vehicle = await this.vehicleRepository.findOne({ where: { id } });
-
-    if (!vehicle) {
-      throw new NotFoundException(`Vehicle with ID ${id} not found`);
+  // Barcha mashinalar
+  async getAllVehicles(): Promise<Vehicle[]> {
+    try {
+      const vehicles = await this.vehicleRepository.find({
+        order: { updatedAt: 'DESC' },
+      });
+      return vehicles;
+    } catch (error) {
+      this.logger.error(`❌ Error getting all vehicles: ${error.message}`);
+      return [];
     }
+  }
 
-    await this.vehicleRepository.remove(vehicle);
+  // Mashina lokatsiyasini yangilash
+  async updateLocation(
+    vehicleId: string,
+    latitude: number,
+    longitude: number,
+  ): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      vehicle.latitude = latitude;
+      vehicle.longitude = longitude;
+      vehicle.updatedAt = new Date();
 
-    return {
-      success: true,
-      message: 'Vehicle deleted successfully',
-    };
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`📍 Vehicle location updated: ${vehicleId} → [${latitude}, ${longitude}]`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error updating location: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Mashina harakatini boshlash
+  async startMoving(vehicleId: string, targetBinId: string): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      vehicle.isMoving = true;
+      vehicle.status = 'moving';
+      vehicle.targetBinId = targetBinId;
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`🚛 Vehicle started moving: ${vehicleId} → ${targetBinId}`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error starting movement: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Mashina to'xtadi
+  async stopMoving(vehicleId: string): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      vehicle.isMoving = false;
+      vehicle.status = 'idle';
+      vehicle.targetBinId = null;
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`🛑 Vehicle stopped: ${vehicleId}`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error stopping vehicle: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Tozalash tugadi
+  async completeCleaning(vehicleId: string): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      vehicle.lastCleaningTime = new Date();
+      vehicle.totalCleanings += 1;
+      vehicle.isMoving = false;
+      vehicle.status = 'idle';
+      vehicle.targetBinId = null;
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`🧹 Cleaning completed: ${vehicleId} (Total: ${saved.totalCleanings})`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error completing cleaning: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Bosib o'tgan masofani qo'shish
+  async addDistance(vehicleId: string, distanceKm: number): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      vehicle.totalDistanceTraveled = Number(vehicle.totalDistanceTraveled) + distanceKm;
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`📏 Distance added: ${vehicleId} +${distanceKm}km (Total: ${saved.totalDistanceTraveled}km)`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error adding distance: ${error.message}`);
+      throw error;
+    }
   }
 }
