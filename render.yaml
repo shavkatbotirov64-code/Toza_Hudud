@@ -1,0 +1,47 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: smart-trash-db
+    env: docker
+    plan: free
+    
+  # Backend API
+  - type: web
+    name: smart-trash-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: smart-trash-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: smart-trash-db
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: smart-trash-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: smart-trash-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: smart-trash-db
+          property: database
+      - key: PORT
+        value: 3002
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 24h
+    
+  # Frontend
+  - type: web
+    name: smart-trash-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend

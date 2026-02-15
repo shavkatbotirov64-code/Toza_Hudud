@@ -1,0 +1,62 @@
+[
+  {
+    "id": "log-1767939945051-m6huzxg11",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "curl/8.17.0",
+    "timestamp": "2026-01-09T06:25:45.051Z"
+  },
+  {
+    "id": "log-1767940012938-zd774laqo",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+    "timestamp": "2026-01-09T06:26:52.938Z"
+  },
+  {
+    "id": "log-1767940174220-50pmltc08",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "curl/8.17.0",
+    "timestamp": "2026-01-09T06:29:34.220Z"
+  },
+  {
+    "id": "log-1767940607026-rzwq6i58s",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "curl/8.17.0",
+    "timestamp": "2026-01-09T06:36:47.026Z"
+  },
+  {
+    "id": "log-1767940672129-evudq6lj4",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "curl/8.17.0",
+    "timestamp": "2026-01-09T06:37:52.129Z"
+  },
+  {
+    "id": "log-1767940784423-uzsx39atd",
+    "adminId": "super-admin-001",
+    "adminUsername": "superadmin",
+    "action": "LOGIN",
+    "details": "Tizimga kirish",
+    "ipAddress": "::1",
+    "userAgent": "curl/8.17.0",
+    "timestamp": "2026-01-09T06:39:44.423Z"
+  }
+]

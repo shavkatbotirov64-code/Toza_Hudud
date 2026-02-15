@@ -1,0 +1,42 @@
+services:
+  smart-trash-db:
+    image: postgres:16-alpine
+    container_name: smart-trash-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Laziz2006.
+      POSTGRES_DB: smart_trash_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - smart-trash-db-data:/var/lib/postgresql/data
+
+  smart-trash-api:
+    build:
+      context: ./backend
+    container_name: smart-trash-api
+    depends_on:
+      - smart-trash-db
+    ports:
+      - '3002:3002'
+    environment:
+      DB_HOST: smart-trash-db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: Laziz2006.
+      DB_NAME: smart_trash_db
+      PORT: 3002
+    command: /app/wait.sh
+
+  smart-trash-frontend:
+    build:
+      context: ./frontend
+    container_name: smart-trash-frontend
+    ports:
+      # - "5173:5173"   # dev mode
+      - '8080:80' # prod mode with nginx
+    depends_on:
+      - smart-trash-api
+
+volumes:
+  smart-trash-db-data:

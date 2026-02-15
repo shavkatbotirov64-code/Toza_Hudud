@@ -1,0 +1,574 @@
+// API Service - Clean version without console.logs
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? '/api'  // Local development - Vite proxy
+  : 'https://tozahudud-production-00e5.up.railway.app/api';  // Production - direct backend URL
+
+// Error handling function
+const handleApiError = (error, context) => {
+  // Silent error handling - no console logs
+};
+
+class ApiService {
+  // Bins API
+  async testConnection() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/health`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getBins() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bins`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async createBin(binData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bins`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(binData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateBin(id, binData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bins/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(binData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteBin(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bins/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async cleanBin(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/bins/${id}/clean`, {
+        method: 'PATCH',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Vehicles API
+  async getVehicles() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async createVehicle(vehicleData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vehicleData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Alerts API
+  async getAlerts() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/alerts`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateAlert(id, alertData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(alertData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteAlert(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/alerts/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Telegram API
+  async getTelegramBotInfo() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/telegram/bot-info`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTelegramStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/telegram/stats`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTelegramReports(limit = 10) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/telegram/reports?limit=${limit}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTelegramFeedbacks(limit = 10) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/telegram/feedbacks?limit=${limit}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTelegramUsers(limit = 50) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/telegram/users?limit=${limit}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getAllTelegramUsers(limit = 100) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/telegram/all-users?limit=${limit}`,
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async sendTelegramBroadcast(message) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/telegram/broadcast`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async setTelegramWebhook(url) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/telegram/webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Data transformation functions
+  transformBinData(backendBin) {
+    try {
+      console.log('🗑 Transforming bin data:', backendBin);
+
+      const transformedBin = {
+        id: backendBin.code, // Frontend'da code ni id sifatida ishlatish
+        _backendId: backendBin.id, // Backend UUID'ni saqlash
+        address: backendBin.address,
+        district: backendBin.district,
+        location: [
+          parseFloat(backendBin.latitude),
+          parseFloat(backendBin.longitude),
+        ],
+        status: this.getFillLevelStatus(parseFloat(backendBin.fillLevel)),
+        lastUpdate: new Date(backendBin.lastUpdate).toLocaleTimeString(
+          'uz-UZ',
+          {
+            hour: '2-digit',
+            minute: '2-digit',
+          },
+        ),
+        lastCleaned: backendBin.lastCleaned
+          ? new Date(backendBin.lastCleaned).toLocaleDateString('uz-UZ') +
+            ' ' +
+            new Date(backendBin.lastCleaned).toLocaleTimeString('uz-UZ', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : 'Hech qachon',
+        capacity: backendBin.capacity,
+        type: backendBin.type,
+        sensorId: backendBin.sensorId,
+        online: backendBin.isOnline,
+        installDate: new Date(backendBin.createdAt).toLocaleDateString('uz-UZ'),
+        fillLevel: parseFloat(backendBin.fillLevel),
+        batteryLevel: backendBin.batteryLevel || 100,
+      };
+
+      console.log('✅ Bin transformed successfully:', transformedBin);
+      return transformedBin;
+    } catch (error) {
+      console.error('❌ Error transforming bin data:', error);
+      console.error('❌ Original bin data:', backendBin);
+
+      // Return safe fallback data
+      return {
+        id: backendBin?.code || `bin-${Date.now()}`,
+        _backendId: backendBin?.id || null,
+        address: "Xatolik - Ma'lumot yo'q",
+        district: "Noma'lum",
+        location: [41.2995, 69.2401],
+        status: 0,
+        lastUpdate: new Date().toLocaleTimeString('uz-UZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        lastCleaned: "Ma'lumot yo'q",
+        capacity: 0,
+        type: 'standard',
+        sensorId: null,
+        online: false,
+        installDate: new Date().toLocaleDateString('uz-UZ'),
+        fillLevel: 0,
+        batteryLevel: 0,
+      };
+    }
+  }
+
+  transformVehicleData(backendVehicle) {
+    try {
+      console.log('🔧 Transforming vehicle data:', backendVehicle);
+
+      const transformedVehicle = {
+        id: backendVehicle.code || backendVehicle.licensePlate, // Frontend'da code yoki licensePlate ni id sifatida ishlatish
+        _backendId: backendVehicle.id, // Backend UUID'ni saqlash
+        driver: backendVehicle.driverName || "Noma'lum",
+        phone: backendVehicle.driverPhone || "Noma'lum",
+        licensePlate: backendVehicle.licensePlate || "Noma'lum",
+        location:
+          backendVehicle.currentLocation ||
+          `${parseFloat(backendVehicle.currentLatitude || 0).toFixed(
+            4,
+          )}, ${parseFloat(backendVehicle.currentLongitude || 0).toFixed(4)}`,
+        status: this.mapVehicleStatus(backendVehicle.status),
+        lastUpdate: backendVehicle.lastLocationUpdate
+          ? new Date(backendVehicle.lastLocationUpdate).toLocaleTimeString(
+              'uz-UZ',
+              {
+                hour: '2-digit',
+                minute: '2-digit',
+              },
+            )
+          : new Date(backendVehicle.updatedAt).toLocaleTimeString('uz-UZ', {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+        route: backendVehicle.currentRoute || 'Marshrut tayinlanmagan',
+        capacity: backendVehicle.capacity || 1000,
+        fuelLevel: parseFloat(backendVehicle.fuelLevel || 75),
+        speed: parseFloat(backendVehicle.currentSpeed || 0),
+        cleaned: backendVehicle.binsCollectedToday || 0,
+        type: backendVehicle.type || 'medium_truck',
+        coordinates: [
+          parseFloat(backendVehicle.currentLatitude || 41.2995),
+          parseFloat(backendVehicle.currentLongitude || 69.2401),
+        ],
+        lastService: backendVehicle.lastServiceDate
+          ? new Date(backendVehicle.lastServiceDate).toLocaleDateString('uz-UZ')
+          : "Ma'lumot yo'q",
+        online: backendVehicle.isGpsOnline || false,
+      };
+
+      console.log('✅ Vehicle transformed successfully:', transformedVehicle);
+      return transformedVehicle;
+    } catch (error) {
+      console.error('❌ Error transforming vehicle data:', error);
+      console.error('❌ Original vehicle data:', backendVehicle);
+
+      // Return safe fallback data
+      return {
+        id: backendVehicle?.id || `vehicle-${Date.now()}`,
+        _backendId: backendVehicle?.id || null,
+        driver: "Xatolik - Ma'lumot yo'q",
+        phone: "Noma'lum",
+        licensePlate: "Noma'lum",
+        location: "Noma'lum",
+        status: 'inactive',
+        lastUpdate: new Date().toLocaleTimeString('uz-UZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        route: 'Xatolik',
+        capacity: 0,
+        fuelLevel: 0,
+        speed: 0,
+        cleaned: 0,
+        type: 'medium_truck',
+        coordinates: [41.2995, 69.2401],
+        lastService: "Ma'lumot yo'q",
+        online: false,
+      };
+    }
+  }
+
+  mapVehicleStatus(backendStatus) {
+    try {
+      console.log('🔄 Mapping vehicle status:', backendStatus);
+
+      switch (backendStatus) {
+        case 'moving':
+          return 'moving';
+        case 'active':
+          return 'active';
+        case 'inactive':
+          return 'inactive';
+        case 'maintenance':
+          return 'inactive';
+        default:
+          console.warn('⚠️ Unknown vehicle status:', backendStatus);
+          return 'inactive';
+      }
+    } catch (error) {
+      console.error('❌ Error mapping vehicle status:', error);
+      return 'inactive';
+    }
+  }
+
+  transformAlertData(backendAlert) {
+    try {
+      console.log('🚨 Transforming alert data:', backendAlert);
+
+      // Map backend severity to frontend type
+      const mapSeverityToType = (severity) => {
+        const severityLower = severity?.toLowerCase();
+        switch (severityLower) {
+          case 'critical':
+          case 'high':
+            return 'danger';
+          case 'medium':
+            return 'warning';
+          case 'low':
+            return 'info';
+          default:
+            return 'info';
+        }
+      };
+
+      const transformedAlert = {
+        id: backendAlert.id,
+        title: backendAlert.title || 'Ogohlantirish',
+        message: backendAlert.message || "Ma'lumot yo'q",
+        type: mapSeverityToType(backendAlert.severity),
+        location: backendAlert.location || "Noma'lum",
+        time: new Date(backendAlert.createdAt).toLocaleTimeString('uz-UZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: backendAlert.isRead || false,
+        priority: backendAlert.severity?.toLowerCase() || 'medium',
+      };
+
+      console.log('✅ Alert transformed successfully:', transformedAlert);
+      return transformedAlert;
+    } catch (error) {
+      console.error('❌ Error transforming alert data:', error);
+      console.error('❌ Original alert data:', backendAlert);
+
+      // Return safe fallback data
+      return {
+        id: backendAlert?.id || `alert-${Date.now()}`,
+        title: 'Xatolik',
+        message: "Ma'lumotni yuklashda xatolik yuz berdi",
+        type: 'info',
+        location: "Noma'lum",
+        time: new Date().toLocaleTimeString('uz-UZ', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        read: false,
+        priority: 'medium',
+      };
+    }
+  }
+
+  getFillLevelStatus(fillLevel) {
+    if (fillLevel >= 90) return 3; // To'la
+    if (fillLevel >= 70) return 2; // Ogohlantirish
+    if (fillLevel >= 30) return 1; // Yarim
+    return 0; // Bo'sh
+  }
+}
+
+export default new ApiService();
