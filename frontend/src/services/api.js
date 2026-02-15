@@ -1,6 +1,8 @@
 // API Service - Clean version without console.logs
-// Always use relative path - nginx will proxy to backend
-const API_BASE_URL = '/api';
+// Use backend URL directly since nginx proxy is not working
+const API_BASE_URL = window.location.hostname === 'localhost'
+  ? '/api'  // Local development
+  : 'https://tozahudud-production-d73f.up.railway.app/api';  // Production backend
 
 // Error handling function
 const handleApiError = (error, context) => {
