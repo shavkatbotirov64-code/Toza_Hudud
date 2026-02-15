@@ -16,6 +16,7 @@ export class BinsController {
     try {
       const bins = await this.binsService.getAllBins();
       this.logger.log(`📦 Retrieved ${bins.length} bins from database`);
+      this.logger.log(`📦 Bins data:`, JSON.stringify(bins));
       
       // Frontend formatiga o'zgartirish
       const formattedBins = bins.map(bin => ({
@@ -43,6 +44,8 @@ export class BinsController {
         updatedAt: bin.updatedAt,
       }));
       
+      this.logger.log(`📦 Formatted ${formattedBins.length} bins for frontend`);
+      
       return {
         success: true,
         message: 'Bins retrieved successfully',
@@ -56,6 +59,7 @@ export class BinsController {
       };
     } catch (error) {
       this.logger.error(`❌ Error: ${error.message}`);
+      this.logger.error(`❌ Stack: ${error.stack}`);
       return {
         success: false,
         error: error.message,
