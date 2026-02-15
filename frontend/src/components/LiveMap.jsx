@@ -15,12 +15,56 @@ const LiveMap = () => {
   const { binsData, vehiclesData, showToast } = useAppContext()
   const [mapFilter, setMapFilter] = useState('all')
   const [vehiclePositions, setVehiclePositions] = useState({})
+  const [realTimeBinData, setRealTimeBinData] = useState(null) // Real-time sensor ma'lumoti
 
-  // Mock data - Faqat ESP32 quti
+  // Mock data - Faqat ESP32 quti (default)
   const mockBinsData = [
     // ESP32 bilan bog'liq quti - Samarqand
     { id: 'ESP32-IBN-SINO', location: [39.6542, 66.9597], address: 'Samarqand', status: 45, capacity: 120 }
   ]
+
+  // Real-time sensor ma'lumotini olish
+  useEffect(() => {
+    const fetchSensorData = async () => {
+      try {
+        const response = await fetch('https://tozahudud-production-d73f.up.railway.app/sensors/latest?limit=1')
+        const result = await response.json()
+        
+        if (result.success && result.data && result.data.length > 0) {
+          const latestReading = result.data[0]
+          
+          // Masofani foizga aylantirish (20 sm = 100%, 0 sm = 0%)
+          const maxDistance = 20 // maksimal masofa (sm)
+          const statusPercent = Math.min(100, Math.max(0, (latestReading.distance / maxDistance) * 100))
+          
+          setRealTimeBinData({
+            id: latestReading.binId || 'ESP32-IBN-SINO',
+            location: [39.6542, 66.9597],
+            address: latestReading.location || 'Samarqand',
+            status: Math.round(statusPercent),
+            capacity: 120,
+            distance: latestReading.distance,
+            timestamp: latestReading.timestamp
+          })
+          
+          console.log(`📊 Xarita yangilandi: ${latestReading.distance} sm = ${Math.round(statusPercent)}%`)
+        }
+      } catch (error) {
+        console.error('❌ Sensor ma\'lumotini olishda xatolik:', error)
+      }
+    }
+
+    // Dastlab olish
+    fetchSensorData()
+    
+    // Har 5 soniyada yangilash
+    const interval = setInterval(fetchSensorData, 5000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  // Real-time yoki mock ma'lumotdan foydalanish
+  const activeBinsData = realTimeBinData ? [realTimeBinData] : mockBinsData
 
   // 1 ta mashina - Samarqand
   const mockVehiclesData = [
@@ -321,10 +365,10 @@ const LiveMap = () => {
     })
     
     // Tasodifiy maqsad quti tanlash (to'la qutilarni afzal ko'rish)
-    const fullBins = mockBinsData.filter(bin => bin.status >= 90)
+    const fullBins = activeBinsData.filter(bin => bin.status >= 90)
     const targetBin = fullBins.length > 0 ? 
       fullBins[Math.floor(Math.random() * fullBins.length)] :
-      mockBinsData[Math.floor(Math.random() * mockBinsData.length)]
+      activeBinsData[Math.floor(Math.random() * activeBinsData.length)]
     
     return {
       vehicleId: vehicle.id,
@@ -353,7 +397,7 @@ const LiveMap = () => {
       const currentTime = Date.now()
       
       // To'la qutilarni tekshirish va eng yaqin bo'sh mashinaga xabar berish
-      const fullBins = mockBinsData.filter(bin => bin.status >= 90)
+      const fullBins = activeBinsData.filter(bin => bin.status >= 90)
       fullBins.forEach(fullBin => {
         const notifiedVehicle = notifyNearestVehicle(fullBin)
         if (notifiedVehicle) {
@@ -374,10 +418,10 @@ const LiveMap = () => {
             const randomRoad = tashkentRoads[Math.floor(Math.random() * tashkentRoads.length)]
             
             // Yangi maqsad quti (to'la qutilarni afzal ko'rish)
-            const fullBins = mockBinsData.filter(bin => bin.status >= 90)
-            const warningBins = mockBinsData.filter(bin => bin.status >= 70 && bin.status < 90)
+            const fullBins = activeBinsData.filter(bin => bin.status >= 90)
+            const warningBins = activeBinsData.filter(bin => bin.status >= 70 && bin.status < 90)
             const allTargetBins = fullBins.length > 0 ? fullBins : 
-                                 warningBins.length > 0 ? warningBins : mockBinsData
+                                 warningBins.length > 0 ? warningBins : activeBinsData
             
             const newTargetBin = allTargetBins[Math.floor(Math.random() * allTargetBins.length)]
             
@@ -450,11 +494,11 @@ const LiveMap = () => {
               console.log(`✅ ${vehicleId} ${route.targetBin.id} qutiga yetdi va tozalaydi!`)
               
               // Qutini avtomatik tozalash - statusni 10-20% ga tushirish
-              const binIndex = mockBinsData.findIndex(bin => bin.id === route.targetBin.id)
+              const binIndex = activeBinsData.findIndex(bin => bin.id === route.targetBin.id)
               if (binIndex !== -1) {
-                const oldStatus = mockBinsData[binIndex].status
-                mockBinsData[binIndex].status = Math.max(10, Math.random() * 20 + 10) // 10-30% orasida
-                console.log(`🧹 ${route.targetBin.id} tozalandi! ${oldStatus}% → ${Math.round(mockBinsData[binIndex].status)}%`)
+                const oldStatus = activeBinsData[binIndex].status
+                activeBinsData[binIndex].status = Math.max(10, Math.random() * 20 + 10) // 10-30% orasida
+                console.log(`🧹 ${route.targetBin.id} tozalandi! ${oldStatus}% → ${Math.round(activeBinsData[binIndex].status)}%`)
               }
             }
           }
@@ -470,7 +514,7 @@ const LiveMap = () => {
 
   // Initialization - Map.toza.huduh bilan bir xil
   useEffect(() => {
-    if (mockVehiclesData.length > 0 && mockBinsData.length > 0) {
+    if (mockVehiclesData.length > 0 && activeBinsData.length > 0) {
       const routes = {}
       mockVehiclesData.forEach(vehicle => {
         // Barcha mashinalarni faol qilish
@@ -483,7 +527,7 @@ const LiveMap = () => {
   // Qutilar holatini tasodifiy o'zgartirish - Map.toza.huduh bilan bir xil
   useEffect(() => {
     const binStatusInterval = setInterval(() => {
-      mockBinsData.forEach(bin => {
+      activeBinsData.forEach(bin => {
         // Tasodifiy ravishda ba'zi qutilar to'ladi
         if (Math.random() > 0.95 && bin.status < 90) { // 5% ehtimol
           const oldStatus = bin.status
@@ -565,13 +609,13 @@ const LiveMap = () => {
     routeLinesRef.current = []
 
     // Filter bins
-    let filteredBins = mockBinsData
+    let filteredBins = activeBinsData
     if (mapFilter === 'full') {
-      filteredBins = mockBinsData.filter(bin => bin.status >= 90)
+      filteredBins = activeBinsData.filter(bin => bin.status >= 90)
     } else if (mapFilter === 'warning') {
-      filteredBins = mockBinsData.filter(bin => bin.status >= 70 && bin.status < 90)
+      filteredBins = activeBinsData.filter(bin => bin.status >= 70 && bin.status < 90)
     } else if (mapFilter === 'empty') {
-      filteredBins = mockBinsData.filter(bin => bin.status < 30)
+      filteredBins = activeBinsData.filter(bin => bin.status < 30)
     }
 
     // Add bin markers
@@ -633,7 +677,7 @@ const LiveMap = () => {
     }
 
     updateRouteLines()
-  }, [mapFilter, vehiclePositions])
+  }, [mapFilter, vehiclePositions, realTimeBinData])
 
   const getStatusColor = (status) => {
     if (status >= 90) return '#ef4444'
