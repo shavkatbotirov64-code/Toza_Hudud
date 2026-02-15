@@ -6,7 +6,7 @@ import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import Bins from './components/Bins'
 import Vehicles from './components/Vehicles'
-import LiveMap from './components/LiveMap'
+import LiveMapSimple from './components/LiveMapSimple'
 import Routes from './components/Routes'
 import Reports from './components/Reports'
 import Alerts from './components/Alerts'
@@ -191,7 +191,7 @@ function AppContent() {
       case 'vehicles':
         return <Vehicles />
       case 'liveMap':
-        return <LiveMap />
+        return <LiveMapSimple />
       case 'routes':
         return <Routes />
       case 'reports':

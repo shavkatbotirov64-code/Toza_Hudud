@@ -9,21 +9,34 @@ const LiveMap = () => {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
-  const vehicleMarkersRef = useRef([])
-  const routeLinesRef = useRef([]) // Yo'nalish chiziqlari uchun
+  const vehicleMarkerRef = useRef(null)
+  const routeLineRef = useRef(null)
   const animationIntervalRef = useRef(null)
-  const { binsData, vehiclesData, showToast } = useAppContext()
+  const { showToast } = useAppContext()
   const [mapFilter, setMapFilter] = useState('all')
-  const [vehiclePositions, setVehiclePositions] = useState({})
-  const [realTimeBinData, setRealTimeBinData] = useState(null) // Real-time sensor ma'lumoti
+  
+  // Quti holati
+  const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
+  const [binData, setBinData] = useState({
+    id: 'ESP32-IBN-SINO',
+    location: [39.6542, 66.9597],
+    address: 'Samarqand',
+    status: 15, // Yashil (bo'sh)
+    capacity: 120
+  })
+  
+  // Mashina holati
+  const [vehicleState, setVehicleState] = useState({
+    id: 'VEH-001',
+    driver: 'Akmaljon Karimov',
+    position: [39.650, 66.955], // Boshlang'ich pozitsiya
+    isMoving: false,
+    hasCleanedOnce: false, // Faqat 1 marta tozalash uchun
+    routePath: null,
+    currentPathIndex: 0
+  })
 
-  // Mock data - Faqat ESP32 quti (default)
-  const mockBinsData = [
-    // ESP32 bilan bog'liq quti - Samarqand
-    { id: 'ESP32-IBN-SINO', location: [39.6542, 66.9597], address: 'Samarqand', status: 45, capacity: 120 }
-  ]
-
-  // Real-time sensor ma'lumotini olish
+  // ESP32 dan ma'lumot olish
   useEffect(() => {
     const fetchSensorData = async () => {
       try {
@@ -32,45 +45,34 @@ const LiveMap = () => {
         
         if (result.success && result.data && result.data.length > 0) {
           const latestReading = result.data[0]
+          const currentTime = new Date(latestReading.timestamp).getTime()
+          const now = Date.now()
           
-          // ESP32 dan ma'lumot kelsa, quti DOIM qizil (95% to'la)
-          const statusPercent = 95 // Doim qizil rang uchun
-          
-          setRealTimeBinData({
-            id: latestReading.binId || 'ESP32-IBN-SINO',
-            location: [39.6542, 66.9597],
-            address: latestReading.location || 'Samarqand',
-            status: statusPercent, // Doim 95%
-            capacity: 120,
-            distance: latestReading.distance,
-            timestamp: latestReading.timestamp
-          })
-          
-          console.log(`🔴 Xarita yangilandi: ${latestReading.distance} sm → QIZIL (${statusPercent}%) - ${latestReading.binId}`)
-        } else {
-          console.log('⚠️ Sensor ma\'lumoti topilmadi')
+          // Faqat yangi ma'lumot (oxirgi 10 soniya ichida) bo'lsa
+          if (now - currentTime < 10000) {
+            console.log(`📡 ESP32 SIGNAL: ${latestReading.distance} sm`)
+            
+            // Qutini FULL holatiga o'tkazish
+            setBinStatus('FULL')
+            setBinData(prev => ({
+              ...prev,
+              status: 95, // Qizil rang
+              distance: latestReading.distance,
+              timestamp: latestReading.timestamp
+            }))
+            
+            console.log('🔴 BIN STATUS: FULL (Qizil)')
+          }
         }
       } catch (error) {
         console.error('❌ Sensor ma\'lumotini olishda xatolik:', error)
       }
     }
 
-    // Dastlab olish
     fetchSensorData()
-    
-    // Har 5 soniyada yangilash
     const interval = setInterval(fetchSensorData, 5000)
-    
     return () => clearInterval(interval)
   }, [])
-
-  // Real-time yoki mock ma'lumotdan foydalanish
-  const activeBinsData = realTimeBinData ? [realTimeBinData] : mockBinsData
-
-  // 1 ta mashina - Samarqand
-  const mockVehiclesData = [
-    { id: 'VEH-001', driver: 'Akmaljon Karimov', status: 'moving', coordinates: [39.6542, 66.9597] }
-  ]
 
   // Ko'chalar tarmog'i - Samarqand
   const tashkentRoads = [

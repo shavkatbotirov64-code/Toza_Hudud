@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
-import LiveMap from './LiveMap'
+import LiveMapSimple from './LiveMapSimple'
 import ActivityFeed from './ActivityFeed'
 import SensorDataPanel from './SensorDataPanel'
 
@@ -212,7 +212,7 @@ const Dashboard = () => {
 
       {/* Map and Analytics Row */}
       <div className="content-row">
-        <LiveMap />
+        <LiveMapSimple />
         <ActivityFeed />
       </div>
 
