@@ -1,8 +1,8 @@
 // API Service - Clean version without console.logs
 // Use backend URL directly since nginx proxy is not working
 const API_BASE_URL = window.location.hostname === 'localhost'
-  ? '/api'  // Local development
-  : 'https://tozahudud-production-d73f.up.railway.app/api';  // Production backend - UPDATED URL
+  ? 'http://localhost:3002'  // Local development
+  : 'https://tozahudud-production-d73f.up.railway.app';  // Production backend - NO /api prefix
 
 // Error handling function
 const handleApiError = (error, context) => {
@@ -198,11 +198,11 @@ class ApiService {
     }
   }
 
-  // Sensors API (without /api prefix - excluded in backend)
+  // Sensors API (NO /api prefix)
   async getSensorData(limit = 50) {
     try {
       const url = window.location.hostname === 'localhost'
-        ? `/api/sensors/latest?limit=${limit}`
+        ? `http://localhost:3002/sensors/latest?limit=${limit}`
         : `https://tozahudud-production-d73f.up.railway.app/sensors/latest?limit=${limit}`;
       
       console.log(`🔍 Fetching sensor data from: ${url}`);
@@ -224,7 +224,7 @@ class ApiService {
   async getSensorAlerts(limit = 20) {
     try {
       const url = window.location.hostname === 'localhost'
-        ? `/api/sensors/alerts?limit=${limit}`
+        ? `http://localhost:3002/sensors/alerts?limit=${limit}`
         : `https://tozahudud-production-d73f.up.railway.app/sensors/alerts?limit=${limit}`;
       
       console.log(`🔍 Fetching sensor alerts from: ${url}`);
@@ -244,7 +244,7 @@ class ApiService {
   async getSensorStats() {
     try {
       const url = window.location.hostname === 'localhost'
-        ? `/api/sensors/stats`
+        ? `http://localhost:3002/sensors/stats`
         : `https://tozahudud-production-d73f.up.railway.app/sensors/stats`;
       
       console.log(`🔍 Fetching sensor stats from: ${url}`);

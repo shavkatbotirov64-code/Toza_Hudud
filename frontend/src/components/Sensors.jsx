@@ -25,8 +25,8 @@ const Sensors = () => {
       setLoading(true)
       
       const API_BASE_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:3002/api'
-        : 'https://tozahudud-production-d73f.up.railway.app/api'
+        ? 'http://localhost:3002'
+        : 'https://tozahudud-production-d73f.up.railway.app'
       
       // Oxirgi sensor ma'lumotlari
       const dataResponse = await fetch(`${API_BASE_URL}/sensors/latest?limit=20`)

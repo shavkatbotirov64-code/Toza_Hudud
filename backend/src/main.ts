@@ -37,10 +37,8 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
-  // Global prefix (ESP32 uchun exclude)
-  app.setGlobalPrefix('api', {
-    exclude: ['sensors/distance', 'data']
-  });
+  // NO GLOBAL PREFIX - all endpoints work directly
+  // app.setGlobalPrefix('api');
 
   // Global validation pipe
   app.useGlobalPipes(
