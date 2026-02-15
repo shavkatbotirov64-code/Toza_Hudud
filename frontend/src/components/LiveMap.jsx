@@ -18,13 +18,13 @@ const LiveMap = () => {
 
   // Mock data - Faqat ESP32 quti
   const mockBinsData = [
-    // ESP32 bilan bog'liq quti
-    { id: 'ESP32-IBN-SINO', location: [41.3350, 69.2100], address: 'Ibn Sino ko\'chasi 17A', status: 45, capacity: 120 }
+    // ESP32 bilan bog'liq quti - Samarqand
+    { id: 'ESP32-IBN-SINO', location: [39.6542, 66.9597], address: 'Samarqand', status: 45, capacity: 120 }
   ]
 
-  // 1 ta mashina
+  // 1 ta mashina - Samarqand
   const mockVehiclesData = [
-    { id: 'VEH-001', driver: 'Akmaljon Karimov', status: 'moving', coordinates: [41.3350, 69.2100] }
+    { id: 'VEH-001', driver: 'Akmaljon Karimov', status: 'moving', coordinates: [39.6542, 66.9597] }
   ]
 
   // Ko'chalar tarmog'i - Map.toza.huduh bilan bir xil
@@ -301,8 +301,8 @@ const LiveMap = () => {
 
   // Mashina marshruti yaratish - Map.toza.huduh bilan bir xil
   const generateVehicleRoute = (vehicle) => {
-    const vehicleLat = vehicle.coordinates ? vehicle.coordinates[0] : 41.311
-    const vehicleLng = vehicle.coordinates ? vehicle.coordinates[1] : 69.240
+    const vehicleLat = vehicle.coordinates ? vehicle.coordinates[0] : 39.6542
+    const vehicleLng = vehicle.coordinates ? vehicle.coordinates[1] : 66.9597
     
     // Eng yaqin yo'lni topish
     let closestRoad = tashkentRoads[0]
@@ -526,7 +526,7 @@ const LiveMap = () => {
   useEffect(() => {
     if (!mapRef.current) return
 
-    const map = L.map(mapRef.current).setView([41.311, 69.240], 12)
+    const map = L.map(mapRef.current).setView([39.6542, 66.9597], 13)
     mapInstanceRef.current = map
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -599,8 +599,8 @@ const LiveMap = () => {
     if (mapFilter === 'all' || mapFilter === 'vehicles') {
       mockVehiclesData.forEach(vehicle => {
         const currentRoute = vehiclePositions[vehicle.id]
-        const currentLat = currentRoute ? currentRoute.currentLat : (vehicle.coordinates ? vehicle.coordinates[0] : 41.311)
-        const currentLng = currentRoute ? currentRoute.currentLng : (vehicle.coordinates ? vehicle.coordinates[1] : 69.240)
+        const currentLat = currentRoute ? currentRoute.currentLat : (vehicle.coordinates ? vehicle.coordinates[0] : 39.6542)
+        const currentLng = currentRoute ? currentRoute.currentLng : (vehicle.coordinates ? vehicle.coordinates[1] : 66.9597)
         
         const color = vehicle.status === 'moving' ? '#3b82f6' : vehicle.status === 'active' ? '#10b981' : '#94a3b8'
         const isMoving = currentRoute && !currentRoute.reachedTarget
@@ -665,7 +665,7 @@ const LiveMap = () => {
 
   const centerMap = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([41.311, 69.240], 12)
+      mapInstanceRef.current.setView([39.6542, 66.9597], 13)
       showToast && showToast('Xarita markazlashtirildi', 'info')
     }
   }
