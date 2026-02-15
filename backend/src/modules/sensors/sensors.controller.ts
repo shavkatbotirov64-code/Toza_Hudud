@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Delete, Body, Query, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SensorsService } from './sensors.service';
+import { SensorsGateway } from './sensors.gateway';
 
 export interface SensorData {
   distance: number;
@@ -14,7 +15,10 @@ export interface SensorData {
 export class SensorsController {
   private readonly logger = new Logger(SensorsController.name);
 
-  constructor(private readonly sensorsService: SensorsService) {}
+  constructor(
+    private readonly sensorsService: SensorsService,
+    private readonly sensorsGateway: SensorsGateway,
+  ) {}
 
   // ESP32 uchun root level endpoint (prefiksiz)
   @Post('distance')
@@ -27,10 +31,20 @@ export class SensorsController {
       // Ma'lumotni saqlash
       const savedData = await this.sensorsService.saveSensorData(data);
       
+      // 🔥 WebSocket orqali barcha clientlarga yuborish
+      this.sensorsGateway.emitNewSensorData(savedData);
+      this.logger.log(`📤 WebSocket: Ma'lumot barcha clientlarga yuborildi`);
+      
       // Agar 20 sm dan kam bo'lsa, alert yaratish
       if (data.distance <= 20) {
         this.logger.warn(`🚨 ALERT: Chiqindi quti to'la! Masofa: ${data.distance} sm`);
         await this.sensorsService.createAlert(data);
+        
+        // 🔥 Quti FULL holatini yuborish
+        this.sensorsGateway.emitBinStatusChange(
+          data.binId || 'ESP32-IBN-SINO',
+          'FULL'
+        );
       }
 
       return {
