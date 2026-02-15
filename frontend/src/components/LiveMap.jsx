@@ -33,22 +33,20 @@ const LiveMap = () => {
         if (result.success && result.data && result.data.length > 0) {
           const latestReading = result.data[0]
           
-          // Masofani foizga aylantirish (TESKARI: kam masofa = to'la quti)
-          // 0 sm = 100% (to'la), 20 sm = 0% (bo'sh)
-          const maxDistance = 20 // maksimal masofa (sm)
-          const statusPercent = Math.min(100, Math.max(0, 100 - ((latestReading.distance / maxDistance) * 100)))
+          // ESP32 dan ma'lumot kelsa, quti DOIM qizil (95% to'la)
+          const statusPercent = 95 // Doim qizil rang uchun
           
           setRealTimeBinData({
             id: latestReading.binId || 'ESP32-IBN-SINO',
             location: [39.6542, 66.9597],
             address: latestReading.location || 'Samarqand',
-            status: Math.round(statusPercent),
+            status: statusPercent, // Doim 95%
             capacity: 120,
             distance: latestReading.distance,
             timestamp: latestReading.timestamp
           })
           
-          console.log(`📊 Xarita yangilandi: ${latestReading.distance} sm = ${Math.round(statusPercent)}% (${latestReading.binId})`)
+          console.log(`🔴 Xarita yangilandi: ${latestReading.distance} sm → QIZIL (${statusPercent}%) - ${latestReading.binId}`)
         } else {
           console.log('⚠️ Sensor ma\'lumoti topilmadi')
         }
