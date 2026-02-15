@@ -1,6 +1,3 @@
-# Railway Configuration for Monorepo
-# Backend service will use Dockerfile
-
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"

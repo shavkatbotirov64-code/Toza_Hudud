@@ -1,0 +1,76 @@
+TOZA HUDUD - QUICK START
+========================
+
+LOCAL DEVELOPMENT
+-----------------
+
+1. Clone repository
+   git clone <repo-url>
+   cd Toza_Hudud
+
+2. Backend
+   cd backend
+   npm install
+   cp .env.example .env
+   # Edit .env with your database credentials
+   npm run start:dev
+
+3. Frontend
+   cd frontend
+   npm install
+   npm run dev
+
+4. Docker (Alternative)
+   cp .env.example .env
+   # Edit .env with password
+   docker-compose up -d
+
+Access:
+- Frontend: http://localhost:5173
+- Backend: http://localhost:3002
+- API Docs: http://localhost:3002/api/docs
+
+RAILWAY DEPLOYMENT
+------------------
+
+1. Push to GitHub
+   git push origin main
+
+2. Railway Dashboard
+   - New Project > Deploy from GitHub
+   - Select repository
+
+3. Add PostgreSQL
+   - Add Service > Database > PostgreSQL
+
+4. Configure Backend
+   Root: backend
+   Variables:
+   - NODE_ENV=production
+   - PORT=3002
+   - JWT_SECRET=<generate>
+   - FRONTEND_URL=<will-get-after-deploy>
+
+5. Configure Frontend
+   Root: frontend
+   Variables:
+   - BACKEND_URL=<backend-url>
+   - PORT=80
+
+6. Update URLs
+   - Copy backend URL
+   - Add to frontend BACKEND_URL
+   - Copy frontend URL
+   - Add to backend FRONTEND_URL
+   - Redeploy both services
+
+DONE! Your app is live.
+
+LOGIN
+-----
+Username: admin
+Password: any
+
+SUPPORT
+-------
+Issues: GitHub Issues
