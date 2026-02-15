@@ -1,0 +1,42 @@
+[
+  {
+    "id": "sensor-1771170050490-1",
+    "distance": 5.5,
+    "binId": "ESP32-TEST-001",
+    "location": "Test Location 1",
+    "timestamp": "2026-02-15T15:40:50.491Z",
+    "isAlert": true
+  },
+  {
+    "id": "sensor-1771170050492-2",
+    "distance": 15.2,
+    "binId": "ESP32-TEST-002",
+    "location": "Test Location 2",
+    "timestamp": "2026-02-15T15:39:50.492Z",
+    "isAlert": true
+  },
+  {
+    "id": "sensor-1771170050492-3",
+    "distance": 25.8,
+    "binId": "ESP32-TEST-003",
+    "location": "Test Location 3",
+    "timestamp": "2026-02-15T15:38:50.492Z",
+    "isAlert": false
+  },
+  {
+    "id": "sensor-1771170050492-4",
+    "distance": 8.3,
+    "binId": "ESP32-TEST-004",
+    "location": "Test Location 4",
+    "timestamp": "2026-02-15T15:37:50.492Z",
+    "isAlert": true
+  },
+  {
+    "id": "sensor-1771170050492-5",
+    "distance": 35,
+    "binId": "ESP32-TEST-005",
+    "location": "Test Location 5",
+    "timestamp": "2026-02-15T15:36:50.492Z",
+    "isAlert": false
+  }
+]
