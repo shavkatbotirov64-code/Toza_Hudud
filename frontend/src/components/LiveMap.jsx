@@ -487,13 +487,21 @@ const LiveMap = () => {
             // Eski yo'l nuqtasiga yetdi, keyingi nuqtaga o'tish
             route.currentPointIndex++
           } else {
-            // Qutiga yetdi
+            // Qutiga yetdi - qutini tozalash
             route.reachedTarget = true
             route.lastUpdate = currentTime
             
             if (route.targetBin) {
               console.log(`✅ ${vehicleId} ${route.targetBin.id} qutiga yetdi va tozalaydi!`)
-              // Quti holati o'zgarmaydi - faqat ESP32 dan yangi ma'lumot kelganda yangilanadi
+              
+              // Qutini tozalash - yashil rangga o'zgartirish (10-20%)
+              if (realTimeBinData && realTimeBinData.id === route.targetBin.id) {
+                setRealTimeBinData({
+                  ...realTimeBinData,
+                  status: 15 // Yashil rang uchun (0-30%)
+                })
+                console.log(`🧹 ${route.targetBin.id} tozalandi! Qizil → Yashil (15%)`)
+              }
             }
           }
         }
