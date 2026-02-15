@@ -9,6 +9,61 @@ export class BinsController {
 
   constructor(private readonly binsService: BinsService) {}
 
+  @Get()
+  @ApiOperation({ summary: 'Barcha qutilar' })
+  @ApiResponse({ status: 200, description: 'Qutilar ro\'yxati' })
+  async getAllBinsDefault() {
+    try {
+      const bins = await this.binsService.getAllBins();
+      this.logger.log(`📦 Retrieved ${bins.length} bins from database`);
+      
+      // Frontend formatiga o'zgartirish
+      const formattedBins = bins.map(bin => ({
+        id: bin.id,
+        code: bin.binId, // Frontend code kutadi
+        binId: bin.binId,
+        address: bin.location, // Frontend address kutadi
+        location: bin.location,
+        district: bin.district || 'Samarqand',
+        latitude: bin.latitude,
+        longitude: bin.longitude,
+        status: bin.status,
+        fillLevel: bin.fillLevel,
+        capacity: bin.capacity,
+        type: bin.type || 'standard',
+        sensorId: bin.sensorId || bin.binId,
+        isOnline: bin.isOnline !== undefined ? bin.isOnline : true,
+        batteryLevel: bin.batteryLevel || 100,
+        lastDistance: bin.lastDistance,
+        lastCleaned: bin.lastCleaningTime,
+        lastUpdate: bin.updatedAt,
+        totalCleanings: bin.totalCleanings,
+        isActive: bin.isActive,
+        createdAt: bin.createdAt,
+        updatedAt: bin.updatedAt,
+      }));
+      
+      return {
+        success: true,
+        message: 'Bins retrieved successfully',
+        data: formattedBins,
+        pagination: {
+          total: formattedBins.length,
+          page: 1,
+          limit: formattedBins.length,
+        },
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+      };
+    }
+  }
+
   @Post('create')
   @ApiOperation({ summary: 'Yangi quti yaratish' })
   @ApiResponse({ status: 200, description: 'Quti yaratildi' })

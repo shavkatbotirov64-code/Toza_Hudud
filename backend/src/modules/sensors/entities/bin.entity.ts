@@ -6,10 +6,13 @@ export class Bin {
   id: string;
 
   @Column({ type: 'varchar', length: 50, unique: true })
-  binId: string; // ESP32-IBN-SINO
+  binId: string; // ESP32-IBN-SINO (bu ham code sifatida ishlatiladi)
 
   @Column({ type: 'varchar', length: 255 })
-  location: string; // Samarqand
+  location: string; // Samarqand (bu ham address sifatida ishlatiladi)
+
+  @Column({ type: 'varchar', length: 100, default: 'Samarqand' })
+  district: string; // Tuman nomi
 
   @Column({ type: 'decimal', precision: 10, scale: 7 })
   latitude: number;
@@ -25,6 +28,18 @@ export class Bin {
 
   @Column({ type: 'int', default: 120 })
   capacity: number; // Litr
+
+  @Column({ type: 'varchar', length: 50, default: 'standard' })
+  type: string; // Quti turi: standard, large, small
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  sensorId: string; // Sensor ID
+
+  @Column({ type: 'boolean', default: true })
+  isOnline: boolean; // Online/Offline holati
+
+  @Column({ type: 'int', default: 100 })
+  batteryLevel: number; // Batareya darajasi (0-100%)
 
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   lastDistance: number; // Oxirgi o'lchangan masofa (sm)

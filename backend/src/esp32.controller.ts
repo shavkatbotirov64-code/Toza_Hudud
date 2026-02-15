@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiExcludeController } from '@nestjs/swagger';
 import { SensorsService } from './modules/sensors/sensors.service';
+import { SensorsGateway } from './modules/sensors/sensors.gateway';
+import { BinsService } from './modules/sensors/bins.service';
 
 export interface SensorData {
   distance: number;
@@ -14,7 +16,11 @@ export interface SensorData {
 export class ESP32Controller {
   private readonly logger = new Logger(ESP32Controller.name);
 
-  constructor(private readonly sensorsService: SensorsService) { }
+  constructor(
+    private readonly sensorsService: SensorsService,
+    private readonly sensorsGateway: SensorsGateway,
+    private readonly binsService: BinsService,
+  ) { }
 
   @Post('sensors/distance')
   @ApiOperation({ summary: 'ESP32 dan masofa ma\'lumotini qabul qilish' })
@@ -26,11 +32,40 @@ export class ESP32Controller {
 
       // Ma'lumotni saqlash
       const savedData = await this.sensorsService.saveSensorData(data);
+      this.logger.log(`💾 Database ga saqlandi: ${JSON.stringify(savedData)}`);
 
-      // Agar 20 sm dan kam bo'lsa, alert yaratish
+      // 🔥 WebSocket orqali barcha clientlarga yuborish
+      this.logger.log(`📤 WebSocket emit qilinmoqda: sensorData`);
+      this.sensorsGateway.emitNewSensorData(savedData);
+      this.logger.log(`✅ WebSocket: Ma'lumot barcha clientlarga yuborildi`);
+
+      // Agar 20 sm dan kam bo'lsa, alert yaratish va qutini FULL qilish
       if (data.distance <= 20) {
         this.logger.warn(`🚨 ALERT: Chiqindi quti to'la! Masofa: ${data.distance} sm`);
         await this.sensorsService.createAlert(data);
+        
+        // 🔥 Qutini FULL holatiga o'tkazish
+        const binId = data.binId || 'ESP32-IBN-SINO';
+        try {
+          await this.binsService.markBinAsFull(binId, data.distance);
+          this.logger.log(`🗑️ Bin marked as FULL in database: ${binId}`);
+        } catch (binError) {
+          // Agar quti topilmasa, yaratish
+          this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
+          await this.binsService.upsertBin({
+            binId: binId,
+            location: data.location || 'Samarqand',
+            latitude: 39.6542,
+            longitude: 66.9597,
+            capacity: 120,
+          });
+          await this.binsService.markBinAsFull(binId, data.distance);
+        }
+        
+        // 🔥 Quti FULL holatini yuborish
+        this.logger.log(`📤 WebSocket emit qilinmoqda: binStatus (${binId} = FULL)`);
+        this.sensorsGateway.emitBinStatusChange(binId, 'FULL');
+        this.logger.log(`✅ WebSocket: binStatus yuborildi`);
       }
 
       return {
@@ -43,6 +78,7 @@ export class ESP32Controller {
       };
     } catch (error) {
       this.logger.error(`❌ ESP32 ma'lumotini qabul qilishda xatolik: ${error.message}`);
+      this.logger.error(`❌ Stack trace: ${error.stack}`);
       return {
         success: false,
         error: error.message,

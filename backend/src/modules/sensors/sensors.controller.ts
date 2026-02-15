@@ -29,13 +29,17 @@ export class SensorsController {
   async receiveDistance(@Body() data: SensorData) {
     try {
       this.logger.log(`📡 ESP32 dan ma'lumot keldi: ${JSON.stringify(data)}`);
+      this.logger.log(`📡 Distance: ${data.distance} sm`);
+      this.logger.log(`📡 BinId: ${data.binId || 'ESP32-IBN-SINO'}`);
       
       // Ma'lumotni saqlash
       const savedData = await this.sensorsService.saveSensorData(data);
+      this.logger.log(`💾 Database ga saqlandi: ${JSON.stringify(savedData)}`);
       
       // 🔥 WebSocket orqali barcha clientlarga yuborish
+      this.logger.log(`📤 WebSocket emit qilinmoqda: sensorData`);
       this.sensorsGateway.emitNewSensorData(savedData);
-      this.logger.log(`📤 WebSocket: Ma'lumot barcha clientlarga yuborildi`);
+      this.logger.log(`✅ WebSocket: Ma'lumot barcha clientlarga yuborildi`);
       
       // Agar 20 sm dan kam bo'lsa, alert yaratish va qutini FULL qilish
       if (data.distance <= 20) {
@@ -61,7 +65,9 @@ export class SensorsController {
         }
         
         // 🔥 Quti FULL holatini yuborish
+        this.logger.log(`📤 WebSocket emit qilinmoqda: binStatus (${binId} = FULL)`);
         this.sensorsGateway.emitBinStatusChange(binId, 'FULL');
+        this.logger.log(`✅ WebSocket: binStatus yuborildi`);
       }
 
       return {
@@ -71,6 +77,7 @@ export class SensorsController {
       };
     } catch (error) {
       this.logger.error(`❌ Sensor ma'lumotini saqlashda xatolik: ${error.message}`);
+      this.logger.error(`❌ Stack trace: ${error.stack}`);
       return {
         success: false,
         error: error.message
