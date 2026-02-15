@@ -1110,6 +1110,109 @@ class ApiService {
       return { success: false, error: error.message };
     }
   }
+
+  // Analytics API
+  async getDashboardStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/dashboard`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getDailyStats(date = null) {
+    try {
+      let url = `${API_BASE_URL}/analytics/daily`;
+      if (date) {
+        url += `?date=${date}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getWeeklyStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/weekly`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getMonthlyStats(year = null, month = null) {
+    try {
+      let url = `${API_BASE_URL}/analytics/monthly`;
+      const params = [];
+      if (year) params.push(`year=${year}`);
+      if (month) params.push(`month=${month}`);
+      if (params.length > 0) {
+        url += `?${params.join('&')}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getEfficiencyStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/efficiency`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getBinsStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/bins`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getVehiclesStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/analytics/vehicles`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new ApiService();

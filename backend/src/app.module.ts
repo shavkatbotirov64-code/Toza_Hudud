@@ -13,6 +13,7 @@ import { SensorsModule } from './modules/sensors/sensors.module';
 import { CleaningsModule } from './modules/cleanings/cleanings.module';
 import { RoutesModule } from './modules/routes/routes.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { getDatabaseConfig } from './config/database.config';
 import appConfig from './config/app.config';
 
@@ -42,6 +43,7 @@ import appConfig from './config/app.config';
     CleaningsModule,
     RoutesModule,
     NotificationsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController, ESP32Controller],
   providers: [AppService],
