@@ -487,20 +487,13 @@ const LiveMap = () => {
             // Eski yo'l nuqtasiga yetdi, keyingi nuqtaga o'tish
             route.currentPointIndex++
           } else {
-            // Qutiga yetdi - avtomatik tozalash
+            // Qutiga yetdi
             route.reachedTarget = true
             route.lastUpdate = currentTime
             
             if (route.targetBin) {
               console.log(`✅ ${vehicleId} ${route.targetBin.id} qutiga yetdi va tozalaydi!`)
-              
-              // Qutini avtomatik tozalash - statusni 10-20% ga tushirish
-              const binIndex = activeBinsData.findIndex(bin => bin.id === route.targetBin.id)
-              if (binIndex !== -1) {
-                const oldStatus = activeBinsData[binIndex].status
-                activeBinsData[binIndex].status = Math.max(10, Math.random() * 20 + 10) // 10-30% orasida
-                console.log(`🧹 ${route.targetBin.id} tozalandi! ${oldStatus}% → ${Math.round(activeBinsData[binIndex].status)}%`)
-              }
+              // Quti holati o'zgarmaydi - faqat ESP32 dan yangi ma'lumot kelganda yangilanadi
             }
           }
         }
@@ -524,31 +517,6 @@ const LiveMap = () => {
       setVehiclePositions(routes)
     }
   }, [])
-
-  // Qutilar holatini tasodifiy o'zgartirish - Map.toza.huduh bilan bir xil
-  useEffect(() => {
-    const binStatusInterval = setInterval(() => {
-      activeBinsData.forEach(bin => {
-        // Tasodifiy ravishda ba'zi qutilar to'ladi
-        if (Math.random() > 0.95 && bin.status < 90) { // 5% ehtimol
-          const oldStatus = bin.status
-          bin.status = Math.min(100, bin.status + Math.random() * 20 + 10)
-          console.log(`📈 ${bin.id} quti to'lmoqda: ${Math.round(bin.status)}%`)
-          
-          // Agar quti to'la bo'lsa, darhol yo'nalish chiziq paydo qilish
-          if (bin.status >= 90 && oldStatus < 90) {
-            console.log(`🚨 ${bin.id} quti to'ldi! Yo'nalish chiziqlari yangilanmoqda...`)
-            // Yo'nalish chiziqlarni yangilash uchun kichik kechikish
-            setTimeout(() => {
-              updateRouteLines()
-            }, 100)
-          }
-        }
-      })
-    }, 10000) // Har 10 soniyada
-
-    return () => clearInterval(binStatusInterval)
-  }, [vehiclePositions])
 
   // Animation interval - yo'l bo'ylab harakat - Map.toza.huduh bilan bir xil
   useEffect(() => {
