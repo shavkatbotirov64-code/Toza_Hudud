@@ -108,6 +108,8 @@ const LiveMapSimple = () => {
 
   // WebSocket - Real-time ESP32 ma'lumot olish
   useEffect(() => {
+    console.log('🔧 LiveMapSimple component mounted - WebSocket initializing...')
+    
     // WebSocket ulanish
     const socket = io('https://tozahudud-production-d73f.up.railway.app', {
       transports: ['websocket', 'polling'],
@@ -120,10 +122,16 @@ const LiveMapSimple = () => {
 
     socket.on('connect', () => {
       console.log('✅ WebSocket connected:', socket.id)
+      console.log('✅ Listening for events: sensorData, binStatus')
     })
 
     socket.on('disconnect', () => {
       console.log('❌ WebSocket disconnected')
+    })
+    
+    // Test: Barcha eventlarni eshitish
+    socket.onAny((eventName, ...args) => {
+      console.log(`🔔 WebSocket event received: "${eventName}"`, args)
     })
 
     // ESP32 dan yangi ma'lumot kelganda
@@ -159,8 +167,10 @@ const LiveMapSimple = () => {
       
       if (status === 'FULL') {
         setBinData(prev => ({ ...prev, status: 95 }))
+        console.log('🔴 Bin marked as FULL from binStatus event')
       } else if (status === 'EMPTY') {
         setBinData(prev => ({ ...prev, status: 15 }))
+        console.log('🟢 Bin marked as EMPTY from binStatus event')
       }
     })
 
