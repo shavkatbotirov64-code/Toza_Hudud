@@ -999,6 +999,117 @@ class ApiService {
       return { success: false, error: error.message };
     }
   }
+
+  // Notifications API
+  async sendNotification(notificationData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getAllNotifications(userId = null, limit = 50) {
+    try {
+      let url = `${API_BASE_URL}/notifications/list?limit=${limit}`;
+      if (userId) {
+        url += `&userId=${userId}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [] };
+    } catch (error) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  async getUnreadNotifications(userId = null) {
+    try {
+      let url = `${API_BASE_URL}/notifications/unread`;
+      if (userId) {
+        url += `?userId=${userId}`;
+      }
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return { success: true, data: data.data || [], count: data.count || 0 };
+    } catch (error) {
+      return { success: false, error: error.message, data: [], count: 0 };
+    }
+  }
+
+  async markNotificationAsRead(notificationId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}/read`, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async markAllNotificationsAsRead(userId = null) {
+    try {
+      let url = `${API_BASE_URL}/notifications/read-all`;
+      if (userId) {
+        url += `?userId=${userId}`;
+      }
+      const response = await fetch(url, {
+        method: 'PUT',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteNotification(notificationId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications/${notificationId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 export default new ApiService();

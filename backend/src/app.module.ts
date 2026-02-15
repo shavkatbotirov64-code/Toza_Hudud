@@ -12,6 +12,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { SensorsModule } from './modules/sensors/sensors.module';
 import { CleaningsModule } from './modules/cleanings/cleanings.module';
 import { RoutesModule } from './modules/routes/routes.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { getDatabaseConfig } from './config/database.config';
 import appConfig from './config/app.config';
 
@@ -40,6 +41,7 @@ import appConfig from './config/app.config';
     SensorsModule,
     CleaningsModule,
     RoutesModule,
+    NotificationsModule,
   ],
   controllers: [AppController, ESP32Controller],
   providers: [AppService],
