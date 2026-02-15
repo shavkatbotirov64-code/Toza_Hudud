@@ -1,0 +1,67 @@
+FRONTEND NI HOZIR DEPLOY QILISH
+
+=== USUL 1: Railway Dashboard (TAVSIYA ETILADI) ===
+
+1. Brauzerda oching: https://railway.com/project/e0ee489f-1abf-4ca2-8a38-9eb343401483
+
+2. Login: saidkarimcyber01@gmail.com
+
+3. "Toza_Hudud_frontend" service ni bosing
+
+4. Yuqori o'ng burchakda "Deploy" tugmasini bosing
+   YO
+   "Deployments" tabga o'ting va oxirgi deployment ni "Redeploy" qiling
+
+5. Build jarayonini kuzating (2-3 daqiqa)
+
+6. Deploy tugagandan keyin brauzerda:
+   - https://tozahududfrontend-production.up.railway.app
+   - Ctrl+Shift+R (hard refresh)
+   - F12 > Console > Sensor loglarini ko'ring
+
+
+=== USUL 2: Terminal (AGAR USUL 1 ISHLAMASA) ===
+
+cd frontend
+railway link
+# "Toza_Hudud" project ni tanlang
+# "production" environment ni tanlang  
+# "Toza_Hudud_frontend" service ni tanlang
+railway up --detach
+
+
+=== TEKSHIRISH ===
+
+Deploy tugagandan keyin console da ko'rishingiz kerak:
+
+✅ 🔍 Fetching sensor data from: https://tozahudud-production-d73f.up.railway.app/sensors/latest
+✅ 📡 Response status: 200
+✅ ✅ Sensor data received: {success: true, data: [...]}
+
+Agar ko'rsangiz - ISHLADI! 🎉
+
+
+=== AGAR HALI HAM ISHLAMASA ===
+
+Railway da "Watch Paths" sozlamalarini tekshiring:
+- Settings > Watch Paths
+- Bo'sh bo'lishi kerak (barcha fayllarni kuzatish uchun)
+
+Yoki:
+- Settings > Deploy Trigger
+- "Automatic" bo'lishi kerak
+
+
+=== OXIRGI CHORA ===
+
+Agar hech narsa ishlamasa, yangi service yarating:
+1. Railway dashboard da "New Service" bosing
+2. "GitHub Repo" ni tanlang
+3. Toza_Hudud repo ni tanlang
+4. Root Directory: "frontend"
+5. Deploy qiling
+
+===========================================
+MUHIM: Railway dashboard ga kirib manual deploy qiling!
+Bu eng ishonchli usul.
+===========================================
