@@ -2,9 +2,9 @@
 export const mockBins = [
   { 
     id: 'BIN-001', 
-    address: 'Amir Temur kochasi 123, Yakkasaroy', 
-    district: 'yakkasaroy',
-    location: [41.284, 69.279],
+    address: 'Registon ko\'chasi 15, Samarqand', 
+    district: 'samarqand',
+    location: [39.6550, 66.9750],
     status: 95, 
     lastUpdate: '14:30', 
     lastCleaned: '26.12.2025 14:35', 
@@ -16,9 +16,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-002', 
-    address: 'Mustaqillik maydoni 45, Yunusobod', 
-    district: 'yunusobod',
-    location: [41.367, 69.292],
+    address: 'Amir Temur ko\'chasi 45, Samarqand', 
+    district: 'samarqand',
+    location: [39.6400, 66.9800],
     status: 45, 
     lastUpdate: '14:25', 
     lastCleaned: '26.12.2025 09:15', 
@@ -30,9 +30,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-003', 
-    address: 'Bobur kochasi 78, Mirzo Ulugbek', 
-    district: 'mirzo',
-    location: [41.314, 69.336],
+    address: 'Mirzo Ulug\'bek ko\'chasi 78, Samarqand', 
+    district: 'samarqand',
+    location: [39.6300, 66.9700],
     status: 75, 
     lastUpdate: '14:28', 
     lastCleaned: '25.12.2025 18:20', 
@@ -44,9 +44,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-004', 
-    address: 'Yunus Rajabiy 12, Chilonzor', 
-    district: 'chilonzor',
-    location: [41.286, 69.204],
+    address: 'Shohruh ko\'chasi 12, Samarqand', 
+    district: 'samarqand',
+    location: [39.6200, 66.9650],
     status: 20, 
     lastUpdate: '14:20', 
     lastCleaned: '26.12.2025 11:45', 
@@ -58,9 +58,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-005', 
-    address: 'Navoi kochasi 89, Yakkasaroy', 
-    district: 'yakkasaroy',
-    location: [41.288, 69.275],
+    address: 'Navoi ko\'chasi 89, Samarqand', 
+    district: 'samarqand',
+    location: [39.6600, 66.9850],
     status: 85, 
     lastUpdate: '14:15', 
     lastCleaned: '26.12.2025 08:30', 
@@ -72,9 +72,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-006', 
-    address: 'Shota Rustaveli 56, Yunusobod', 
-    district: 'yunusobod',
-    location: [41.365, 69.295],
+    address: 'Bobur ko\'chasi 56, Samarqand', 
+    district: 'samarqand',
+    location: [39.6350, 66.9900],
     status: 30, 
     lastUpdate: '14:10', 
     lastCleaned: '26.12.2025 12:20', 
@@ -86,9 +86,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-007', 
-    address: 'Ahmad Donish 90, Mirzo Ulugbek', 
-    district: 'mirzo',
-    location: [41.312, 69.332],
+    address: 'Ahmad Donish ko\'chasi 90, Samarqand', 
+    district: 'samarqand',
+    location: [39.6450, 66.9600],
     status: 60, 
     lastUpdate: '14:05', 
     lastCleaned: '26.12.2025 10:50', 
@@ -100,9 +100,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-008', 
-    address: 'Furqat 34, Chilonzor', 
-    district: 'chilonzor',
-    location: [41.284, 69.208],
+    address: 'Furqat ko\'chasi 34, Samarqand', 
+    district: 'samarqand',
+    location: [39.6150, 66.9550],
     status: 95, 
     lastUpdate: '14:00', 
     lastCleaned: '25.12.2025 16:30', 
@@ -114,9 +114,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-009', 
-    address: 'Beruniy 67, Yakkasaroy', 
-    district: 'yakkasaroy',
-    location: [41.281, 69.273],
+    address: 'Beruniy ko\'chasi 67, Samarqand', 
+    district: 'samarqand',
+    location: [39.6500, 66.9500],
     status: 40, 
     lastUpdate: '13:55', 
     lastCleaned: '26.12.2025 07:45', 
@@ -128,9 +128,9 @@ export const mockBins = [
   },
   { 
     id: 'BIN-010', 
-    address: 'Alisher Navoiy 21, Yunusobod', 
-    district: 'yunusobod',
-    location: [41.369, 69.298],
+    address: 'Alisher Navoiy ko\'chasi 21, Samarqand', 
+    district: 'samarqand',
+    location: [39.6250, 66.9950],
     status: 80, 
     lastUpdate: '13:50', 
     lastCleaned: '26.12.2025 06:30', 
@@ -148,8 +148,8 @@ export const mockVehicles = [
     driver: 'Alisher Karimov', 
     status: 'moving', 
     cleaned: 12, 
-    location: 'Amir Temur kochasi, Yakkasaroy',
-    coordinates: [41.284, 69.279],
+    location: 'Registon ko\'chasi, Samarqand',
+    coordinates: [39.6550, 66.9750],
     capacity: 5000,
     fuel: 85,
     speed: 45,
@@ -164,8 +164,8 @@ export const mockVehicles = [
     driver: 'Sardor Umarov', 
     status: 'moving', 
     cleaned: 15, 
-    location: 'Yunusobod 7-mavze',
-    coordinates: [41.367, 69.292],
+    location: 'Amir Temur ko\'chasi, Samarqand',
+    coordinates: [39.6400, 66.9800],
     capacity: 6000,
     fuel: 70,
     speed: 38,
@@ -180,8 +180,8 @@ export const mockVehicles = [
     driver: 'Jasur Rahimov', 
     status: 'active', 
     cleaned: 8, 
-    location: 'Chilonzor parki',
-    coordinates: [41.286, 69.204],
+    location: 'Shohruh ko\'chasi, Samarqand',
+    coordinates: [39.6200, 66.9650],
     capacity: 4500,
     fuel: 40,
     speed: 0,
@@ -196,8 +196,8 @@ export const mockVehicles = [
     driver: 'Botir Sharipov', 
     status: 'moving', 
     cleaned: 11, 
-    location: 'Mirzo Ulugbek tumani',
-    coordinates: [41.314, 69.336],
+    location: 'Mirzo Ulug\'bek ko\'chasi, Samarqand',
+    coordinates: [39.6300, 66.9700],
     capacity: 5500,
     fuel: 65,
     speed: 42,
@@ -216,7 +216,7 @@ export const mockActivities = [
     title: 'Quti #BIN-001 to\'ldi',
     description: '95% to\'ldi. Mashina yuborildi',
     time: '14:30',
-    location: 'Amir Temur kochasi',
+    location: 'Registon ko\'chasi',
     binId: 'BIN-001'
   },
   { 
@@ -225,7 +225,7 @@ export const mockActivities = [
     title: 'Mashina #VH-001 yetib keldi',
     description: 'Quti #BIN-001 tozalandi',
     time: '14:35',
-    location: 'Yakkasaroy',
+    location: 'Samarqand shahri',
     vehicleId: 'VH-001'
   },
   { 
@@ -234,7 +234,7 @@ export const mockActivities = [
     title: 'Yangi quti qo\'shildi',
     description: 'Quti #BIN-011 aktivlashtirildi',
     time: '14:40',
-    location: 'Yunusobod',
+    location: 'Samarqand shahri',
     binId: 'BIN-011'
   },
   { 
@@ -243,7 +243,7 @@ export const mockActivities = [
     title: 'Quti #BIN-008 ogohlantirish',
     description: '85% to\'ldi',
     time: '14:45',
-    location: 'Chilonzor',
+    location: 'Furqat ko\'chasi',
     binId: 'BIN-008'
   },
   { 
@@ -252,7 +252,7 @@ export const mockActivities = [
     title: 'Sensor nosozligi',
     description: 'Quti #BIN-005 sensori ishlamayapti',
     time: '14:50',
-    location: 'Yakkasaroy',
+    location: 'Navoi ko\'chasi',
     binId: 'BIN-005'
   }
 ]
@@ -264,31 +264,16 @@ export const mockAlerts = [
     title: 'Ogohlantirish darajasi',
     message: 'Quti #BIN-008 85% to\'ldi',
     time: '2 soat oldin',
-    location: 'Mirzo Ulug\'bek',
+    location: 'Samarqand shahri',
     read: true,
     priority: 'medium'
   }
 ]
 
-export const tashkentDistricts = {
-  yakkasaroy: {
-    center: [41.284, 69.279],
-    bounds: [[41.27, 69.26], [41.29, 69.29]],
-    bins: []
-  },
-  yunusobod: {
-    center: [41.367, 69.292],
-    bounds: [[41.35, 69.28], [41.38, 69.31]],
-    bins: []
-  },
-  mirzo: {
-    center: [41.314, 69.336],
-    bounds: [[41.30, 69.32], [41.33, 69.35]],
-    bins: []
-  },
-  chilonzor: {
-    center: [41.286, 69.204],
-    bounds: [[41.27, 69.19], [41.30, 69.22]],
+export const samarqandDistricts = {
+  samarqand: {
+    center: [39.6270, 66.9750],
+    bounds: [[39.60, 66.95], [39.68, 67.00]],
     bins: []
   }
 }

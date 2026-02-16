@@ -455,17 +455,7 @@ export const uz = {
 
   // Districts
   districts: {
-    yakkasaroy: "Yakkasaroy",
-    yunusobod: "Yunusobod",
-    mirzo: "Mirzo Ulug'bek",
-    chilonzor: "Chilonzor",
-    shayxontohur: "Shayxontohur",
-    mirobod: "Mirobod",
-    sergeli: "Sergeli",
-    almazar: "Olmazar",
-    bektemir: "Bektemir",
-    uchtepa: "Uchtepa",
-    yashnobod: "Yashnobod"
+    samarqand: "Samarqand shahri (markaz)"
   },
 
   // Live Map
