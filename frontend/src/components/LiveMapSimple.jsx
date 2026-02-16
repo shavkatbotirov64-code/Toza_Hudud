@@ -11,11 +11,9 @@ const LiveMapSimple = () => {
   const { t } = useTranslation()
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
-  const binMarkerRef = useRef(null)
-  const vehicleMarkerRef = useRef(null)
-  const vehicle2MarkerRef = useRef(null) // Ikkinchi mashina
-  const routeLineRef = useRef(null)
-  const route2LineRef = useRef(null) // Ikkinchi mashina marshruti
+  const binMarkersRef = useRef([]) // Barcha quti markerlari
+  const vehicleMarkersRef = useRef([]) // Barcha mashina markerlari
+  const routeLinesRef = useRef([]) // Barcha marshrut chiziqlari
   const animationIntervalRef = useRef(null)
   const animation2IntervalRef = useRef(null) // Ikkinchi mashina animatsiyasi
   const socketRef = useRef(null) // WebSocket reference
@@ -585,95 +583,85 @@ const LiveMapSimple = () => {
 
     const map = mapInstanceRef.current
 
-    // Quti markeri
-    if (binMarkerRef.current) {
-      map.removeLayer(binMarkerRef.current)
-    }
+    // Eski markerlarni o'chirish
+    binMarkersRef.current.forEach(marker => map.removeLayer(marker))
+    vehicleMarkersRef.current.forEach(marker => map.removeLayer(marker))
+    routeLinesRef.current.forEach(line => map.removeLayer(line))
+    
+    binMarkersRef.current = []
+    vehicleMarkersRef.current = []
+    routeLinesRef.current = []
 
-    const binColor = binData.status >= 90 ? '#ef4444' : '#10b981'
-    const binIcon = L.divIcon({
-      html: `<div style="background: ${binColor}; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 2px solid white;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M9 3V4H4V6H5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V6H20V4H15V3H9M7 6H17V19H7V6M9 8V17H11V8H9M13 8V17H15V8H13Z"/>
-        </svg>
-      </div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 32]
+    // BARCHA QUTILARNI KO'RSATISH
+    binsData.forEach(bin => {
+      const binColor = bin.status >= 90 ? '#ef4444' : '#10b981'
+      const binIcon = L.divIcon({
+        html: `<div style="background: ${binColor}; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 2px solid white;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 3V4H4V6H5V19C5 20.1 5.9 21 7 21H17C18.1 21 19 20.1 19 19V6H20V4H15V3H9M7 6H17V19H7V6M9 8V17H11V8H9M13 8V17H15V8H13Z"/>
+          </svg>
+        </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32]
+      })
+
+      const marker = L.marker(bin.location, { icon: binIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div>
+            <h4>${bin.id}</h4>
+            <p><strong>Manzil:</strong> ${bin.address || bin.location}</p>
+            <p><strong>Holat:</strong> ${bin.status}%</p>
+            <p><strong>Sig'im:</strong> ${bin.capacity}L</p>
+          </div>
+        `)
+      
+      binMarkersRef.current.push(marker)
     })
 
-    binMarkerRef.current = L.marker(binData.location, { icon: binIcon })
-      .addTo(map)
-      .bindPopup(`<div><h4>${binData.id}</h4><p><strong>Holat:</strong> ${binStatus}</p><p><strong>Status:</strong> ${binData.status}%</p></div>`)
+    // BARCHA MASHINALARNI KO'RSATISH
+    vehiclesData.forEach((vehicle, index) => {
+      // Har bir mashina uchun turli rang
+      const colors = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899']
+      const vehicleColor = vehicle.isMoving ? colors[index % colors.length] : '#6b7280'
+      
+      const vehicleIcon = L.divIcon({
+        html: `<div style="background: ${vehicleColor}; width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 2px solid white;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
+          </svg>
+        </div>`,
+        iconSize: [44, 44],
+        iconAnchor: [22, 44]
+      })
 
-    // Mashina 1 markeri
-    if (vehicleMarkerRef.current) {
-      map.removeLayer(vehicleMarkerRef.current)
-    }
+      const marker = L.marker(vehicle.position, { icon: vehicleIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div>
+            <h4>${vehicle.id}</h4>
+            <p><strong>Haydovchi:</strong> ${vehicle.driver}</p>
+            <p><strong>Holat:</strong> ${vehicle.status === 'moving' ? 'Harakatda' : vehicle.status === 'active' ? 'Faol' : 'Nofaol'}</p>
+            <p><strong>Tozalangan:</strong> ${vehicle.cleaned || 0} ta</p>
+          </div>
+        `)
+      
+      vehicleMarkersRef.current.push(marker)
 
-    const vehicleColor = vehicleState.isMoving ? '#3b82f6' : '#10b981'
-    const vehicleIcon = L.divIcon({
-      html: `<div style="background: ${vehicleColor}; width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 2px solid white;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
-        </svg>
-      </div>`,
-      iconSize: [44, 44],
-      iconAnchor: [22, 44]
+      // Marshrut chizig'i (agar bor bo'lsa)
+      if (vehicle.routePath && vehicle.routePath.length > 0) {
+        const routeLine = L.polyline(vehicle.routePath, {
+          color: colors[index % colors.length],
+          weight: 4,
+          opacity: 0.8,
+          dashArray: '8, 4'
+        }).addTo(map)
+        
+        routeLinesRef.current.push(routeLine)
+      }
     })
 
-    vehicleMarkerRef.current = L.marker(vehicleState.position, { icon: vehicleIcon })
-      .addTo(map)
-      .bindPopup(`<div><h4>${vehicleState.id}</h4><p><strong>Haydovchi:</strong> ${vehicleState.driver}</p><p><strong>Holat:</strong> ${vehicleState.isMoving ? 'Harakatda' : 'To\'xtagan'}</p></div>`)
-
-    // Mashina 2 markeri
-    if (vehicle2MarkerRef.current) {
-      map.removeLayer(vehicle2MarkerRef.current)
-    }
-
-    const vehicle2Color = vehicle2State.isMoving ? '#f59e0b' : '#10b981' // Sariq rang
-    const vehicle2Icon = L.divIcon({
-      html: `<div style="background: ${vehicle2Color}; width: 44px; height: 44px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); border: 2px solid white;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
-        </svg>
-      </div>`,
-      iconSize: [44, 44],
-      iconAnchor: [22, 44]
-    })
-
-    vehicle2MarkerRef.current = L.marker(vehicle2State.position, { icon: vehicle2Icon })
-      .addTo(map)
-      .bindPopup(`<div><h4>${vehicle2State.id}</h4><p><strong>Haydovchi:</strong> ${vehicle2State.driver}</p><p><strong>Holat:</strong> ${vehicle2State.isMoving ? 'Harakatda' : 'To\'xtagan'}</p></div>`)
-
-    // Marshrut chizig'i (Mashina 1)
-    if (routeLineRef.current) {
-      map.removeLayer(routeLineRef.current)
-    }
-
-    if (vehicleState.isMoving && vehicleState.routePath) {
-      routeLineRef.current = L.polyline(vehicleState.routePath, {
-        color: '#3b82f6',
-        weight: 4,
-        opacity: 0.8,
-        dashArray: '8, 4'
-      }).addTo(map)
-    }
-
-    // Marshrut chizig'i (Mashina 2)
-    if (route2LineRef.current) {
-      map.removeLayer(route2LineRef.current)
-    }
-
-    if (vehicle2State.isMoving && vehicle2State.routePath) {
-      route2LineRef.current = L.polyline(vehicle2State.routePath, {
-        color: '#f59e0b',
-        weight: 4,
-        opacity: 0.8,
-        dashArray: '8, 4'
-      }).addTo(map)
-    }
-
-  }, [binData, vehicleState, vehicle2State, binStatus])
+  }, [binsData, vehiclesData])
 
   const centerMap = () => {
     if (mapInstanceRef.current) {
@@ -695,23 +683,30 @@ const LiveMapSimple = () => {
       <div className="card-body">
         <div ref={mapRef} className="live-map" style={{ height: '400px' }}></div>
         <div className="map-legend">
-          <div style={{ marginBottom: '8px', fontWeight: '600', color: '#555' }}>Status:</div>
+          <div style={{ marginBottom: '8px', fontWeight: '600', color: '#555' }}>Qutilar:</div>
           <div className="legend-item">
             <div style={{ width: '16px', height: '16px', background: '#10b981', borderRadius: '4px' }}></div>
-            <span>Bo'sh (EMPTY)</span>
+            <span>Bo'sh (&lt;90%)</span>
           </div>
           <div className="legend-item">
             <div style={{ width: '16px', height: '16px', background: '#ef4444', borderRadius: '4px' }}></div>
-            <span>To'la (FULL)</span>
+            <span>To'la (≥90%)</span>
           </div>
+          <div style={{ marginTop: '12px', marginBottom: '8px', fontWeight: '600', color: '#555' }}>Mashinalar:</div>
           <div className="legend-item">
             <div style={{ width: '16px', height: '16px', background: '#3b82f6', borderRadius: '4px' }}></div>
-            <span>Mashina 1 (VEH-001)</span>
+            <span>VEH-001</span>
           </div>
           <div className="legend-item">
             <div style={{ width: '16px', height: '16px', background: '#f59e0b', borderRadius: '4px' }}></div>
-            <span>Mashina 2 (VEH-002)</span>
+            <span>VEH-002</span>
           </div>
+          {vehiclesData.length > 2 && (
+            <div className="legend-item">
+              <div style={{ width: '16px', height: '16px', background: '#10b981', borderRadius: '4px' }}></div>
+              <span>Boshqa mashinalar</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
