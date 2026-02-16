@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- Markazdagi to'rt qirrali yulduz -->
+  <path d="M32 12 L38 26 L52 26 L40 32 L46 46 L32 38 L18 46 L24 32 L12 26 L26 26 Z" 
+        fill="none" 
+        stroke="#10b981" 
+        stroke-width="4" 
+        stroke-linejoin="round" 
+        stroke-linecap="round"/>
+  
+  <!-- Yuqori o'ngdagi plus -->
+  <path d="M50 14 L50 20 M47 17 L53 17" 
+        fill="none" 
+        stroke="#10b981" 
+        stroke-width="4" 
+        stroke-linejoin="round" 
+        stroke-linecap="round"/>
+  
+  <!-- Pastki chapdagi plus -->
+  <path d="M14 50 L14 56 M11 53 L17 53" 
+        fill="none" 
+        stroke="#10b981" 
+        stroke-width="4" 
+        stroke-linejoin="round" 
+        stroke-linecap="round"/>
+</svg>
