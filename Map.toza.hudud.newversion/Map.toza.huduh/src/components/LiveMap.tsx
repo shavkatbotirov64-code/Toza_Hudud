@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../contexts/AppContext'
 import { useLanguage } from '../contexts/LanguageContext'
+import api from '../services/api'
 
 interface LiveMapProps {
   compact?: boolean
@@ -342,6 +343,45 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             // Wait 3 seconds, then clean
             setTimeout(() => {
               console.log('🧹 Cleaning started!')
+              
+              // Calculate distance traveled
+              const distanceTraveled = calculateDistance(
+                vehicle.routePath![0][0],
+                vehicle.routePath![0][1],
+                binsData[0].location[0],
+                binsData[0].location[1]
+              )
+              
+              // Calculate duration in minutes
+              const endTime = Date.now()
+              const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
+              
+              // Create cleaning data
+              const cleaningData = {
+                binId: binsData[0].id,
+                vehicleId: vehicle.id,
+                driverName: vehicle.driver,
+                binLocation: binsData[0].address,
+                fillLevelBefore: 95,
+                fillLevelAfter: 15,
+                distanceTraveled: distanceTraveled,
+                durationMinutes: durationMinutes,
+                notes: `Avtomatik tozalash (ESP32 signali) - ${vehicle.id}`,
+                status: 'completed'
+              }
+              
+              // Call backend API to create cleaning record
+              api.createCleaning(cleaningData)
+                .then(result => {
+                  if (result.success) {
+                    console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+                  } else {
+                    console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                  }
+                })
+                .catch(error => {
+                  console.error('❌ API xatolik:', error)
+                })
               
               // Suppress unused variable warning
               void startTime

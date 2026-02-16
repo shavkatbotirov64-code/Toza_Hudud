@@ -46,6 +46,40 @@ class ApiService {
       return { success: false, error: (error as Error).message }
     }
   }
+
+  // Cleaning History API
+  async createCleaning(cleaningData: {
+    binId: string
+    vehicleId: string
+    driverName: string
+    binLocation: string
+    fillLevelBefore: number
+    fillLevelAfter: number
+    distanceTraveled: number
+    durationMinutes: number
+    notes?: string
+    status?: string
+  }) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/cleanings/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleaningData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating cleaning:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  }
 }
 
 export default new ApiService()
