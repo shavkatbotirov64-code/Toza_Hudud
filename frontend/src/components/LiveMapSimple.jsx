@@ -18,6 +18,8 @@ const LiveMapSimple = () => {
   const vehicleIntervalsRef = useRef({}) // Har bir mashina uchun interval
   const vehicleManagerRef = useRef(null) // VehicleManager instance
   const socketRef = useRef(null) // WebSocket reference
+  const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
+  const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
   const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
@@ -47,35 +49,32 @@ const LiveMapSimple = () => {
   const vehicleState = vehiclesData.find(v => v.id === 'VEH-001') || vehiclesData[0]
   const vehicle2State = vehiclesData.find(v => v.id === 'VEH-002') || vehiclesData[1]
 
-  // Barcha mashinalar uchun patrol marshruti yaratish
-  useEffect(() => {
-    if (!vehicleManagerRef.current) return
+  // Barcha mashinalar uchun patrol marshruti yaratish - HOZIRCHA O'CHIRILGAN
+  // useEffect(() => {
+  //   if (!vehicleManagerRef.current) return
+  //   vehiclesData.forEach(vehicle => {
+  //     if (vehicle.isPatrolling && vehicle.patrolRoute.length === 0 && vehicle.patrolWaypoints) {
+  //       vehicleManagerRef.current.buildPatrolRoute(vehicle)
+  //     }
+  //   })
+  // }, [vehiclesData])
 
-    vehiclesData.forEach(vehicle => {
-      if (vehicle.isPatrolling && vehicle.patrolRoute.length === 0 && vehicle.patrolWaypoints) {
-        vehicleManagerRef.current.buildPatrolRoute(vehicle)
-      }
-    })
-  }, [vehiclesData])
-
-  // Barcha mashinalar uchun patrol animatsiyasini boshlash
-  useEffect(() => {
-    if (!vehicleManagerRef.current) return
-
-    vehiclesData.forEach(vehicle => {
-      if (vehicle.isPatrolling && vehicle.patrolRoute.length > 0 && !vehicle.routePath) {
-        vehicleManagerRef.current.startPatrol(vehicle)
-      } else if (!vehicle.isPatrolling && vehicle.routePath) {
-        vehicleManagerRef.current.startGoingToBin(vehicle, binData)
-      }
-    })
-
-    return () => {
-      if (vehicleManagerRef.current) {
-        vehicleManagerRef.current.stopAll()
-      }
-    }
-  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute.length}-${v.routePath ? 'route' : 'no'}`).join(',')])
+  // Barcha mashinalar uchun patrol animatsiyasini boshlash - HOZIRCHA O'CHIRILGAN
+  // useEffect(() => {
+  //   if (!vehicleManagerRef.current) return
+  //   vehiclesData.forEach(vehicle => {
+  //     if (vehicle.isPatrolling && vehicle.patrolRoute.length > 0 && !vehicle.routePath) {
+  //       vehicleManagerRef.current.startPatrol(vehicle)
+  //     } else if (!vehicle.isPatrolling && vehicle.routePath) {
+  //       vehicleManagerRef.current.startGoingToBin(vehicle, binData)
+  //     }
+  //   })
+  //   return () => {
+  //     if (vehicleManagerRef.current) {
+  //       vehicleManagerRef.current.stopAll()
+  //     }
+  //   }
+  // }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute.length}-${v.routePath ? 'route' : 'no'}`).join(',')])
 
   // OpenStreetMap OSRM API dan marshrut olish
   const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
@@ -205,6 +204,8 @@ const LiveMapSimple = () => {
 
   // Patrol marshruti yaratish - OSRM API orqali (Mashina 1)
   useEffect(() => {
+    if (!vehicleState) return // Mashina mavjud emas
+    
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
       console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
       
@@ -235,10 +236,12 @@ const LiveMapSimple = () => {
       
       buildPatrolRoute()
     }
-  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length])
+  }, [vehicleState?.isPatrolling, vehicleState?.patrolRoute?.length])
 
   // Patrol marshruti yaratish - OSRM API orqali (Mashina 2)
   useEffect(() => {
+    if (!vehicle2State) return // Mashina mavjud emas
+    
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
       console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (OSRM API)...')
       
@@ -269,10 +272,12 @@ const LiveMapSimple = () => {
       
       buildPatrolRoute()
     }
-  }, [vehicle2State.isPatrolling, vehicle2State.patrolRoute.length])
+  }, [vehicle2State?.isPatrolling, vehicle2State?.patrolRoute?.length])
 
   // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat (Mashina 1)
   useEffect(() => {
+    if (!vehicleState) return // Mashina mavjud emas
+    
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !vehicleState.routePath) {
       const patrolInterval = setInterval(() => {
         const nextIndex = (vehicleState.patrolIndex + 1) % vehicleState.patrolRoute.length
@@ -284,10 +289,12 @@ const LiveMapSimple = () => {
 
       return () => clearInterval(patrolInterval)
     }
-  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length, vehicleState.routePath, vehicleState.patrolIndex])
+  }, [vehicleState?.isPatrolling, vehicleState?.patrolRoute?.length, vehicleState?.routePath, vehicleState?.patrolIndex])
 
   // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat (Mashina 2)
   useEffect(() => {
+    if (!vehicle2State) return // Mashina mavjud emas
+    
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !vehicle2State.routePath) {
       const patrolInterval = setInterval(() => {
         const nextIndex = (vehicle2State.patrolIndex + 1) % vehicle2State.patrolRoute.length
@@ -299,7 +306,7 @@ const LiveMapSimple = () => {
 
       return () => clearInterval(patrolInterval)
     }
-  }, [vehicle2State.isPatrolling, vehicle2State.patrolRoute.length, vehicle2State.routePath, vehicle2State.patrolIndex])
+  }, [vehicle2State?.isPatrolling, vehicle2State?.patrolRoute?.length, vehicle2State?.routePath, vehicle2State?.patrolIndex])
 
   // Quti FULL bo'lganda - qaysi mashina yaqin bo'lsa o'sha borsin
   useEffect(() => {
