@@ -175,4 +175,79 @@ export class VehiclesService {
       throw error;
     }
   }
+
+  // CRUD Operations
+
+  // Yangi mashina qo'shish
+  async createVehicle(data: {
+    vehicleId: string;
+    driver: string;
+    phone?: string;
+    licensePlate?: string;
+    latitude: number;
+    longitude: number;
+  }): Promise<Vehicle> {
+    try {
+      // Mavjudligini tekshirish
+      const existing = await this.vehicleRepository.findOne({
+        where: { vehicleId: data.vehicleId },
+      });
+
+      if (existing) {
+        throw new Error(`Vehicle ${data.vehicleId} already exists`);
+      }
+
+      const vehicle = this.vehicleRepository.create({
+        vehicleId: data.vehicleId,
+        driver: data.driver,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        status: 'idle',
+        isMoving: false,
+      });
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`✅ Vehicle created: ${saved.vehicleId}`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error creating vehicle: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Mashinani yangilash
+  async updateVehicle(id: string, data: Partial<Vehicle>): Promise<Vehicle> {
+    try {
+      const vehicle = await this.vehicleRepository.findOne({ where: { id } });
+
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle with ID ${id} not found`);
+      }
+
+      Object.assign(vehicle, data);
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`✅ Vehicle updated: ${saved.vehicleId}`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error updating vehicle: ${error.message}`);
+      throw error;
+    }
+  }
+
+  // Mashinani o'chirish
+  async deleteVehicle(id: string): Promise<void> {
+    try {
+      const vehicle = await this.vehicleRepository.findOne({ where: { id } });
+
+      if (!vehicle) {
+        throw new NotFoundException(`Vehicle with ID ${id} not found`);
+      }
+
+      await this.vehicleRepository.remove(vehicle);
+      this.logger.log(`✅ Vehicle deleted: ${vehicle.vehicleId}`);
+    } catch (error) {
+      this.logger.error(`❌ Error deleting vehicle: ${error.message}`);
+      throw error;
+    }
+  }
 }

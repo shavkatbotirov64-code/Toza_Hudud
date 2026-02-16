@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
 
@@ -180,6 +180,80 @@ export class VehiclesController {
       };
     } catch (error) {
       this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // CRUD Endpoints
+
+  @Post()
+  @ApiOperation({ summary: 'Yangi mashina qo\'shish' })
+  @ApiResponse({ status: 201, description: 'Mashina yaratildi' })
+  async createVehicle(@Body() data: {
+    vehicleId: string;
+    driver: string;
+    phone?: string;
+    licensePlate?: string;
+    latitude: number;
+    longitude: number;
+  }) {
+    try {
+      this.logger.log(`📝 Creating vehicle: ${data.vehicleId}`);
+      const vehicle = await this.vehiclesService.createVehicle(data);
+      return {
+        success: true,
+        message: 'Vehicle created successfully',
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error creating vehicle: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Mashina ma\'lumotlarini yangilash' })
+  @ApiResponse({ status: 200, description: 'Mashina yangilandi' })
+  async updateVehicle(
+    @Param('id') id: string,
+    @Body() data: any,
+  ) {
+    try {
+      this.logger.log(`📝 Updating vehicle: ${id}`);
+      const vehicle = await this.vehiclesService.updateVehicle(id, data);
+      return {
+        success: true,
+        message: 'Vehicle updated successfully',
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error updating vehicle: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Mashinani o\'chirish' })
+  @ApiResponse({ status: 200, description: 'Mashina o\'chirildi' })
+  async deleteVehicle(@Param('id') id: string) {
+    try {
+      this.logger.log(`🗑️ Deleting vehicle: ${id}`);
+      await this.vehiclesService.deleteVehicle(id);
+      return {
+        success: true,
+        message: 'Vehicle deleted successfully',
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error deleting vehicle: ${error.message}`);
       return {
         success: false,
         error: error.message,
