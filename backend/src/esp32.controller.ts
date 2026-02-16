@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiExcludeController } from '@nestj
 import { SensorsService } from './modules/sensors/sensors.service';
 import { SensorsGateway } from './modules/sensors/sensors.gateway';
 import { BinsService } from './modules/sensors/bins.service';
+import { ActivitiesService } from './modules/activities/activities.service';
 
 export interface SensorData {
   distance: number;
@@ -20,6 +21,7 @@ export class ESP32Controller {
     private readonly sensorsService: SensorsService,
     private readonly sensorsGateway: SensorsGateway,
     private readonly binsService: BinsService,
+    private readonly activitiesService: ActivitiesService,
   ) { }
 
   @Post('sensors/distance')
@@ -46,6 +48,8 @@ export class ESP32Controller {
         
         // 🔥 Qutini FULL holatiga o'tkazish
         const binId = data.binId || 'ESP32-IBN-SINO';
+        const location = data.location || 'Ibn Sino ko\'chasi 17A, Samarqand';
+        
         try {
           await this.binsService.markBinAsFull(binId, data.distance);
           this.logger.log(`🗑️ Bin marked as FULL in database: ${binId}`);
@@ -54,12 +58,20 @@ export class ESP32Controller {
           this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
           await this.binsService.upsertBin({
             binId: binId,
-            location: data.location || 'Ibn Sino ko\'chasi 17A, Samarqand',
+            location: location,
             latitude: 39.6742637,
             longitude: 66.9737814,
             capacity: 120,
           });
           await this.binsService.markBinAsFull(binId, data.distance);
+        }
+        
+        // 📋 Faoliyat yaratish: Quti to'ldi
+        try {
+          await this.activitiesService.logBinFull(binId, location);
+          this.logger.log(`📋 Activity logged: Bin ${binId} full`);
+        } catch (activityError) {
+          this.logger.error(`❌ Error logging activity: ${activityError.message}`);
         }
         
         // 🔥 Quti FULL holatini yuborish

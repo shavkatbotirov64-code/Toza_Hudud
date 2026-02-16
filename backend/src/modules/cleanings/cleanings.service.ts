@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Cleaning } from './entities/cleaning.entity';
+import { ActivitiesService } from '../activities/activities.service';
 
 @Injectable()
 export class CleaningsService {
@@ -10,6 +11,7 @@ export class CleaningsService {
   constructor(
     @InjectRepository(Cleaning)
     private cleaningRepository: Repository<Cleaning>,
+    private readonly activitiesService: ActivitiesService,
   ) {}
 
   // Tozalash yozuvi yaratish
@@ -41,6 +43,15 @@ export class CleaningsService {
 
       const saved = await this.cleaningRepository.save(cleaning);
       this.logger.log(`🧹 Cleaning record created: ${saved.binId} by ${saved.vehicleId}`);
+      
+      // 📋 Faoliyat yaratish: Quti tozalandi
+      try {
+        await this.activitiesService.logBinCleaned(data.binId, data.binLocation);
+        this.logger.log(`📋 Activity logged: Bin ${data.binId} cleaned`);
+      } catch (activityError) {
+        this.logger.error(`❌ Error logging activity: ${activityError.message}`);
+      }
+      
       return saved;
     } catch (error) {
       this.logger.error(`❌ Error creating cleaning record: ${error.message}`);
