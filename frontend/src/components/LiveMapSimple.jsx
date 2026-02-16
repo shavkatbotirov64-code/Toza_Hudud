@@ -376,41 +376,45 @@ const LiveMapSimple = () => {
           const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
           console.log('✅ VEH-001 qutiga yetdi!')
-          console.log('🧹 Quti tozalanmoqda...')
           
-          const cleaningData = {
-            binId: binData.id,
-            vehicleId: vehicleState.id,
-            driverName: vehicleState.driver,
-            binLocation: binData.address,
-            fillLevelBefore: 95,
-            fillLevelAfter: 15,
-            distanceTraveled: calculateDistance(
-              vehicleState.routePath[0][0],
-              vehicleState.routePath[0][1],
-              binData.location[0],
-              binData.location[1]
-            ),
-            durationMinutes: durationMinutes,
-            notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
-            status: 'completed'
-          }
+          // Animatsiyani to'xtatish
+          clearInterval(animationIntervalRef.current)
           
-          api.createCleaning(cleaningData)
-            .then(result => {
-              if (result.success) {
-                console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-              } else {
-                console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
-              }
-            })
-            .catch(error => {
-              console.error('❌ API xatolik:', error)
-            })
-          
-          // 5 soniya tozalash vaqti
-          console.log('🧹 Tozalash jarayoni - 5 soniya...')
+          // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
+            console.log('🧹 Quti tozalanmoqda...')
+            
+            const cleaningData = {
+              binId: binData.id,
+              vehicleId: vehicleState.id,
+              driverName: vehicleState.driver,
+              binLocation: binData.address,
+              fillLevelBefore: 95,
+              fillLevelAfter: 15,
+              distanceTraveled: calculateDistance(
+                vehicleState.routePath[0][0],
+                vehicleState.routePath[0][1],
+                binData.location[0],
+                binData.location[1]
+              ),
+              durationMinutes: durationMinutes,
+              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
+              status: 'completed'
+            }
+            
+            api.createCleaning(cleaningData)
+              .then(result => {
+                if (result.success) {
+                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+                } else {
+                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                }
+              })
+              .catch(error => {
+                console.error('❌ API xatolik:', error)
+              })
+            
+            // Qutini yashil qilish
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
@@ -425,11 +429,8 @@ const LiveMapSimple = () => {
             
             console.log('🟢 BIN STATUS: EMPTY (Yashil)')
             console.log('🚛 VEH-001 patrolga qaytmoqda...')
-          }, 5000)
-          
-          clearInterval(animationIntervalRef.current)
-          
-          setTimeout(() => {
+            
+            // Mashina patrolga qaytadi
             updateVehicleState('VEH-001', {
               isPatrolling: true,
               routePath: null,
@@ -438,7 +439,7 @@ const LiveMapSimple = () => {
               patrolRoute: [],
               patrolIndex: 0
             })
-          }, 6000) // 5 soniya tozalash + 1 soniya kutish
+          }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
           updateVehicleState('VEH-001', {
@@ -473,41 +474,45 @@ const LiveMapSimple = () => {
           const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
           console.log('✅ VEH-002 qutiga yetdi!')
-          console.log('🧹 Quti tozalanmoqda...')
           
-          const cleaningData = {
-            binId: binData.id,
-            vehicleId: vehicle2State.id,
-            driverName: vehicle2State.driver,
-            binLocation: binData.address,
-            fillLevelBefore: 95,
-            fillLevelAfter: 15,
-            distanceTraveled: calculateDistance(
-              vehicle2State.routePath[0][0],
-              vehicle2State.routePath[0][1],
-              binData.location[0],
-              binData.location[1]
-            ),
-            durationMinutes: durationMinutes,
-            notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
-            status: 'completed'
-          }
+          // Animatsiyani to'xtatish
+          clearInterval(animation2IntervalRef.current)
           
-          api.createCleaning(cleaningData)
-            .then(result => {
-              if (result.success) {
-                console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-              } else {
-                console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
-              }
-            })
-            .catch(error => {
-              console.error('❌ API xatolik:', error)
-            })
-          
-          // 5 soniya tozalash vaqti
-          console.log('🧹 Tozalash jarayoni - 5 soniya...')
+          // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
+            console.log('🧹 Quti tozalanmoqda...')
+            
+            const cleaningData = {
+              binId: binData.id,
+              vehicleId: vehicle2State.id,
+              driverName: vehicle2State.driver,
+              binLocation: binData.address,
+              fillLevelBefore: 95,
+              fillLevelAfter: 15,
+              distanceTraveled: calculateDistance(
+                vehicle2State.routePath[0][0],
+                vehicle2State.routePath[0][1],
+                binData.location[0],
+                binData.location[1]
+              ),
+              durationMinutes: durationMinutes,
+              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
+              status: 'completed'
+            }
+            
+            api.createCleaning(cleaningData)
+              .then(result => {
+                if (result.success) {
+                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+                } else {
+                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                }
+              })
+              .catch(error => {
+                console.error('❌ API xatolik:', error)
+              })
+            
+            // Qutini yashil qilish
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
@@ -522,11 +527,8 @@ const LiveMapSimple = () => {
             
             console.log('🟢 BIN STATUS: EMPTY (Yashil)')
             console.log('🚛 VEH-002 patrolga qaytmoqda...')
-          }, 5000)
-          
-          clearInterval(animation2IntervalRef.current)
-          
-          setTimeout(() => {
+            
+            // Mashina patrolga qaytadi
             updateVehicleState('VEH-002', {
               isPatrolling: true,
               routePath: null,
@@ -535,7 +537,7 @@ const LiveMapSimple = () => {
               patrolRoute: [],
               patrolIndex: 0
             })
-          }, 6000) // 5 soniya tozalash + 1 soniya kutish
+          }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
           updateVehicleState('VEH-002', {
