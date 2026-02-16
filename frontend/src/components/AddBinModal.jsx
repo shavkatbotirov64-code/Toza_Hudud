@@ -274,11 +274,7 @@ const AddBinModal = ({ isOpen, onClose, binToEdit, apiConnected, onBinAdded }) =
               onChange={(e) => setFormData({ ...formData, district: e.target.value })}
             >
               <option value="">{t('addBin.selectDistrict')}</option>
-              <option value="yakkasaroy">{t('districts.yakkasaroy')}</option>
-              <option value="yunusobod">{t('districts.yunusobod')}</option>
-              <option value="mirzo">{t('districts.mirzo')}</option>
-              <option value="chilonzor">{t('districts.chilonzor')}</option>
-              <option value="mirobod">{t('districts.mirobod')}</option>
+              <option value="samarqand">{t('districts.samarqand')}</option>
             </select>
           </div>
 
