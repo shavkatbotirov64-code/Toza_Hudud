@@ -16,6 +16,33 @@ const Vehicles = () => {
   const [showAddVehicle, setShowAddVehicle] = useState(false)
   const [showPhoneModal, setShowPhoneModal] = useState(false)
   const [selectedPhone, setSelectedPhone] = useState(null)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteVehicle = async (vehicle) => {
+    if (!vehicle._backendId) {
+      showToast('Bu mashinani o\'chirib bo\'lmaydi (backend ID yo\'q)', 'warning')
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const result = await ApiService.deleteVehicle(vehicle._backendId)
+      
+      if (result.success) {
+        showToast(`Mashina ${vehicle.id} muvaffaqiyatli o'chirildi`, 'success')
+        await refreshData()
+        setDeleteConfirm(null)
+      } else {
+        showToast(result.error || 'Mashinani o\'chirishda xatolik', 'error')
+      }
+    } catch (error) {
+      console.error('❌ Error deleting vehicle:', error)
+      showToast('Mashinani o\'chirishda xatolik yuz berdi', 'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const filteredVehicles = vehiclesData.filter(vehicle => {
     if (filter === 'all') return true
@@ -127,6 +154,13 @@ const Vehicles = () => {
               }}>
                 <i className="fas fa-phone"></i> {t('vehicles.call')}
               </button>
+              <button 
+                className="btn btn-danger" 
+                onClick={() => setDeleteConfirm(vehicle)}
+                style={{ marginLeft: 'auto' }}
+              >
+                <i className="fas fa-trash"></i> O'chirish
+              </button>
             </div>
           </div>
         ))}
@@ -203,6 +237,52 @@ const Vehicles = () => {
                   }}
                 >
                   <i className="fas fa-phone"></i> Qo'ng'iroq qilish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* O'chirish tasdiqlash modal */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => !deleting && setDeleteConfirm(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3><i className="fas fa-exclamation-triangle"></i> Mashinani o'chirish</h3>
+              <button className="modal-close" onClick={() => !deleting && setDeleteConfirm(null)} disabled={deleting}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ marginBottom: '20px', color: 'var(--text-primary)' }}>
+                <strong>{deleteConfirm.id}</strong> mashinasini o'chirishni xohlaysizmi?
+              </p>
+              <p style={{ marginBottom: '20px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                Haydovchi: {deleteConfirm.driver}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => setDeleteConfirm(null)}
+                  disabled={deleting}
+                >
+                  Bekor qilish
+                </button>
+                <button 
+                  className="btn btn-danger" 
+                  onClick={() => handleDeleteVehicle(deleteConfirm)}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <>
+                      <i className="fas fa-spinner fa-spin"></i> O'chirilmoqda...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-trash"></i> O'chirish
+                    </>
+                  )}
                 </button>
               </div>
             </div>

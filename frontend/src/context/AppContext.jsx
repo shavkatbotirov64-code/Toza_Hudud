@@ -52,51 +52,8 @@ export const AppProvider = ({ children }) => {
     }
   ])
   const [vehiclesData, setVehiclesData] = useState([
-    // Xarita uchun mashinalar - "Mashinalar" bo'limida ham ko'rinadi
-    {
-      id: 'VEH-001',
-      driver: 'Akmaljon Karimov',
-      phone: '+998 90 123 45 67',
-      status: 'moving', // 'moving', 'active', 'inactive'
-      location: 'Samarqand shahri',
-      cleaned: 0,
-      position: [39.6650, 66.9600],
-      isMoving: true,
-      isPatrolling: true,
-      hasCleanedOnce: false,
-      routePath: null,
-      currentPathIndex: 0,
-      patrolRoute: [],
-      patrolIndex: 0,
-      patrolWaypoints: [
-        [39.6650, 66.9600], [39.6700, 66.9650], [39.6750, 66.9700],
-        [39.6720, 66.9750], [39.6680, 66.9720], [39.6650, 66.9680],
-        [39.6650, 66.9600]
-      ],
-      currentWaypointIndex: 0
-    },
-    {
-      id: 'VEH-002',
-      driver: 'Sardor Rahimov',
-      phone: '+998 91 234 56 78',
-      status: 'moving',
-      location: 'Samarqand shahri',
-      cleaned: 0,
-      position: [39.6780, 66.9850],
-      isMoving: true,
-      isPatrolling: true,
-      hasCleanedOnce: false,
-      routePath: null,
-      currentPathIndex: 0,
-      patrolRoute: [],
-      patrolIndex: 0,
-      patrolWaypoints: [
-        [39.6780, 66.9850], [39.6730, 66.9800], [39.6680, 66.9750],
-        [39.6720, 66.9700], [39.6760, 66.9650], [39.6800, 66.9700],
-        [39.6780, 66.9850]
-      ],
-      currentWaypointIndex: 0
-    }
+    // Database bo'sh bo'lsa, default mashinalar
+    // API dan yuklanganidan keyin bu mashinalar almashtiriladi
   ])
   
   // Marshrutlar holati - "Marshrutlar" bo'limida ham, xaritada ham ko'rinadi
@@ -280,10 +237,46 @@ export const AppProvider = ({ children }) => {
             if (Array.isArray(vehiclesArray) && vehiclesArray.length > 0) {
               console.log('🚛 Processing vehicles array:', vehiclesArray.length, 'items')
               
+              // Har xil patrol marshrutlari
+              const patrolRoutes = [
+                // Marshrut 1 - Shimoliy hudud
+                [
+                  [39.6650, 66.9600], [39.6700, 66.9650], [39.6750, 66.9700],
+                  [39.6720, 66.9750], [39.6680, 66.9720], [39.6650, 66.9680],
+                  [39.6650, 66.9600]
+                ],
+                // Marshrut 2 - Janubiy hudud
+                [
+                  [39.6780, 66.9850], [39.6730, 66.9800], [39.6680, 66.9750],
+                  [39.6720, 66.9700], [39.6760, 66.9650], [39.6800, 66.9700],
+                  [39.6780, 66.9850]
+                ],
+                // Marshrut 3 - Sharqiy hudud
+                [
+                  [39.6600, 66.9900], [39.6650, 66.9950], [39.6700, 67.0000],
+                  [39.6650, 66.9950], [39.6600, 66.9900]
+                ],
+                // Marshrut 4 - G'arbiy hudud
+                [
+                  [39.6800, 66.9500], [39.6750, 66.9550], [39.6700, 66.9600],
+                  [39.6750, 66.9550], [39.6800, 66.9500]
+                ]
+              ]
+              
               const transformedVehicles = vehiclesArray.map((vehicle, index) => {
                 try {
                   console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
-                  return ApiService.transformVehicleData(vehicle)
+                  const transformed = ApiService.transformVehicleData(vehicle)
+                  
+                  // Har bir mashinaga alohida patrol marshrut berish
+                  const patrolIndex = index % patrolRoutes.length
+                  transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                  transformed.isPatrolling = true
+                  transformed.currentWaypointIndex = 0
+                  
+                  console.log(`✅ Vehicle ${index + 1} assigned patrol route ${patrolIndex + 1}`)
+                  
+                  return transformed
                 } catch (error) {
                   console.error(`❌ Error transforming vehicle ${index + 1}:`, error)
                   console.error('❌ Vehicle data:', vehicle)

@@ -147,6 +147,43 @@ class ApiService {
     }
   }
 
+  async updateVehicle(id, vehicleData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vehicleData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteVehicle(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
   // Alerts API
   async getAlerts() {
     try {
@@ -476,43 +513,36 @@ class ApiService {
       console.log('🔧 Transforming vehicle data:', backendVehicle);
 
       const transformedVehicle = {
-        id: backendVehicle.code || backendVehicle.licensePlate, // Frontend'da code yoki licensePlate ni id sifatida ishlatish
-        _backendId: backendVehicle.id, // Backend UUID'ni saqlash
-        driver: backendVehicle.driverName || "Noma'lum",
-        phone: backendVehicle.driverPhone || "Noma'lum",
-        licensePlate: backendVehicle.licensePlate || "Noma'lum",
-        location:
-          backendVehicle.currentLocation ||
-          `${parseFloat(backendVehicle.currentLatitude || 0).toFixed(
-            4,
-          )}, ${parseFloat(backendVehicle.currentLongitude || 0).toFixed(4)}`,
-        status: this.mapVehicleStatus(backendVehicle.status),
-        lastUpdate: backendVehicle.lastLocationUpdate
-          ? new Date(backendVehicle.lastLocationUpdate).toLocaleTimeString(
-              'uz-UZ',
-              {
-                hour: '2-digit',
-                minute: '2-digit',
-              },
-            )
-          : new Date(backendVehicle.updatedAt).toLocaleTimeString('uz-UZ', {
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-        route: backendVehicle.currentRoute || 'Marshrut tayinlanmagan',
-        capacity: backendVehicle.capacity || 1000,
-        fuelLevel: parseFloat(backendVehicle.fuelLevel || 75),
-        speed: parseFloat(backendVehicle.currentSpeed || 0),
-        cleaned: backendVehicle.binsCollectedToday || 0,
-        type: backendVehicle.type || 'medium_truck',
-        coordinates: [
-          parseFloat(backendVehicle.currentLatitude || 41.2995),
-          parseFloat(backendVehicle.currentLongitude || 69.2401),
+        id: backendVehicle.vehicleId, // VEH-001
+        _backendId: backendVehicle.id, // Backend UUID
+        driver: backendVehicle.driver || "Noma'lum",
+        phone: backendVehicle.phone || "+998 00 000 00 00",
+        status: backendVehicle.isMoving ? 'moving' : 'active',
+        location: `${parseFloat(backendVehicle.latitude || 0).toFixed(4)}, ${parseFloat(backendVehicle.longitude || 0).toFixed(4)}`,
+        cleaned: backendVehicle.totalCleanings || 0,
+        position: [
+          parseFloat(backendVehicle.latitude || 39.6650),
+          parseFloat(backendVehicle.longitude || 66.9600),
         ],
-        lastService: backendVehicle.lastServiceDate
-          ? new Date(backendVehicle.lastServiceDate).toLocaleDateString('uz-UZ')
-          : "Ma'lumot yo'q",
-        online: backendVehicle.isGpsOnline || false,
+        isMoving: backendVehicle.isMoving || false,
+        isPatrolling: !backendVehicle.isMoving && backendVehicle.status === 'idle',
+        hasCleanedOnce: false,
+        routePath: null,
+        currentPathIndex: 0,
+        patrolRoute: [],
+        patrolIndex: 0,
+        patrolWaypoints: [
+          // Default patrol waypoints - frontend'da o'zgartiriladi
+          [parseFloat(backendVehicle.latitude || 39.6650), parseFloat(backendVehicle.longitude || 66.9600)],
+          [parseFloat(backendVehicle.latitude || 39.6650) + 0.005, parseFloat(backendVehicle.longitude || 66.9600) + 0.005],
+          [parseFloat(backendVehicle.latitude || 39.6650) + 0.01, parseFloat(backendVehicle.longitude || 66.9600) + 0.01],
+        ],
+        currentWaypointIndex: 0,
+        targetBinId: backendVehicle.targetBinId || null,
+        lastCleaned: backendVehicle.lastCleaningTime 
+          ? new Date(backendVehicle.lastCleaningTime).toLocaleDateString('uz-UZ')
+          : "Hech qachon",
+        totalDistance: parseFloat(backendVehicle.totalDistanceTraveled || 0),
       };
 
       console.log('✅ Vehicle transformed successfully:', transformedVehicle);
