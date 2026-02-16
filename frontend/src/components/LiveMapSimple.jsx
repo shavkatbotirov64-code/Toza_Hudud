@@ -74,9 +74,12 @@ const LiveMapSimple = () => {
   // OpenStreetMap OSRM API dan marshrut olish
   const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson`
+      // Katta transport vositalari uchun - faqat asosiy ko'chalar
+      // exclude=motorway - avtomagistrallarni chiqarib tashlash
+      // continue_straight=true - to'g'ri yo'lni afzal ko'rish
+      const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
       
-      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda...`)
+      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda (asosiy ko'chalar)...`)
       console.log(`📍 Start: [${startLat}, ${startLon}]`)
       console.log(`📍 End: [${endLat}, ${endLon}]`)
       
@@ -102,7 +105,7 @@ const LiveMapSimple = () => {
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
         
-        console.log(`✅ Marshrut topildi!`)
+        console.log(`✅ Marshrut topildi (asosiy ko'chalar)!`)
         console.log(`📏 Masofa: ${distanceKm} km`)
         console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
         console.log(`📊 Original nuqtalar: ${leafletCoordinates.length}`)
@@ -210,8 +213,8 @@ const LiveMapSimple = () => {
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.015 // ±750m atrofida
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.015
+          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
+          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
           
           // Yangi marshrut yaratish va qo'shish
           const extendRoute = async () => {
@@ -265,8 +268,8 @@ const LiveMapSimple = () => {
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.015 // ±750m atrofida
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.015
+          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
+          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
           
           // Yangi marshrut yaratish va qo'shish
           const extendRoute = async () => {
