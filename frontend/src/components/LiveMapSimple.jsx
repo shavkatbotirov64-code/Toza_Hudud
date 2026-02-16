@@ -33,20 +33,35 @@ const LiveMapSimple = () => {
   const [vehicleState, setVehicleState] = useState({
     id: 'VEH-001',
     driver: 'Akmaljon Karimov',
-    position: [39.650, 66.955], // Boshlang'ich pozitsiya
+    position: [39.6700, 66.9650], // Samarqand, boshqa ko'cha
     isMoving: false,
     hasCleanedOnce: false, // Faqat 1 marta tozalash uchun
     routePath: null,
     currentPathIndex: 0
   })
 
-  // Samarqand ko'chalari (backup uchun)
+  // Samarqand ko'chalari - turli marshrut nuqtalari
   const samarqandRoads = [
     {
-      name: "Registon ko'chasi",
+      name: "Registon atrofi",
       points: [
-        [39.650, 66.955], [39.6510, 66.9560], [39.6520, 66.9570], [39.6530, 66.9580],
-        [39.6540, 66.9590], [39.6542, 66.9597]
+        [39.6700, 66.9650], [39.6710, 66.9660], [39.6720, 66.9670], 
+        [39.6730, 66.9680], [39.6740, 66.9690], [39.6742637, 66.9737814]
+      ]
+    },
+    {
+      name: "Amir Temur ko'chasi",
+      points: [
+        [39.6650, 66.9700], [39.6660, 66.9710], [39.6670, 66.9720],
+        [39.6680, 66.9730], [39.6742637, 66.9737814]
+      ]
+    },
+    {
+      name: "Mirzo Ulug'bek ko'chasi",
+      points: [
+        [39.6600, 66.9600], [39.6620, 66.9620], [39.6640, 66.9640],
+        [39.6660, 66.9660], [39.6680, 66.9680], [39.6700, 66.9700],
+        [39.6720, 66.9720], [39.6742637, 66.9737814]
       ]
     }
   ]
@@ -198,10 +213,16 @@ const LiveMapSimple = () => {
     if (binStatus === 'FULL' && !vehicleState.isMoving && !vehicleState.hasCleanedOnce) {
       console.log('🚛 Mashina harakatga keldi!')
       
+      // Random ko'chadan boshlash
+      const randomRoad = samarqandRoads[Math.floor(Math.random() * samarqandRoads.length)]
+      const startPosition = randomRoad.points[0]
+      
+      console.log(`🛣️ Mashina ${randomRoad.name} dan boshlaydi`)
+      
       // Masofani hisoblash
       const distance = calculateDistance(
-        vehicleState.position[0], 
-        vehicleState.position[1],
+        startPosition[0], 
+        startPosition[1],
         binData.location[0],
         binData.location[1]
       )
@@ -210,8 +231,8 @@ const LiveMapSimple = () => {
       // OSRM API dan real marshrut olish
       const getRoute = async () => {
         const result = await fetchRouteFromOSRM(
-          vehicleState.position[0],
-          vehicleState.position[1],
+          startPosition[0],
+          startPosition[1],
           binData.location[0],
           binData.location[1]
         )
@@ -221,13 +242,14 @@ const LiveMapSimple = () => {
           route = result.path
           console.log(`✅ Real OpenStreetMap marshruti ishlatilmoqda`)
         } else {
-          // Backup: oddiy marshrut
-          route = samarqandRoads[0].points
-          console.log(`⚠️ Backup marshrut ishlatilmoqda`)
+          // Backup: random ko'cha marshruti
+          route = randomRoad.points
+          console.log(`⚠️ Backup marshrut ishlatilmoqda: ${randomRoad.name}`)
         }
         
         setVehicleState(prev => ({
           ...prev,
+          position: startPosition,
           isMoving: true,
           routePath: route,
           currentPathIndex: 0
@@ -324,7 +346,7 @@ const LiveMapSimple = () => {
             currentPathIndex: nextIndex
           }
         })
-      }, 500) // Har 0.5 soniyada harakat
+      }, 1500) // Har 1.5 soniyada harakat (sekinroq)
     }
 
     return () => {
