@@ -8,13 +8,13 @@ export class Bin {
   @Column({ type: 'varchar', length: 50, unique: true })
   binId: string; // ESP32-IBN-SINO
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'varchar', length: 50, nullable: true })
   code: string; // Quti kodi (binId bilan bir xil)
 
   @Column({ type: 'varchar', length: 255 })
   location: string; // Samarqand
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   address: string; // To'liq manzil
 
   @Column({ type: 'varchar', length: 100, default: 'Samarqand' })
