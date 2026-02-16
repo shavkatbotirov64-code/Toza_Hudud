@@ -218,7 +218,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
 
   // When bin becomes FULL, send closest vehicle
   useEffect(() => {
-    console.log('🔍 Checking bin status:', binStatus)
+    console.log('🔍 [NEW CODE] Checking bin status:', binStatus)
     console.log('🔍 Bins data:', binsData)
     console.log('🔍 Vehicles count:', vehiclesData.length)
     console.log('🔍 Vehicles data:', vehiclesData.map(v => ({
