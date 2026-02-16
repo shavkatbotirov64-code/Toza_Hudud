@@ -417,6 +417,9 @@ const LiveMapSimple = () => {
           // Animatsiyani to'xtatish
           clearInterval(animationIntervalRef.current)
           
+          // Marshrut progress'ini 100% qilish
+          updateRoute('ROUTE-A', { progress: 100 })
+          
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
             console.log('🧹 Tozalash boshlandi!')
@@ -495,6 +498,10 @@ const LiveMapSimple = () => {
             position: vehicleState.routePath[nextIndex],
             currentPathIndex: nextIndex
           })
+          
+          // Marshrut progress'ini yangilash
+          const progress = Math.round((nextIndex / vehicleState.routePath.length) * 100)
+          updateRoute('ROUTE-A', { progress })
         }
       }, 1500)
     }
@@ -527,6 +534,9 @@ const LiveMapSimple = () => {
           
           // Animatsiyani to'xtatish
           clearInterval(animation2IntervalRef.current)
+          
+          // Marshrut progress'ini 100% qilish
+          updateRoute('ROUTE-B', { progress: 100 })
           
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
@@ -606,6 +616,10 @@ const LiveMapSimple = () => {
             position: vehicle2State.routePath[nextIndex],
             currentPathIndex: nextIndex
           })
+          
+          // Marshrut progress'ini yangilash
+          const progress = Math.round((nextIndex / vehicle2State.routePath.length) * 100)
+          updateRoute('ROUTE-B', { progress })
         }
       }, 1500)
     }
