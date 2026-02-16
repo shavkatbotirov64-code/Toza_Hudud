@@ -225,23 +225,21 @@ const LiveMapSimple = () => {
               // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicleState.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-001', {
-                patrolRoute: extendedRoute,
-                position: extendedRoute[nextIndex],
-                patrolIndex: nextIndex
+                patrolRoute: extendedRoute
+                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
               })
             } else {
               // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
               const extendedRoute = [...vehicleState.patrolRoute, [randomLat, randomLon]]
               updateVehicleState('VEH-001', {
-                patrolRoute: extendedRoute,
-                position: extendedRoute[nextIndex],
-                patrolIndex: nextIndex
+                patrolRoute: extendedRoute
               })
             }
           }
           
           extendRoute()
         } else {
+          // Oddiy harakat - keyingi nuqtaga o'tish
           updateVehicleState('VEH-001', {
             position: vehicleState.patrolRoute[nextIndex],
             patrolIndex: nextIndex
@@ -282,23 +280,21 @@ const LiveMapSimple = () => {
               // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicle2State.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-002', {
-                patrolRoute: extendedRoute,
-                position: extendedRoute[nextIndex],
-                patrolIndex: nextIndex
+                patrolRoute: extendedRoute
+                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
               })
             } else {
               // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
               const extendedRoute = [...vehicle2State.patrolRoute, [randomLat, randomLon]]
               updateVehicleState('VEH-002', {
-                patrolRoute: extendedRoute,
-                position: extendedRoute[nextIndex],
-                patrolIndex: nextIndex
+                patrolRoute: extendedRoute
               })
             }
           }
           
           extendRoute()
         } else {
+          // Oddiy harakat - keyingi nuqtaga o'tish
           updateVehicleState('VEH-002', {
             position: vehicle2State.patrolRoute[nextIndex],
             patrolIndex: nextIndex
