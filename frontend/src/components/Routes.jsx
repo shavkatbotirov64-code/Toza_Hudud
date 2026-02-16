@@ -9,7 +9,7 @@ const Routes = () => {
   const routes = [
     {
       id: 'ROUTE-A',
-      name: `${t('routes.routeA')} - ${t('districts.yakkasaroy')}`,
+      name: `${t('routes.routeA')} - Registon`,
       vehicle: 'VH-001',
       bins: ['BIN-001', 'BIN-002', 'BIN-005'],
       progress: 65,
@@ -18,7 +18,7 @@ const Routes = () => {
     },
     {
       id: 'ROUTE-B',
-      name: `${t('routes.routeB')} - ${t('districts.yunusobod')}`,
+      name: `${t('routes.routeB')} - Amir Temur`,
       vehicle: 'VH-002',
       bins: ['BIN-006', 'BIN-010'],
       progress: 45,
@@ -27,7 +27,7 @@ const Routes = () => {
     },
     {
       id: 'ROUTE-C',
-      name: `${t('routes.routeC')} - ${t('districts.chilonzor')}`,
+      name: `${t('routes.routeC')} - Mirzo Ulug'bek`,
       vehicle: 'VH-003',
       bins: ['BIN-004', 'BIN-008'],
       progress: 80,
