@@ -120,6 +120,57 @@ export const AppProvider = ({ children }) => {
     ))
   }
   
+  // Marshrut yaratish helper function
+  const createRoute = async (vehicle, bin) => {
+    console.log(`🛣️ Creating route for ${vehicle.id} to ${bin.id}`)
+    
+    // OSRM API dan marshrut olish
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${vehicle.position[1]},${vehicle.position[0]};${bin.location[1]},${bin.location[0]}?overview=full&geometries=geojson`
+      const response = await fetch(url)
+      const data = await response.json()
+      
+      let route = [vehicle.position, bin.location]
+      let distance = 'Noma\'lum'
+      let duration = 'Noma\'lum'
+      
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const routeData = data.routes[0]
+        const coordinates = routeData.geometry.coordinates
+        route = coordinates.map(coord => [coord[1], coord[0]])
+        distance = `${(routeData.distance / 1000).toFixed(2)} km`
+        duration = `${(routeData.duration / 60).toFixed(0)} daqiqa`
+      }
+      
+      // Yangi marshrut yaratish
+      const newRoute = {
+        id: `ROUTE-${Date.now()}`,
+        name: `${vehicle.driver} → ${bin.address}`,
+        vehicle: vehicle.id,
+        bins: [bin.id],
+        progress: 0,
+        distance: distance,
+        estimatedTime: duration,
+        isActive: true,
+        path: route
+      }
+      
+      // Mashina holatini yangilash
+      updateVehicleState(vehicle.id, {
+        isPatrolling: false,
+        routePath: route,
+        currentPathIndex: 0
+      })
+      
+      // Marshrutni qo'shish
+      setRoutesData(prev => [...prev, newRoute])
+      
+      console.log(`✅ Route created: ${newRoute.id}`)
+    } catch (error) {
+      console.error('❌ Error creating route:', error)
+    }
+  }
+  
   const [activityData, setActivityData] = useState(mockActivities)
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -406,6 +457,41 @@ export const AppProvider = ({ children }) => {
           bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
         ))
         console.log('🔴 AppContext: Bin marked as FULL')
+        
+        // Eng yaqin mashinani topish va marshrut yaratish
+        const fullBin = binsData.find(b => b.id === binId)
+        if (fullBin && vehiclesData.length > 0) {
+          // Har bir mashina uchun masofa hisoblash
+          const distances = vehiclesData.map(vehicle => {
+            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
+            
+            const lat1 = vehicle.position[0]
+            const lon1 = vehicle.position[1]
+            const lat2 = fullBin.location[0]
+            const lon2 = fullBin.location[1]
+            
+            const R = 6371 // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180
+            const dLon = (lon2 - lon1) * Math.PI / 180
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+            const distance = R * c
+            
+            return { vehicle, distance }
+          })
+          
+          // Eng yaqin mashinani tanlash
+          const closest = distances.reduce((min, curr) => 
+            curr.distance < min.distance ? curr : min
+          )
+          
+          if (closest.distance !== Infinity) {
+            console.log(`🚛 Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+            createRoute(closest.vehicle, fullBin)
+          }
+        }
       } else if (status === 'EMPTY') {
         setBinsData(prev => prev.map(bin =>
           bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
