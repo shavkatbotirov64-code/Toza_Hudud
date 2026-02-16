@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { io } from 'socket.io-client'
 import api from '../services/api'
+import { calculateDistance, isVehicleNearBin } from '../utils/vehicleHelpers'
 import 'leaflet/dist/leaflet.css'
 
 const LiveMapSimple = () => {
@@ -419,20 +420,24 @@ const LiveMapSimple = () => {
                 console.error('❌ API xatolik:', error)
               })
             
-            setBinStatus('EMPTY')
-            
-            setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
-                ...bin,
-                status: 15,
-                fillLevel: 15,
-                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-              } : bin
-            ))
-            
-            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
-            console.log('🚛 VEH-001 patrolga qaytmoqda...')
+            // 5 soniya tozalash vaqti
+            console.log('🧹 Tozalash jarayoni - 5 soniya...')
+            setTimeout(() => {
+              setBinStatus('EMPTY')
+              
+              setBinsData(prevBins => prevBins.map(bin =>
+                bin.id === binData.id ? {
+                  ...bin,
+                  status: 15,
+                  fillLevel: 15,
+                  lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+                  lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+                } : bin
+              ))
+              
+              console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+              console.log('🚛 VEH-001 patrolga qaytmoqda...')
+            }, 5000)
             
             clearInterval(animationIntervalRef.current)
             
@@ -446,7 +451,7 @@ const LiveMapSimple = () => {
                 patrolRoute: [],
                 patrolIndex: 0
               }))
-            }, 1000)
+            }, 6000) // 5 soniya tozalash + 1 soniya kutish
             
             return prev
           }
@@ -517,20 +522,24 @@ const LiveMapSimple = () => {
                 console.error('❌ API xatolik:', error)
               })
             
-            setBinStatus('EMPTY')
-            
-            setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
-                ...bin,
-                status: 15,
-                fillLevel: 15,
-                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-              } : bin
-            ))
-            
-            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
-            console.log('🚛 VEH-002 patrolga qaytmoqda...')
+            // 5 soniya tozalash vaqti
+            console.log('🧹 Tozalash jarayoni - 5 soniya...')
+            setTimeout(() => {
+              setBinStatus('EMPTY')
+              
+              setBinsData(prevBins => prevBins.map(bin =>
+                bin.id === binData.id ? {
+                  ...bin,
+                  status: 15,
+                  fillLevel: 15,
+                  lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+                  lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+                } : bin
+              ))
+              
+              console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+              console.log('🚛 VEH-002 patrolga qaytmoqda...')
+            }, 5000)
             
             clearInterval(animation2IntervalRef.current)
             
@@ -544,7 +553,7 @@ const LiveMapSimple = () => {
                 patrolRoute: [],
                 patrolIndex: 0
               }))
-            }, 1000)
+            }, 6000) // 5 soniya tozalash + 1 soniya kutish
             
             return prev
           }
