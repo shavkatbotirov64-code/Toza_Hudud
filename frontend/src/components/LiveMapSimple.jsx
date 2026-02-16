@@ -39,47 +39,19 @@ const LiveMapSimple = () => {
     hasCleanedOnce: false,
     routePath: null,
     currentPathIndex: 0,
-    patrolRoute: [ // Samarqand shahar bo'ylab patrol marshruti
-      [39.6650, 66.9600], [39.6660, 66.9620], [39.6670, 66.9640],
-      [39.6680, 66.9660], [39.6690, 66.9680], [39.6700, 66.9700],
-      [39.6710, 66.9720], [39.6720, 66.9740], [39.6730, 66.9760],
-      [39.6740, 66.9780], [39.6750, 66.9800], [39.6760, 66.9820],
-      [39.6770, 66.9840], [39.6780, 66.9860], [39.6790, 66.9880],
-      // Orqaga qaytish
-      [39.6780, 66.9860], [39.6770, 66.9840], [39.6760, 66.9820],
-      [39.6750, 66.9800], [39.6740, 66.9780], [39.6730, 66.9760],
-      [39.6720, 66.9740], [39.6710, 66.9720], [39.6700, 66.9700],
-      [39.6690, 66.9680], [39.6680, 66.9660], [39.6670, 66.9640],
-      [39.6660, 66.9620], [39.6650, 66.9600]
+    patrolRoute: [], // OSRM dan olinadi
+    patrolIndex: 0,
+    patrolWaypoints: [ // Patrol uchun asosiy nuqtalar (OSRM orqali bog'lanadi)
+      [39.6650, 66.9600], // Start
+      [39.6700, 66.9650], // Registon atrofi
+      [39.6750, 66.9700], // Amir Temur ko'chasi
+      [39.6720, 66.9750], // Mirzo Ulug'bek ko'chasi
+      [39.6680, 66.9720], // Ibn Sino atrofi
+      [39.6650, 66.9680], // Orqaga
+      [39.6650, 66.9600]  // Start ga qaytish
     ],
-    patrolIndex: 0
+    currentWaypointIndex: 0
   })
-
-  // Samarqand ko'chalari - turli marshrut nuqtalari
-  const samarqandRoads = [
-    {
-      name: "Registon atrofi",
-      points: [
-        [39.6700, 66.9650], [39.6710, 66.9660], [39.6720, 66.9670], 
-        [39.6730, 66.9680], [39.6740, 66.9690], [39.6742637, 66.9737814]
-      ]
-    },
-    {
-      name: "Amir Temur ko'chasi",
-      points: [
-        [39.6650, 66.9700], [39.6660, 66.9710], [39.6670, 66.9720],
-        [39.6680, 66.9730], [39.6742637, 66.9737814]
-      ]
-    },
-    {
-      name: "Mirzo Ulug'bek ko'chasi",
-      points: [
-        [39.6600, 66.9600], [39.6620, 66.9620], [39.6640, 66.9640],
-        [39.6660, 66.9660], [39.6680, 66.9680], [39.6700, 66.9700],
-        [39.6720, 66.9720], [39.6742637, 66.9737814]
-      ]
-    }
-  ]
 
   // Ikki nuqta orasidagi masofani hisoblash (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -223,9 +195,48 @@ const LiveMapSimple = () => {
     }
   }, [])
 
-  // Mashina patrol animatsiyasi - doimiy harakat
+  // Patrol marshruti yaratish - OSRM API orqali
   useEffect(() => {
-    if (vehicleState.isPatrolling && !vehicleState.routePath) {
+    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
+      console.log('🗺️ Patrol marshruti yaratilmoqda (OSRM API)...')
+      
+      const buildPatrolRoute = async () => {
+        const waypoints = vehicleState.patrolWaypoints
+        let fullRoute = []
+        
+        // Har bir waypoint orasida OSRM dan yo'l olish
+        for (let i = 0; i < waypoints.length - 1; i++) {
+          const start = waypoints[i]
+          const end = waypoints[i + 1]
+          
+          const result = await fetchRouteFromOSRM(start[0], start[1], end[0], end[1])
+          
+          if (result.success) {
+            fullRoute = [...fullRoute, ...result.path]
+            console.log(`✅ Segment ${i + 1}: ${result.path.length} nuqta qo'shildi`)
+          } else {
+            // Backup: to'g'ridan-to'g'ri chiziq
+            fullRoute = [...fullRoute, start, end]
+            console.log(`⚠️ Segment ${i + 1}: Backup ishlatildi`)
+          }
+        }
+        
+        console.log(`✅ Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        
+        setVehicleState(prev => ({
+          ...prev,
+          patrolRoute: fullRoute,
+          position: fullRoute[0] || prev.position
+        }))
+      }
+      
+      buildPatrolRoute()
+    }
+  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length])
+
+  // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat
+  useEffect(() => {
+    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !vehicleState.routePath) {
       const patrolInterval = setInterval(() => {
         setVehicleState(prev => {
           const nextIndex = (prev.patrolIndex + 1) % prev.patrolRoute.length
@@ -239,7 +250,7 @@ const LiveMapSimple = () => {
 
       return () => clearInterval(patrolInterval)
     }
-  }, [vehicleState.isPatrolling, vehicleState.routePath])
+  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length, vehicleState.routePath])
 
   // Quti FULL bo'lganda mashina qutiga yo'naladi
   useEffect(() => {
@@ -359,13 +370,20 @@ const LiveMapSimple = () => {
             // Mashina patrolga qaytadi
             clearInterval(animationIntervalRef.current)
             
-            return {
-              ...prev,
-              isPatrolling: true, // Patrolga qaytish
-              routePath: null,
-              hasCleanedOnce: true,
-              currentPathIndex: 0
-            }
+            // Patrol marshruti qayta yaratish
+            setTimeout(() => {
+              setVehicleState(prev => ({
+                ...prev,
+                isPatrolling: true,
+                routePath: null,
+                hasCleanedOnce: true,
+                currentPathIndex: 0,
+                patrolRoute: [], // Qayta yaratish uchun tozalash
+                patrolIndex: 0
+              }))
+            }, 1000)
+            
+            return prev
           }
           
           // Keyingi nuqtaga o'tish
