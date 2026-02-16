@@ -6,10 +6,16 @@ export class Bin {
   id: string;
 
   @Column({ type: 'varchar', length: 50, unique: true })
-  binId: string; // ESP32-IBN-SINO (bu ham code sifatida ishlatiladi)
+  binId: string; // ESP32-IBN-SINO
+
+  @Column({ type: 'varchar', length: 50 })
+  code: string; // Quti kodi (binId bilan bir xil)
 
   @Column({ type: 'varchar', length: 255 })
-  location: string; // Samarqand (bu ham address sifatida ishlatiladi)
+  location: string; // Samarqand
+
+  @Column({ type: 'varchar', length: 255 })
+  address: string; // To'liq manzil
 
   @Column({ type: 'varchar', length: 100, default: 'Samarqand' })
   district: string; // Tuman nomi

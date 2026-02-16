@@ -58,7 +58,9 @@ async function fixDatabase() {
     const result = await client.query(`
       INSERT INTO bins (
         "binId",
+        code,
         location,
+        address,
         district,
         latitude,
         longitude,
@@ -71,6 +73,8 @@ async function fixDatabase() {
         "isActive"
       ) VALUES (
         'ESP32-IBN-SINO',
+        'ESP32-IBN-SINO',
+        'Ibn Sino ko''chasi 17A, Samarqand',
         'Ibn Sino ko''chasi 17A, Samarqand',
         'Samarqand',
         39.6742637,
@@ -85,6 +89,7 @@ async function fixDatabase() {
       )
       ON CONFLICT ("binId") DO UPDATE SET
         location = EXCLUDED.location,
+        address = EXCLUDED.address,
         latitude = EXCLUDED.latitude,
         longitude = EXCLUDED.longitude,
         status = EXCLUDED.status,

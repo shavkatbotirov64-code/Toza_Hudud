@@ -28,6 +28,7 @@ export class BinsService {
       if (bin) {
         // Yangilash
         bin.location = data.location;
+        bin.address = data.location; // address ham yangilanadi
         bin.latitude = data.latitude;
         bin.longitude = data.longitude;
         if (data.capacity) bin.capacity = data.capacity;
@@ -35,12 +36,16 @@ export class BinsService {
         // Yaratish
         bin = this.binRepository.create({
           binId: data.binId,
+          code: data.binId, // code = binId
           location: data.location,
+          address: data.location, // address = location
           latitude: data.latitude,
           longitude: data.longitude,
           capacity: data.capacity || 120,
           status: 'EMPTY',
           fillLevel: 15,
+          district: 'Samarqand',
+          type: 'standard',
         });
       }
 
