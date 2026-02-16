@@ -266,12 +266,21 @@ const LiveMapSimple = () => {
             currentPathIndex: 0
           })
           
-          // Marshrut A ni faollashtirish
-          updateRoute('ROUTE-A', {
-            isActive: true,
+          // Yangi marshrut yaratish
+          const newRoute = {
+            id: `ROUTE-${Date.now()}`,
+            name: `${vehicleState.driver} → ${binData.address}`,
+            vehicle: 'VEH-001',
+            bins: [binData.id],
             progress: 0,
+            distance: result.success ? `${result.distance} km` : 'Noma\'lum',
+            estimatedTime: result.success ? `${result.duration} daqiqa` : 'Noma\'lum',
+            isActive: true,
             path: route
-          })
+          }
+          
+          // Marshrutni qo'shish
+          setRoutesData(prev => [...prev, newRoute])
         }
         
         getRoute()
@@ -294,12 +303,21 @@ const LiveMapSimple = () => {
             currentPathIndex: 0
           })
           
-          // Marshrut B ni faollashtirish
-          updateRoute('ROUTE-B', {
-            isActive: true,
+          // Yangi marshrut yaratish
+          const newRoute = {
+            id: `ROUTE-${Date.now()}`,
+            name: `${vehicle2State.driver} → ${binData.address}`,
+            vehicle: 'VEH-002',
+            bins: [binData.id],
             progress: 0,
+            distance: result.success ? `${result.distance} km` : 'Noma\'lum',
+            estimatedTime: result.success ? `${result.duration} daqiqa` : 'Noma\'lum',
+            isActive: true,
             path: route
-          })
+          }
+          
+          // Marshrutni qo'shish
+          setRoutesData(prev => [...prev, newRoute])
         }
         
         getRoute()
@@ -330,7 +348,10 @@ const LiveMapSimple = () => {
           clearInterval(animationIntervalRef.current)
           
           // Marshrut progress'ini 100% qilish
-          updateRoute('ROUTE-A', { progress: 100 })
+          const activeRoute = routesData.find(r => r.vehicle === 'VEH-001' && r.isActive)
+          if (activeRoute) {
+            updateRoute(activeRoute.id, { progress: 100 })
+          }
           
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
@@ -397,12 +418,11 @@ const LiveMapSimple = () => {
               status: 'moving'
             })
             
-            // Marshrut A ni o'chirish
-            updateRoute('ROUTE-A', {
-              isActive: false,
-              progress: 100,
-              path: []
-            })
+            // Marshrutni o'chirish
+            const activeRoute = routesData.find(r => r.vehicle === 'VEH-001' && r.isActive)
+            if (activeRoute) {
+              setRoutesData(prev => prev.filter(r => r.id !== activeRoute.id))
+            }
           }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
@@ -413,7 +433,10 @@ const LiveMapSimple = () => {
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicleState.routePath.length) * 100)
-          updateRoute('ROUTE-A', { progress })
+          const activeRoute = routesData.find(r => r.vehicle === 'VEH-001' && r.isActive)
+          if (activeRoute) {
+            updateRoute(activeRoute.id, { progress })
+          }
         }
       }, 1500)
     }
@@ -448,7 +471,10 @@ const LiveMapSimple = () => {
           clearInterval(animation2IntervalRef.current)
           
           // Marshrut progress'ini 100% qilish
-          updateRoute('ROUTE-B', { progress: 100 })
+          const activeRoute = routesData.find(r => r.vehicle === 'VEH-002' && r.isActive)
+          if (activeRoute) {
+            updateRoute(activeRoute.id, { progress: 100 })
+          }
           
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
@@ -515,12 +541,11 @@ const LiveMapSimple = () => {
               status: 'moving'
             })
             
-            // Marshrut B ni o'chirish
-            updateRoute('ROUTE-B', {
-              isActive: false,
-              progress: 100,
-              path: []
-            })
+            // Marshrutni o'chirish
+            const activeRoute = routesData.find(r => r.vehicle === 'VEH-002' && r.isActive)
+            if (activeRoute) {
+              setRoutesData(prev => prev.filter(r => r.id !== activeRoute.id))
+            }
           }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
@@ -531,7 +556,10 @@ const LiveMapSimple = () => {
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicle2State.routePath.length) * 100)
-          updateRoute('ROUTE-B', { progress })
+          const activeRoute = routesData.find(r => r.vehicle === 'VEH-002' && r.isActive)
+          if (activeRoute) {
+            updateRoute(activeRoute.id, { progress })
+          }
         }
       }, 1500)
     }

@@ -23,7 +23,21 @@ const Routes = () => {
       </div>
 
       <div className="routes-container">
-        {routesData.map((route) => (
+        {routesData.length === 0 ? (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '40px 20px', 
+            color: '#666',
+            fontSize: '16px'
+          }}>
+            <i className="fas fa-route" style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.3 }}></i>
+            <p>Hozircha faol marshrutlar yo'q</p>
+            <p style={{ fontSize: '14px', marginTop: '8px' }}>
+              Quti to'lganda mashina avtomatik yo'naladi va marshrut bu yerda ko'rinadi
+            </p>
+          </div>
+        ) : (
+          routesData.map((route) => (
           <div key={route.id} className={`route-card ${route.isActive ? 'active-route' : ''}`}>
             <div className="route-header">
               <div className="route-info">
@@ -65,7 +79,8 @@ const Routes = () => {
               ))}
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   )
