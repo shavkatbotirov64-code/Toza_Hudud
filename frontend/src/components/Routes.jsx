@@ -24,14 +24,17 @@ const Routes = () => {
 
       <div className="routes-container">
         {routesData.map((route) => (
-          <div key={route.id} className="route-card">
+          <div key={route.id} className={`route-card ${route.isActive ? 'active-route' : ''}`}>
             <div className="route-header">
               <div className="route-info">
                 <div className="route-icon">
-                  <i className="fas fa-route"></i>
+                  <i className={`fas ${route.isActive ? 'fa-truck-moving' : 'fa-route'}`}></i>
                 </div>
                 <div className="route-details">
-                  <div className="route-title">{route.name}</div>
+                  <div className="route-title">
+                    {route.name}
+                    {route.isActive && <span className="active-badge">Faol</span>}
+                  </div>
                   <div className="route-meta">
                     <span><i className="fas fa-truck"></i> {route.vehicle}</span>
                     <span><i className="fas fa-road"></i> {route.distance}</span>
@@ -47,7 +50,10 @@ const Routes = () => {
                 <span>{route.progress}%</span>
               </div>
               <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${route.progress}%` }}></div>
+                <div className="progress-fill" style={{ 
+                  width: `${route.progress}%`,
+                  backgroundColor: route.isActive ? '#10b981' : '#3b82f6'
+                }}></div>
               </div>
             </div>
 
