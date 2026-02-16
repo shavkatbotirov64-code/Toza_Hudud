@@ -20,7 +20,7 @@ const LiveMapSimple = () => {
   const socketRef = useRef(null) // WebSocket reference
   const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
-  const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
+  const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
@@ -353,6 +353,13 @@ const LiveMapSimple = () => {
             routePath: route,
             currentPathIndex: 0
           })
+          
+          // Marshrut A ni faollashtirish
+          updateRoute('ROUTE-A', {
+            isActive: true,
+            progress: 0,
+            path: route
+          })
         }
         
         getRoute()
@@ -373,6 +380,13 @@ const LiveMapSimple = () => {
             isPatrolling: false,
             routePath: route,
             currentPathIndex: 0
+          })
+          
+          // Marshrut B ni faollashtirish
+          updateRoute('ROUTE-B', {
+            isActive: true,
+            progress: 0,
+            path: route
           })
         }
         
@@ -466,6 +480,13 @@ const LiveMapSimple = () => {
               patrolIndex: 0,
               cleaned: (vehicleState.cleaned || 0) + 1, // Tozalashlar sonini oshirish
               status: 'moving'
+            })
+            
+            // Marshrut A ni o'chirish
+            updateRoute('ROUTE-A', {
+              isActive: false,
+              progress: 100,
+              path: []
             })
           }, 3000) // 3 soniya tozalash
         } else {
@@ -570,6 +591,13 @@ const LiveMapSimple = () => {
               patrolIndex: 0,
               cleaned: (vehicle2State.cleaned || 0) + 1, // Tozalashlar sonini oshirish
               status: 'moving'
+            })
+            
+            // Marshrut B ni o'chirish
+            updateRoute('ROUTE-B', {
+              isActive: false,
+              progress: 100,
+              path: []
             })
           }, 3000) // 3 soniya tozalash
         } else {

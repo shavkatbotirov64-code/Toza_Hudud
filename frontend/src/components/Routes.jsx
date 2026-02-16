@@ -3,38 +3,8 @@ import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 
 const Routes = () => {
-  const { showToast } = useAppContext()
+  const { showToast, routesData, updateRoute } = useAppContext()
   const { t } = useTranslation()
-
-  const routes = [
-    {
-      id: 'ROUTE-A',
-      name: `${t('routes.routeA')} - Registon`,
-      vehicle: 'VH-001',
-      bins: ['BIN-001', 'BIN-002', 'BIN-005'],
-      progress: 65,
-      distance: '12.5 km',
-      estimatedTime: `2 ${t('time.hour')} 15 ${t('time.minute')}`
-    },
-    {
-      id: 'ROUTE-B',
-      name: `${t('routes.routeB')} - Amir Temur`,
-      vehicle: 'VH-002',
-      bins: ['BIN-006', 'BIN-010'],
-      progress: 45,
-      distance: '8.3 km',
-      estimatedTime: `1 ${t('time.hour')} 30 ${t('time.minute')}`
-    },
-    {
-      id: 'ROUTE-C',
-      name: `${t('routes.routeC')} - Mirzo Ulug'bek`,
-      vehicle: 'VH-003',
-      bins: ['BIN-004', 'BIN-008'],
-      progress: 80,
-      distance: '15.2 km',
-      estimatedTime: `2 ${t('time.hour')} 45 ${t('time.minute')}`
-    }
-  ]
 
   const generateOptimizedRoutes = () => {
     showToast(t('routes.optimizing'), 'info')
@@ -53,7 +23,7 @@ const Routes = () => {
       </div>
 
       <div className="routes-container">
-        {routes.map((route) => (
+        {routesData.map((route) => (
           <div key={route.id} className="route-card">
             <div className="route-header">
               <div className="route-info">

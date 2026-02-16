@@ -98,6 +98,50 @@ export const AppProvider = ({ children }) => {
     }
   ])
   
+  // Marshrutlar holati - "Marshrutlar" bo'limida ham, xaritada ham ko'rinadi
+  const [routesData, setRoutesData] = useState([
+    {
+      id: 'ROUTE-A',
+      name: 'Marshrut A - Registon',
+      vehicle: 'VEH-001',
+      bins: ['BIN-001', 'BIN-002', 'BIN-005'],
+      progress: 0,
+      distance: '12.5 km',
+      estimatedTime: '2 soat 15 daqiqa',
+      isActive: false,
+      path: [] // OSRM dan olingan marshrut
+    },
+    {
+      id: 'ROUTE-B',
+      name: 'Marshrut B - Amir Temur',
+      vehicle: 'VEH-002',
+      bins: ['BIN-006', 'BIN-010'],
+      progress: 0,
+      distance: '8.3 km',
+      estimatedTime: '1 soat 30 daqiqa',
+      isActive: false,
+      path: []
+    },
+    {
+      id: 'ROUTE-C',
+      name: 'Marshrut C - Mirzo Ulug\'bek',
+      vehicle: 'VEH-003',
+      bins: ['BIN-004', 'BIN-008'],
+      progress: 0,
+      distance: '15.2 km',
+      estimatedTime: '2 soat 45 daqiqa',
+      isActive: false,
+      path: []
+    }
+  ])
+  
+  // Marshrutni yangilash
+  const updateRoute = (routeId, updates) => {
+    setRoutesData(prev => prev.map(route =>
+      route.id === routeId ? { ...route, ...updates } : route
+    ))
+  }
+  
   // Mashina holatini yangilash helper function
   const updateVehicleState = (vehicleId, updates) => {
     setVehiclesData(prev => prev.map(vehicle =>
@@ -372,6 +416,9 @@ export const AppProvider = ({ children }) => {
         vehiclesData,
         setVehiclesData,
         updateVehicleState,
+        routesData,
+        setRoutesData,
+        updateRoute,
         activityData,
         setActivityData,
         alertsData,
