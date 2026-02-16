@@ -90,13 +90,13 @@ const LiveMapSimple = () => {
         // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
         const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
         
-        // Nuqtalarni simplify qilish - har 5-nuqtadan bittasini olish
-        // Bu mashinani silliq va aniq ko'chalar bo'ylab harakatlantirishga yordam beradi
+        // Nuqtalarni simplify qilish - har 3-nuqtadan bittasini olish (aniqroq)
+        // Bu mashinani ko'chalar bo'ylab aniqroq harakatlantiradi
         const simplifiedCoordinates = leafletCoordinates.filter((coord, index) => {
           // Birinchi va oxirgi nuqtalarni doim qoldirish
           if (index === 0 || index === leafletCoordinates.length - 1) return true
-          // Har 5-nuqtadan bittasini olish
-          return index % 5 === 0
+          // Har 3-nuqtadan bittasini olish (5 o'rniga 3 - aniqroq)
+          return index % 3 === 0
         })
         
         const distanceKm = (route.distance / 1000).toFixed(2)
@@ -207,7 +207,7 @@ const LiveMapSimple = () => {
           position: vehicleState.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 3000) // 3 soniya - juda sekin va silliq harakat
+      }, 1500) // 1.5 soniya - ko'proq nuqtalar bo'lgani uchun biroz tezroq, lekin silliq
 
       return () => clearInterval(patrolInterval)
     }
@@ -224,7 +224,7 @@ const LiveMapSimple = () => {
           position: vehicle2State.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 3000) // 3 soniya - juda sekin va silliq harakat
+      }, 1500) // 1.5 soniya - ko'proq nuqtalar bo'lgani uchun biroz tezroq, lekin silliq
 
       return () => clearInterval(patrolInterval)
     }
@@ -448,7 +448,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 2500) // 2.5 soniya - qutiga borishda sekin
+      }, 1200) // 1.2 soniya - qutiga borishda aniq va silliq
     }
 
     return () => {
@@ -571,7 +571,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 2500) // 2.5 soniya - qutiga borishda sekin
+      }, 1200) // 1.2 soniya - qutiga borishda aniq va silliq
     }
 
     return () => {
