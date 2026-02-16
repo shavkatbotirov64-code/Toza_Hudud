@@ -219,15 +219,16 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
   // When bin becomes FULL, send closest vehicle
   useEffect(() => {
     console.log('🔍 Checking bin status:', binStatus)
+    console.log('🔍 Bins data:', binsData)
     console.log('🔍 Vehicles count:', vehiclesData.length)
     console.log('🔍 Vehicles data:', vehiclesData.map(v => ({
       id: v.id,
       isPatrolling: v.isPatrolling,
       hasRoutePath: !!v.routePath,
-      hasCleanedOnce: v.hasCleanedOnce
+      position: v.position
     })))
     
-    if (binStatus === 'FULL' && vehiclesData.length > 0) {
+    if (binStatus === 'FULL' && vehiclesData.length > 0 && binsData.length > 0) {
       const binData = binsData[0]
       
       if (!binData) {
@@ -235,12 +236,12 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         return
       }
       
-      // Check if any vehicle is already going to bin (ignore hasCleanedOnce)
-      const hasAnyGoingToBin = vehiclesData.some(v => !v.isPatrolling && v.routePath)
+      // Check if any vehicle is already going to bin
+      const vehicleGoingToBin = vehiclesData.find(v => !v.isPatrolling && v.routePath)
       
-      console.log('🔍 hasAnyGoingToBin:', hasAnyGoingToBin)
+      console.log('🔍 Vehicle going to bin:', vehicleGoingToBin?.id || 'none')
       
-      if (hasAnyGoingToBin) {
+      if (vehicleGoingToBin) {
         console.log('⏭️ Vehicle already going to bin, skipping')
         return
       }
@@ -248,25 +249,25 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
       console.log('🚛 Bin is FULL! Finding closest vehicle...')
       
       // Calculate distances for all patrolling vehicles
-      const distances = vehiclesData
-        .filter(v => v.isPatrolling)
-        .map(vehicle => ({
-          vehicle,
-          distance: calculateDistance(
-            vehicle.position[0],
-            vehicle.position[1],
-            binData.location[0],
-            binData.location[1]
-          )
-        }))
+      const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling)
+      console.log('🔍 Patrolling vehicles:', patrollingVehicles.map(v => v.id))
       
-      console.log('🔍 Patrolling vehicles:', distances.length)
-      console.log('🔍 Distances:', distances.map(d => ({ id: d.vehicle.id, distance: d.distance.toFixed(2) })))
-      
-      if (distances.length === 0) {
+      if (patrollingVehicles.length === 0) {
         console.log('❌ No patrolling vehicles available')
         return
       }
+      
+      const distances = patrollingVehicles.map(vehicle => ({
+        vehicle,
+        distance: calculateDistance(
+          vehicle.position[0],
+          vehicle.position[1],
+          binData.location[0],
+          binData.location[1]
+        )
+      }))
+      
+      console.log('🔍 Distances:', distances.map(d => ({ id: d.vehicle.id, distance: d.distance.toFixed(2) })))
       
       // Find closest vehicle
       const closest = distances.reduce((prev, curr) => 
@@ -274,6 +275,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
       )
       
       console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+      console.log(`🚀 Dispatching ${closest.vehicle.id} to bin...`)
       
       // Send vehicle to bin
       const getRoute = async () => {
@@ -285,6 +287,8 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         )
         
         const route = result.success && result.path ? result.path : [closest.vehicle.position, binData.location]
+        
+        console.log(`📍 Route created with ${route.length} points`)
         
         updateVehicleState(closest.vehicle.id, {
           isPatrolling: false,
@@ -307,12 +311,12 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         
         setRoutesData(prev => [...prev, newRoute])
         
-        console.log(`🚀 ${closest.vehicle.id} dispatched to bin!`)
+        console.log(`✅ ${closest.vehicle.id} dispatched successfully!`)
       }
       
       getRoute()
     }
-  }, [binStatus]) // Only depend on binStatus, not vehiclesData
+  }, [binStatus, binsData, vehiclesData])
 
   // Vehicle going to bin animation
   useEffect(() => {
