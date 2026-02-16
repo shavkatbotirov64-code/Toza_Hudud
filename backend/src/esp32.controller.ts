@@ -54,9 +54,9 @@ export class ESP32Controller {
           this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
           await this.binsService.upsertBin({
             binId: binId,
-            location: data.location || 'Samarqand',
-            latitude: 39.6542,
-            longitude: 66.9597,
+            location: data.location || 'Ibn Sino ko\'chasi 17A, Samarqand',
+            latitude: 39.6270, // Ibn Sino ko'chasi
+            longitude: 66.9748,
             capacity: 120,
           });
           await this.binsService.markBinAsFull(binId, data.distance);

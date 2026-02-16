@@ -20,8 +20,8 @@ const LiveMapSimple = () => {
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
     id: 'ESP32-IBN-SINO',
-    location: [39.6542, 66.9597],
-    address: 'Samarqand',
+    location: [39.6270, 66.9748], // Ibn Sino ko'chasi, Samarqand
+    address: 'Ibn Sino ko\'chasi 17A, Samarqand',
     status: 15,
     capacity: 120
   }
@@ -338,7 +338,7 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (!mapRef.current) return
 
-    const map = L.map(mapRef.current).setView([39.6542, 66.9597], 14)
+    const map = L.map(mapRef.current).setView([39.6270, 66.9748], 15) // Ibn Sino ko'chasi markazi
     mapInstanceRef.current = map
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -418,7 +418,7 @@ const LiveMapSimple = () => {
 
   const centerMap = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([39.6542, 66.9597], 14)
+      mapInstanceRef.current.setView([39.6270, 66.9748], 15) // Ibn Sino ko'chasi
       showToast && showToast('Xarita markazlashtirildi', 'info')
     }
   }

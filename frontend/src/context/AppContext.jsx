@@ -37,7 +37,7 @@ export const AppProvider = ({ children }) => {
       _backendId: null,
       address: 'Ibn Sino ko\'chasi 17A, Samarqand',
       district: 'Samarqand',
-      location: [39.6542, 66.9597],
+      location: [39.6270, 66.9748], // Ibn Sino ko'chasi, Samarqand (Registon yaqinida)
       status: 15, // Bo'sh
       lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
       lastCleaned: 'Hech qachon',
