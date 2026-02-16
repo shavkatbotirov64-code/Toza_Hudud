@@ -51,6 +51,47 @@ export const AppProvider = ({ children }) => {
     }
   ])
   const [vehiclesData, setVehiclesData] = useState([]) // Bo'sh array - faqat API dan
+  
+  // Mashina holatlari - global state (sahifalar o'rtasida saqlanadi)
+  const [vehicleStates, setVehicleStates] = useState({
+    'VEH-001': {
+      id: 'VEH-001',
+      driver: 'Akmaljon Karimov',
+      position: [39.6650, 66.9600],
+      isMoving: true,
+      isPatrolling: true,
+      hasCleanedOnce: false,
+      routePath: null,
+      currentPathIndex: 0,
+      patrolRoute: [],
+      patrolIndex: 0,
+      patrolWaypoints: [
+        [39.6650, 66.9600], [39.6700, 66.9650], [39.6750, 66.9700],
+        [39.6720, 66.9750], [39.6680, 66.9720], [39.6650, 66.9680],
+        [39.6650, 66.9600]
+      ],
+      currentWaypointIndex: 0
+    },
+    'VEH-002': {
+      id: 'VEH-002',
+      driver: 'Sardor Rahimov',
+      position: [39.6780, 66.9850],
+      isMoving: true,
+      isPatrolling: true,
+      hasCleanedOnce: false,
+      routePath: null,
+      currentPathIndex: 0,
+      patrolRoute: [],
+      patrolIndex: 0,
+      patrolWaypoints: [
+        [39.6780, 66.9850], [39.6730, 66.9800], [39.6680, 66.9750],
+        [39.6720, 66.9700], [39.6760, 66.9650], [39.6800, 66.9700],
+        [39.6780, 66.9850]
+      ],
+      currentWaypointIndex: 0
+    }
+  })
+  
   const [activityData, setActivityData] = useState(mockActivities)
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -317,6 +358,8 @@ export const AppProvider = ({ children }) => {
         setBinsData,
         vehiclesData,
         setVehiclesData,
+        vehicleStates,
+        setVehicleStates,
         activityData,
         setActivityData,
         alertsData,

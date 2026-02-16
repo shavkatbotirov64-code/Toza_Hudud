@@ -18,7 +18,7 @@ const LiveMapSimple = () => {
   const animationIntervalRef = useRef(null)
   const animation2IntervalRef = useRef(null) // Ikkinchi mashina animatsiyasi
   const socketRef = useRef(null) // WebSocket reference
-  const { showToast, binsData, setBinsData } = useAppContext() // AppContext dan quti ma'lumotlari
+  const { showToast, binsData, setBinsData, vehicleStates, setVehicleStates } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
@@ -32,53 +32,20 @@ const LiveMapSimple = () => {
   // Quti holati
   const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
   
-  // Mashina holati
-  const [vehicleState, setVehicleState] = useState({
-    id: 'VEH-001',
-    driver: 'Akmaljon Karimov',
-    position: [39.6650, 66.9600], // Boshlang'ich pozitsiya
-    isMoving: true, // Doimiy harakat
-    isPatrolling: true, // Patrol rejimi
-    hasCleanedOnce: false,
-    routePath: null,
-    currentPathIndex: 0,
-    patrolRoute: [], // OSRM dan olinadi
-    patrolIndex: 0,
-    patrolWaypoints: [ // Patrol uchun asosiy nuqtalar (OSRM orqali bog'lanadi)
-      [39.6650, 66.9600], // Start
-      [39.6700, 66.9650], // Registon atrofi
-      [39.6750, 66.9700], // Amir Temur ko'chasi
-      [39.6720, 66.9750], // Mirzo Ulug'bek ko'chasi
-      [39.6680, 66.9720], // Ibn Sino atrofi
-      [39.6650, 66.9680], // Orqaga
-      [39.6650, 66.9600]  // Start ga qaytish
-    ],
-    currentWaypointIndex: 0
-  })
-
-  // Ikkinchi mashina holati
-  const [vehicle2State, setVehicle2State] = useState({
-    id: 'VEH-002',
-    driver: 'Sardor Rahimov',
-    position: [39.6780, 66.9850], // Boshqa joydan boshlash
-    isMoving: true,
-    isPatrolling: true,
-    hasCleanedOnce: false,
-    routePath: null,
-    currentPathIndex: 0,
-    patrolRoute: [],
-    patrolIndex: 0,
-    patrolWaypoints: [ // Boshqa marshrut
-      [39.6780, 66.9850], // Start
-      [39.6730, 66.9800], // Boshqa yo'nalish
-      [39.6680, 66.9750],
-      [39.6720, 66.9700],
-      [39.6760, 66.9650],
-      [39.6800, 66.9700],
-      [39.6780, 66.9850]  // Start ga qaytish
-    ],
-    currentWaypointIndex: 0
-  })
+  // Mashina holatlari - AppContext'dan
+  const vehicleState = vehicleStates['VEH-001'] || vehicleStates['VEH-001']
+  const vehicle2State = vehicleStates['VEH-002'] || vehicleStates['VEH-002']
+  
+  // Mashina holatini yangilash helper function
+  const updateVehicleState = (vehicleId, updates) => {
+    setVehicleStates(prev => ({
+      ...prev,
+      [vehicleId]: {
+        ...prev[vehicleId],
+        ...updates
+      }
+    }))
+  }
 
   // Ikki nuqta orasidagi masofani hisoblash (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -246,11 +213,10 @@ const LiveMapSimple = () => {
         
         console.log(`✅ VEH-001 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
-        setVehicleState(prev => ({
-          ...prev,
+        updateVehicleState('VEH-001', {
           patrolRoute: fullRoute,
-          position: fullRoute[0] || prev.position
-        }))
+          position: fullRoute[0] || vehicleState.position
+        })
       }
       
       buildPatrolRoute()
