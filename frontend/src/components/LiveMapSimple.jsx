@@ -33,11 +33,26 @@ const LiveMapSimple = () => {
   const [vehicleState, setVehicleState] = useState({
     id: 'VEH-001',
     driver: 'Akmaljon Karimov',
-    position: [39.6700, 66.9650], // Samarqand, boshqa ko'cha
-    isMoving: false,
-    hasCleanedOnce: false, // Faqat 1 marta tozalash uchun
+    position: [39.6650, 66.9600], // Boshlang'ich pozitsiya
+    isMoving: true, // Doimiy harakat
+    isPatrolling: true, // Patrol rejimi
+    hasCleanedOnce: false,
     routePath: null,
-    currentPathIndex: 0
+    currentPathIndex: 0,
+    patrolRoute: [ // Samarqand shahar bo'ylab patrol marshruti
+      [39.6650, 66.9600], [39.6660, 66.9620], [39.6670, 66.9640],
+      [39.6680, 66.9660], [39.6690, 66.9680], [39.6700, 66.9700],
+      [39.6710, 66.9720], [39.6720, 66.9740], [39.6730, 66.9760],
+      [39.6740, 66.9780], [39.6750, 66.9800], [39.6760, 66.9820],
+      [39.6770, 66.9840], [39.6780, 66.9860], [39.6790, 66.9880],
+      // Orqaga qaytish
+      [39.6780, 66.9860], [39.6770, 66.9840], [39.6760, 66.9820],
+      [39.6750, 66.9800], [39.6740, 66.9780], [39.6730, 66.9760],
+      [39.6720, 66.9740], [39.6710, 66.9720], [39.6700, 66.9700],
+      [39.6690, 66.9680], [39.6680, 66.9660], [39.6670, 66.9640],
+      [39.6660, 66.9620], [39.6650, 66.9600]
+    ],
+    patrolIndex: 0
   })
 
   // Samarqand ko'chalari - turli marshrut nuqtalari
@@ -208,21 +223,34 @@ const LiveMapSimple = () => {
     }
   }, [])
 
-  // Quti FULL bo'lganda mashina harakatga keladi
+  // Mashina patrol animatsiyasi - doimiy harakat
   useEffect(() => {
-    if (binStatus === 'FULL' && !vehicleState.isMoving && !vehicleState.hasCleanedOnce) {
-      console.log('🚛 Mashina harakatga keldi!')
-      
-      // Random ko'chadan boshlash
-      const randomRoad = samarqandRoads[Math.floor(Math.random() * samarqandRoads.length)]
-      const startPosition = randomRoad.points[0]
-      
-      console.log(`🛣️ Mashina ${randomRoad.name} dan boshlaydi`)
+    if (vehicleState.isPatrolling && !vehicleState.routePath) {
+      const patrolInterval = setInterval(() => {
+        setVehicleState(prev => {
+          const nextIndex = (prev.patrolIndex + 1) % prev.patrolRoute.length
+          return {
+            ...prev,
+            position: prev.patrolRoute[nextIndex],
+            patrolIndex: nextIndex
+          }
+        })
+      }, 2000) // Har 2 soniyada yangi nuqta
+
+      return () => clearInterval(patrolInterval)
+    }
+  }, [vehicleState.isPatrolling, vehicleState.routePath])
+
+  // Quti FULL bo'lganda mashina qutiga yo'naladi
+  useEffect(() => {
+    if (binStatus === 'FULL' && vehicleState.isPatrolling && !vehicleState.hasCleanedOnce) {
+      console.log('🚛 Mashina qutiga yo\'nalmoqda!')
+      console.log(`📍 Hozirgi pozitsiya: [${vehicleState.position[0]}, ${vehicleState.position[1]}]`)
       
       // Masofani hisoblash
       const distance = calculateDistance(
-        startPosition[0], 
-        startPosition[1],
+        vehicleState.position[0], 
+        vehicleState.position[1],
         binData.location[0],
         binData.location[1]
       )
@@ -231,8 +259,8 @@ const LiveMapSimple = () => {
       // OSRM API dan real marshrut olish
       const getRoute = async () => {
         const result = await fetchRouteFromOSRM(
-          startPosition[0],
-          startPosition[1],
+          vehicleState.position[0],
+          vehicleState.position[1],
           binData.location[0],
           binData.location[1]
         )
@@ -242,15 +270,14 @@ const LiveMapSimple = () => {
           route = result.path
           console.log(`✅ Real OpenStreetMap marshruti ishlatilmoqda`)
         } else {
-          // Backup: random ko'cha marshruti
-          route = randomRoad.points
-          console.log(`⚠️ Backup marshrut ishlatilmoqda: ${randomRoad.name}`)
+          // Backup: to'g'ridan-to'g'ri marshrut
+          route = [vehicleState.position, binData.location]
+          console.log(`⚠️ Backup marshrut ishlatilmoqda`)
         }
         
         setVehicleState(prev => ({
           ...prev,
-          position: startPosition,
-          isMoving: true,
+          isPatrolling: false, // Patrolni to'xtatish
           routePath: route,
           currentPathIndex: 0
         }))
@@ -258,11 +285,11 @@ const LiveMapSimple = () => {
       
       getRoute()
     }
-  }, [binStatus, vehicleState.isMoving, vehicleState.hasCleanedOnce])
+  }, [binStatus, vehicleState.isPatrolling, vehicleState.hasCleanedOnce])
 
-  // Mashina animatsiyasi
+  // Mashina qutiga borish animatsiyasi
   useEffect(() => {
-    if (vehicleState.isMoving && vehicleState.routePath) {
+    if (!vehicleState.isPatrolling && vehicleState.routePath) {
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current)
       }
@@ -319,7 +346,7 @@ const LiveMapSimple = () => {
             setBinsData(prevBins => prevBins.map(bin =>
               bin.id === binData.id ? {
                 ...bin,
-                status: 15, // Yashil rang
+                status: 15,
                 fillLevel: 15,
                 lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
                 lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
@@ -327,14 +354,16 @@ const LiveMapSimple = () => {
             ))
             
             console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+            console.log('🚛 Mashina patrolga qaytmoqda...')
             
-            // Mashina to'xtaydi
+            // Mashina patrolga qaytadi
             clearInterval(animationIntervalRef.current)
             
             return {
               ...prev,
-              isMoving: false,
-              hasCleanedOnce: true, // Tozalandi
+              isPatrolling: true, // Patrolga qaytish
+              routePath: null,
+              hasCleanedOnce: true,
               currentPathIndex: 0
             }
           }
@@ -346,7 +375,7 @@ const LiveMapSimple = () => {
             currentPathIndex: nextIndex
           }
         })
-      }, 1500) // Har 1.5 soniyada harakat (sekinroq)
+      }, 1500) // Har 1.5 soniyada harakat
     }
 
     return () => {
@@ -354,7 +383,7 @@ const LiveMapSimple = () => {
         clearInterval(animationIntervalRef.current)
       }
     }
-  }, [vehicleState.isMoving, vehicleState.routePath])
+  }, [vehicleState.isPatrolling, vehicleState.routePath])
 
   // Xaritani yaratish
   useEffect(() => {
