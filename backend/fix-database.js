@@ -25,13 +25,32 @@ async function fixDatabase() {
       console.log('⚠️ Status column allaqachon varchar:', error.message);
     }
 
-    // 2. Eski enum turini o'chirish
-    console.log('\n🗑️ Eski enum turini o\'chirish...');
+    // 1.5. Type columnni ham varchar ga o'zgartirish
+    console.log('\n📝 Type columnni varchar ga o\'zgartirish...');
+    try {
+      await client.query(`
+        ALTER TABLE bins 
+        ALTER COLUMN type TYPE varchar(50);
+      `);
+      console.log('✅ Type column varchar ga o\'zgartirildi');
+    } catch (error) {
+      console.log('⚠️ Type column allaqachon varchar:', error.message);
+    }
+
+    // 2. Eski enum turlarini o'chirish
+    console.log('\n🗑️ Eski enum turlarini o\'chirish...');
     try {
       await client.query(`DROP TYPE IF EXISTS bins_status_enum CASCADE;`);
-      console.log('✅ Eski enum turi o\'chirildi');
+      console.log('✅ bins_status_enum o\'chirildi');
     } catch (error) {
-      console.log('⚠️ Enum turi topilmadi:', error.message);
+      console.log('⚠️ bins_status_enum topilmadi:', error.message);
+    }
+    
+    try {
+      await client.query(`DROP TYPE IF EXISTS bins_type_enum CASCADE;`);
+      console.log('✅ bins_type_enum o\'chirildi');
+    } catch (error) {
+      console.log('⚠️ bins_type_enum topilmadi:', error.message);
     }
 
     // 3. Test quti yaratish
