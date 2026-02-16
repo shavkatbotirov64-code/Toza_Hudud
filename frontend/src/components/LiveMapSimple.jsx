@@ -156,10 +156,8 @@ const LiveMapSimple = () => {
       ))
       
       // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-      setVehicleState(prev => ({
-        ...prev,
-        hasCleanedOnce: false
-      }))
+      updateVehicleState('VEH-001', { hasCleanedOnce: false })
+      updateVehicleState('VEH-002', { hasCleanedOnce: false })
       
       console.log('🔴 BIN STATUS: FULL (Qizil) - Real-time!')
       console.log('🔴 binData.status set to: 95')
@@ -263,37 +261,31 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !vehicleState.routePath) {
       const patrolInterval = setInterval(() => {
-        setVehicleState(prev => {
-          const nextIndex = (prev.patrolIndex + 1) % prev.patrolRoute.length
-          return {
-            ...prev,
-            position: prev.patrolRoute[nextIndex],
-            patrolIndex: nextIndex
-          }
+        const nextIndex = (vehicleState.patrolIndex + 1) % vehicleState.patrolRoute.length
+        updateVehicleState('VEH-001', {
+          position: vehicleState.patrolRoute[nextIndex],
+          patrolIndex: nextIndex
         })
       }, 2000)
 
       return () => clearInterval(patrolInterval)
     }
-  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length, vehicleState.routePath])
+  }, [vehicleState.isPatrolling, vehicleState.patrolRoute.length, vehicleState.routePath, vehicleState.patrolIndex])
 
   // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat (Mashina 2)
   useEffect(() => {
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !vehicle2State.routePath) {
       const patrolInterval = setInterval(() => {
-        setVehicle2State(prev => {
-          const nextIndex = (prev.patrolIndex + 1) % prev.patrolRoute.length
-          return {
-            ...prev,
-            position: prev.patrolRoute[nextIndex],
-            patrolIndex: nextIndex
-          }
+        const nextIndex = (vehicle2State.patrolIndex + 1) % vehicle2State.patrolRoute.length
+        updateVehicleState('VEH-002', {
+          position: vehicle2State.patrolRoute[nextIndex],
+          patrolIndex: nextIndex
         })
       }, 2000)
 
       return () => clearInterval(patrolInterval)
     }
-  }, [vehicle2State.isPatrolling, vehicle2State.patrolRoute.length, vehicle2State.routePath])
+  }, [vehicle2State.isPatrolling, vehicle2State.patrolRoute.length, vehicle2State.routePath, vehicle2State.patrolIndex])
 
   // Quti FULL bo'lganda - qaysi mashina yaqin bo'lsa o'sha borsin
   useEffect(() => {
@@ -335,12 +327,11 @@ const LiveMapSimple = () => {
           
           let route = result.success ? result.path : [vehicleState.position, binData.location]
           
-          setVehicleState(prev => ({
-            ...prev,
+          updateVehicleState('VEH-001', {
             isPatrolling: false,
             routePath: route,
             currentPathIndex: 0
-          }))
+          })
         }
         
         getRoute()
@@ -357,12 +348,11 @@ const LiveMapSimple = () => {
           
           let route = result.success ? result.path : [vehicle2State.position, binData.location]
           
-          setVehicle2State(prev => ({
-            ...prev,
+          updateVehicleState('VEH-002', {
             isPatrolling: false,
             routePath: route,
             currentPathIndex: 0
-          }))
+          })
         }
         
         getRoute()
@@ -380,88 +370,83 @@ const LiveMapSimple = () => {
       const startTime = Date.now()
 
       animationIntervalRef.current = setInterval(() => {
-        setVehicleState(prev => {
-          const nextIndex = prev.currentPathIndex + 1
+        const nextIndex = vehicleState.currentPathIndex + 1
+        
+        if (nextIndex >= vehicleState.routePath.length) {
+          const endTime = Date.now()
+          const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
-          if (nextIndex >= prev.routePath.length) {
-            const endTime = Date.now()
-            const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
-            
-            console.log('✅ VEH-001 qutiga yetdi!')
-            console.log('🧹 Quti tozalanmoqda...')
-            
-            const cleaningData = {
-              binId: binData.id,
-              vehicleId: vehicleState.id,
-              driverName: vehicleState.driver,
-              binLocation: binData.address,
-              fillLevelBefore: 95,
-              fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                prev.routePath[0][0],
-                prev.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
-              durationMinutes: durationMinutes,
-              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
-              status: 'completed'
-            }
-            
-            api.createCleaning(cleaningData)
-              .then(result => {
-                if (result.success) {
-                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-                } else {
-                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
-                }
-              })
-              .catch(error => {
-                console.error('❌ API xatolik:', error)
-              })
-            
-            // 5 soniya tozalash vaqti
-            console.log('🧹 Tozalash jarayoni - 5 soniya...')
-            setTimeout(() => {
-              setBinStatus('EMPTY')
-              
-              setBinsData(prevBins => prevBins.map(bin =>
-                bin.id === binData.id ? {
-                  ...bin,
-                  status: 15,
-                  fillLevel: 15,
-                  lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                  lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-                } : bin
-              ))
-              
-              console.log('🟢 BIN STATUS: EMPTY (Yashil)')
-              console.log('🚛 VEH-001 patrolga qaytmoqda...')
-            }, 5000)
-            
-            clearInterval(animationIntervalRef.current)
-            
-            setTimeout(() => {
-              setVehicleState(prev => ({
-                ...prev,
-                isPatrolling: true,
-                routePath: null,
-                hasCleanedOnce: true,
-                currentPathIndex: 0,
-                patrolRoute: [],
-                patrolIndex: 0
-              }))
-            }, 6000) // 5 soniya tozalash + 1 soniya kutish
-            
-            return prev
+          console.log('✅ VEH-001 qutiga yetdi!')
+          console.log('🧹 Quti tozalanmoqda...')
+          
+          const cleaningData = {
+            binId: binData.id,
+            vehicleId: vehicleState.id,
+            driverName: vehicleState.driver,
+            binLocation: binData.address,
+            fillLevelBefore: 95,
+            fillLevelAfter: 15,
+            distanceTraveled: calculateDistance(
+              vehicleState.routePath[0][0],
+              vehicleState.routePath[0][1],
+              binData.location[0],
+              binData.location[1]
+            ),
+            durationMinutes: durationMinutes,
+            notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
+            status: 'completed'
           }
           
-          return {
-            ...prev,
-            position: prev.routePath[nextIndex],
+          api.createCleaning(cleaningData)
+            .then(result => {
+              if (result.success) {
+                console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+              } else {
+                console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+              }
+            })
+            .catch(error => {
+              console.error('❌ API xatolik:', error)
+            })
+          
+          // 5 soniya tozalash vaqti
+          console.log('🧹 Tozalash jarayoni - 5 soniya...')
+          setTimeout(() => {
+            setBinStatus('EMPTY')
+            
+            setBinsData(prevBins => prevBins.map(bin =>
+              bin.id === binData.id ? {
+                ...bin,
+                status: 15,
+                fillLevel: 15,
+                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+              } : bin
+            ))
+            
+            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+            console.log('🚛 VEH-001 patrolga qaytmoqda...')
+          }, 5000)
+          
+          clearInterval(animationIntervalRef.current)
+          
+          setTimeout(() => {
+            updateVehicleState('VEH-001', {
+              isPatrolling: true,
+              routePath: null,
+              hasCleanedOnce: true,
+              currentPathIndex: 0,
+              patrolRoute: [],
+              patrolIndex: 0
+            })
+          }, 6000) // 5 soniya tozalash + 1 soniya kutish
+        } else {
+          // Keyingi nuqtaga o'tish
+          updateVehicleState('VEH-001', {
+            position: vehicleState.routePath[nextIndex],
             currentPathIndex: nextIndex
-          }
-        })
+          })
+        }
       }, 1500)
     }
 
@@ -470,7 +455,7 @@ const LiveMapSimple = () => {
         clearInterval(animationIntervalRef.current)
       }
     }
-  }, [vehicleState.isPatrolling, vehicleState.routePath])
+  }, [vehicleState.isPatrolling, vehicleState.routePath, vehicleState.currentPathIndex])
 
   // Mashina qutiga borish animatsiyasi (Mashina 2)
   useEffect(() => {
@@ -482,88 +467,83 @@ const LiveMapSimple = () => {
       const startTime = Date.now()
 
       animation2IntervalRef.current = setInterval(() => {
-        setVehicle2State(prev => {
-          const nextIndex = prev.currentPathIndex + 1
+        const nextIndex = vehicle2State.currentPathIndex + 1
+        
+        if (nextIndex >= vehicle2State.routePath.length) {
+          const endTime = Date.now()
+          const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
-          if (nextIndex >= prev.routePath.length) {
-            const endTime = Date.now()
-            const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
-            
-            console.log('✅ VEH-002 qutiga yetdi!')
-            console.log('🧹 Quti tozalanmoqda...')
-            
-            const cleaningData = {
-              binId: binData.id,
-              vehicleId: vehicle2State.id,
-              driverName: vehicle2State.driver,
-              binLocation: binData.address,
-              fillLevelBefore: 95,
-              fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                prev.routePath[0][0],
-                prev.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
-              durationMinutes: durationMinutes,
-              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
-              status: 'completed'
-            }
-            
-            api.createCleaning(cleaningData)
-              .then(result => {
-                if (result.success) {
-                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-                } else {
-                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
-                }
-              })
-              .catch(error => {
-                console.error('❌ API xatolik:', error)
-              })
-            
-            // 5 soniya tozalash vaqti
-            console.log('🧹 Tozalash jarayoni - 5 soniya...')
-            setTimeout(() => {
-              setBinStatus('EMPTY')
-              
-              setBinsData(prevBins => prevBins.map(bin =>
-                bin.id === binData.id ? {
-                  ...bin,
-                  status: 15,
-                  fillLevel: 15,
-                  lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                  lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-                } : bin
-              ))
-              
-              console.log('🟢 BIN STATUS: EMPTY (Yashil)')
-              console.log('🚛 VEH-002 patrolga qaytmoqda...')
-            }, 5000)
-            
-            clearInterval(animation2IntervalRef.current)
-            
-            setTimeout(() => {
-              setVehicle2State(prev => ({
-                ...prev,
-                isPatrolling: true,
-                routePath: null,
-                hasCleanedOnce: true,
-                currentPathIndex: 0,
-                patrolRoute: [],
-                patrolIndex: 0
-              }))
-            }, 6000) // 5 soniya tozalash + 1 soniya kutish
-            
-            return prev
+          console.log('✅ VEH-002 qutiga yetdi!')
+          console.log('🧹 Quti tozalanmoqda...')
+          
+          const cleaningData = {
+            binId: binData.id,
+            vehicleId: vehicle2State.id,
+            driverName: vehicle2State.driver,
+            binLocation: binData.address,
+            fillLevelBefore: 95,
+            fillLevelAfter: 15,
+            distanceTraveled: calculateDistance(
+              vehicle2State.routePath[0][0],
+              vehicle2State.routePath[0][1],
+              binData.location[0],
+              binData.location[1]
+            ),
+            durationMinutes: durationMinutes,
+            notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
+            status: 'completed'
           }
           
-          return {
-            ...prev,
-            position: prev.routePath[nextIndex],
+          api.createCleaning(cleaningData)
+            .then(result => {
+              if (result.success) {
+                console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+              } else {
+                console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+              }
+            })
+            .catch(error => {
+              console.error('❌ API xatolik:', error)
+            })
+          
+          // 5 soniya tozalash vaqti
+          console.log('🧹 Tozalash jarayoni - 5 soniya...')
+          setTimeout(() => {
+            setBinStatus('EMPTY')
+            
+            setBinsData(prevBins => prevBins.map(bin =>
+              bin.id === binData.id ? {
+                ...bin,
+                status: 15,
+                fillLevel: 15,
+                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+              } : bin
+            ))
+            
+            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+            console.log('🚛 VEH-002 patrolga qaytmoqda...')
+          }, 5000)
+          
+          clearInterval(animation2IntervalRef.current)
+          
+          setTimeout(() => {
+            updateVehicleState('VEH-002', {
+              isPatrolling: true,
+              routePath: null,
+              hasCleanedOnce: true,
+              currentPathIndex: 0,
+              patrolRoute: [],
+              patrolIndex: 0
+            })
+          }, 6000) // 5 soniya tozalash + 1 soniya kutish
+        } else {
+          // Keyingi nuqtaga o'tish
+          updateVehicleState('VEH-002', {
+            position: vehicle2State.routePath[nextIndex],
             currentPathIndex: nextIndex
-          }
-        })
+          })
+        }
       }, 1500)
     }
 
@@ -572,7 +552,7 @@ const LiveMapSimple = () => {
         clearInterval(animation2IntervalRef.current)
       }
     }
-  }, [vehicle2State.isPatrolling, vehicle2State.routePath])
+  }, [vehicle2State.isPatrolling, vehicle2State.routePath, vehicle2State.currentPathIndex])
 
   // Xaritani yaratish
   useEffect(() => {
