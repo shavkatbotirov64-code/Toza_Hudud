@@ -12,7 +12,7 @@ export const getDatabaseConfig = (
       type: 'postgres',
       url: databaseUrl,
       entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-      synchronize: true, // Temporarily enable to create tables
+      synchronize: false, // Disabled - using manual migrations
       logging: false,
       ssl: {
         rejectUnauthorized: false,
@@ -29,7 +29,7 @@ export const getDatabaseConfig = (
     password: configService.get('DB_PASSWORD', 'password'),
     database: configService.get('DB_NAME', 'smart_trash_db'),
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: true, // Temporarily enable to create tables
+    synchronize: false, // Disabled - using manual migrations
     logging: false,
     ssl: false,
   };
