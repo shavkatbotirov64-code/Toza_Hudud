@@ -90,17 +90,27 @@ const LiveMapSimple = () => {
         // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
         const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
         
+        // Nuqtalarni simplify qilish - har 5-nuqtadan bittasini olish
+        // Bu mashinani silliq va aniq ko'chalar bo'ylab harakatlantirishga yordam beradi
+        const simplifiedCoordinates = leafletCoordinates.filter((coord, index) => {
+          // Birinchi va oxirgi nuqtalarni doim qoldirish
+          if (index === 0 || index === leafletCoordinates.length - 1) return true
+          // Har 5-nuqtadan bittasini olish
+          return index % 5 === 0
+        })
+        
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
         
         console.log(`✅ Marshrut topildi!`)
         console.log(`📏 Masofa: ${distanceKm} km`)
         console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-        console.log(`📊 Nuqtalar soni: ${leafletCoordinates.length}`)
+        console.log(`📊 Original nuqtalar: ${leafletCoordinates.length}`)
+        console.log(`📊 Simplified nuqtalar: ${simplifiedCoordinates.length}`)
         
         return {
           success: true,
-          path: leafletCoordinates,
+          path: simplifiedCoordinates,
           distance: distanceKm,
           duration: durationMin
         }
@@ -197,7 +207,7 @@ const LiveMapSimple = () => {
           position: vehicleState.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 2000)
+      }, 1000) // 1 soniya - o'rtacha tezlik, silliq harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -214,7 +224,7 @@ const LiveMapSimple = () => {
           position: vehicle2State.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 2000)
+      }, 1000) // 1 soniya - o'rtacha tezlik, silliq harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -438,7 +448,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 1500)
+      }, 1000) // 1 soniya - o'rtacha tezlik, silliq harakat
     }
 
     return () => {
@@ -561,7 +571,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 1500)
+      }, 1000) // 1 soniya - o'rtacha tezlik, silliq harakat
     }
 
     return () => {
