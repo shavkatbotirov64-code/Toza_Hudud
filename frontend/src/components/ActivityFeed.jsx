@@ -3,16 +3,20 @@ import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 
 const ActivityFeed = () => {
-  const { activityData, showToast } = useAppContext()
+  const { activityData, showToast, refreshData } = useAppContext()
   const { t } = useTranslation()
   const [refreshing, setRefreshing] = React.useState(false)
 
-  const loadActivity = () => {
+  const loadActivity = async () => {
     setRefreshing(true)
-    setTimeout(() => {
-      setRefreshing(false)
+    try {
+      await refreshData() // API dan yangilash
       showToast(t('dashboard.activityRefreshed'), 'success')
-    }, 800)
+    } catch (error) {
+      showToast('Faoliyatlarni yangilashda xatolik', 'error')
+    } finally {
+      setTimeout(() => setRefreshing(false), 800)
+    }
   }
 
   const getActivityTitle = (activity) => {

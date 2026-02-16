@@ -139,7 +139,7 @@ export const AppProvider = ({ children }) => {
     }
   }
   
-  const [activityData, setActivityData] = useState(mockActivities)
+  const [activityData, setActivityData] = useState([]) // Bo'sh array - API dan yuklanadi
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
   
@@ -387,6 +387,35 @@ export const AppProvider = ({ children }) => {
         } catch (error) {
           console.error('❌ Error processing alerts data:', error)
           showToast('Ogohlantirishlarni yuklashda xatolik', 'error')
+        }
+        
+        // Load activities
+        const activitiesResult = await ApiService.getActivities(50)
+        console.log('📋 Activities Result:', activitiesResult)
+        
+        try {
+          if (activitiesResult.success && activitiesResult.data) {
+            let activitiesArray = activitiesResult.data
+            
+            // Agar data object bo'lsa va data property'si bo'lsa
+            if (typeof activitiesResult.data === 'object' && !Array.isArray(activitiesResult.data) && activitiesResult.data.data) {
+              activitiesArray = activitiesResult.data.data
+              console.log('📋 Using nested data array:', activitiesArray)
+            }
+            
+            if (Array.isArray(activitiesArray) && activitiesArray.length > 0) {
+              console.log('📋 Processing activities array:', activitiesArray.length, 'items')
+              setActivityData(activitiesArray)
+              console.log('✅ Activities loaded successfully')
+            } else {
+              console.log('📋 No activities data or empty array')
+            }
+          } else {
+            console.log('📋 API call failed or no data')
+          }
+        } catch (error) {
+          console.error('❌ Error processing activities data:', error)
+          showToast('Faoliyatlarni yuklashda xatolik', 'error')
         }
         
         showToast('Ma\'lumotlar muvaffaqiyatli yuklandi', 'success')
