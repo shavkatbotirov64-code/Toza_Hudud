@@ -357,17 +357,24 @@ export const AppProvider = ({ children }) => {
     loadDataFromAPI()
   }, [])
 
-  // Auto refresh every 30 seconds if API is connected
+  // Auto refresh every 30 seconds if API is connected - FAQAT FULL bo'lmagan qutilar uchun
   useEffect(() => {
     if (!apiConnected) return
 
     const interval = setInterval(() => {
+      // Agar biror quti FULL bo'lsa, refresh qilmaymiz
+      const hasFullBin = binsData.some(bin => bin.status >= 90)
+      if (hasFullBin) {
+        console.log('⏸️ Auto-refresh paused: Quti FULL holatida')
+        return
+      }
+      
       console.log('🔄 Auto-refreshing data...')
       loadDataFromAPI()
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [apiConnected])
+  }, [apiConnected, binsData])
 
   // WebSocket - Real-time ESP32 ma'lumot olish (Global - barcha sahifalarda ishlaydi)
   useEffect(() => {
