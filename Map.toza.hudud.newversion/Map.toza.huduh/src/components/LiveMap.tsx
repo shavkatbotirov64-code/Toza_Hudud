@@ -235,15 +235,13 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         return
       }
       
-      // Check if any vehicle is already going to bin or has cleaned
+      // Check if any vehicle is already going to bin (ignore hasCleanedOnce)
       const hasAnyGoingToBin = vehiclesData.some(v => !v.isPatrolling && v.routePath)
-      const hasAnyCleanedOnce = vehiclesData.some(v => v.hasCleanedOnce)
       
       console.log('🔍 hasAnyGoingToBin:', hasAnyGoingToBin)
-      console.log('🔍 hasAnyCleanedOnce:', hasAnyCleanedOnce)
       
-      if (hasAnyGoingToBin || hasAnyCleanedOnce) {
-        console.log('⏭️ Vehicle already assigned or cleaned, skipping')
+      if (hasAnyGoingToBin) {
+        console.log('⏭️ Vehicle already going to bin, skipping')
         return
       }
       
