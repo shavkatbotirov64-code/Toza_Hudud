@@ -19,7 +19,7 @@ const LiveMapSimple = () => {
   const animationIntervalRef = useRef(null)
   const animation2IntervalRef = useRef(null) // Ikkinchi mashina animatsiyasi
   const socketRef = useRef(null) // WebSocket reference
-  const { showToast, binsData, setBinsData, vehicleStates, setVehicleStates } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
+  const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
@@ -33,20 +33,9 @@ const LiveMapSimple = () => {
   // Quti holati
   const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
   
-  // Mashina holatlari - AppContext'dan
-  const vehicleState = vehicleStates['VEH-001'] || vehicleStates['VEH-001']
-  const vehicle2State = vehicleStates['VEH-002'] || vehicleStates['VEH-002']
-  
-  // Mashina holatini yangilash helper function
-  const updateVehicleState = (vehicleId, updates) => {
-    setVehicleStates(prev => ({
-      ...prev,
-      [vehicleId]: {
-        ...prev[vehicleId],
-        ...updates
-      }
-    }))
-  }
+  // Mashina holatlari - vehiclesData'dan
+  const vehicleState = vehiclesData.find(v => v.id === 'VEH-001') || vehiclesData[0]
+  const vehicle2State = vehiclesData.find(v => v.id === 'VEH-002') || vehiclesData[1]
 
   // Ikki nuqta orasidagi masofani hisoblash (Haversine formula)
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -441,7 +430,9 @@ const LiveMapSimple = () => {
               hasCleanedOnce: true,
               currentPathIndex: 0,
               patrolRoute: [],
-              patrolIndex: 0
+              patrolIndex: 0,
+              cleaned: (vehicleState.cleaned || 0) + 1, // Tozalashlar sonini oshirish
+              status: 'moving'
             })
           }, 3000) // 3 soniya tozalash
         } else {
@@ -543,7 +534,9 @@ const LiveMapSimple = () => {
               hasCleanedOnce: true,
               currentPathIndex: 0,
               patrolRoute: [],
-              patrolIndex: 0
+              patrolIndex: 0,
+              cleaned: (vehicle2State.cleaned || 0) + 1, // Tozalashlar sonini oshirish
+              status: 'moving'
             })
           }, 3000) // 3 soniya tozalash
         } else {

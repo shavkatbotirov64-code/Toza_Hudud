@@ -50,13 +50,15 @@ export const AppProvider = ({ children }) => {
       batteryLevel: 100,
     }
   ])
-  const [vehiclesData, setVehiclesData] = useState([]) // Bo'sh array - faqat API dan
-  
-  // Mashina holatlari - global state (sahifalar o'rtasida saqlanadi)
-  const [vehicleStates, setVehicleStates] = useState({
-    'VEH-001': {
+  const [vehiclesData, setVehiclesData] = useState([
+    // Xarita uchun mashinalar - "Mashinalar" bo'limida ham ko'rinadi
+    {
       id: 'VEH-001',
       driver: 'Akmaljon Karimov',
+      phone: '+998 90 123 45 67',
+      status: 'moving', // 'moving', 'active', 'inactive'
+      location: 'Samarqand shahri',
+      cleaned: 0,
       position: [39.6650, 66.9600],
       isMoving: true,
       isPatrolling: true,
@@ -72,9 +74,13 @@ export const AppProvider = ({ children }) => {
       ],
       currentWaypointIndex: 0
     },
-    'VEH-002': {
+    {
       id: 'VEH-002',
       driver: 'Sardor Rahimov',
+      phone: '+998 91 234 56 78',
+      status: 'moving',
+      location: 'Samarqand shahri',
+      cleaned: 0,
       position: [39.6780, 66.9850],
       isMoving: true,
       isPatrolling: true,
@@ -90,7 +96,14 @@ export const AppProvider = ({ children }) => {
       ],
       currentWaypointIndex: 0
     }
-  })
+  ])
+  
+  // Mashina holatini yangilash helper function
+  const updateVehicleState = (vehicleId, updates) => {
+    setVehiclesData(prev => prev.map(vehicle =>
+      vehicle.id === vehicleId ? { ...vehicle, ...updates } : vehicle
+    ))
+  }
   
   const [activityData, setActivityData] = useState(mockActivities)
   const [alertsData, setAlertsData] = useState([])
@@ -358,8 +371,7 @@ export const AppProvider = ({ children }) => {
         setBinsData,
         vehiclesData,
         setVehiclesData,
-        vehicleStates,
-        setVehicleStates,
+        updateVehicleState,
         activityData,
         setActivityData,
         alertsData,
