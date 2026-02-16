@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
-import { io } from 'socket.io-client'
 import api from '../services/api'
 import { calculateDistance } from '../utils/vehicleHelpers'
 import VehicleManager from '../utils/VehicleManager'
@@ -17,7 +16,6 @@ const LiveMapSimple = () => {
   const routeLinesRef = useRef([]) // Barcha marshrut chiziqlari
   const vehicleIntervalsRef = useRef({}) // Har bir mashina uchun interval
   const vehicleManagerRef = useRef(null) // VehicleManager instance
-  const socketRef = useRef(null) // WebSocket reference
   const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
   const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
@@ -118,89 +116,6 @@ const LiveMapSimple = () => {
       return { success: false }
     }
   }
-
-  // WebSocket - Real-time ESP32 ma'lumot olish
-  useEffect(() => {
-    console.log('🔧 LiveMapSimple component mounted - WebSocket initializing...')
-    
-    // WebSocket ulanish
-    const socket = io('https://tozahudud-production-d73f.up.railway.app', {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    })
-    
-    socketRef.current = socket
-
-    socket.on('connect', () => {
-      console.log('✅ WebSocket connected:', socket.id)
-      console.log('✅ Listening for events: sensorData, binStatus')
-    })
-
-    socket.on('disconnect', () => {
-      console.log('❌ WebSocket disconnected')
-    })
-    
-    // Test: Barcha eventlarni eshitish
-    socket.onAny((eventName, ...args) => {
-      console.log(`🔔 WebSocket event received: "${eventName}"`, args)
-    })
-
-    // ESP32 dan yangi ma'lumot kelganda
-    socket.on('sensorData', (data) => {
-      console.log(`📡 REAL-TIME ESP32 SIGNAL:`, data)
-      console.log(`📡 Distance: ${data.distance} sm`)
-      console.log(`📡 BinId: ${data.binId}`)
-      console.log(`📡 Current binData.id: ${binData.id}`)
-      
-      // Qutini FULL holatiga o'tkazish
-      setBinStatus('FULL')
-      
-      // AppContext dagi qutini yangilash - "Qutilar" bo'limida ham ko'rinadi
-      setBinsData(prev => prev.map(bin => 
-        bin.id === data.binId ? {
-          ...bin,
-          status: 95, // Qizil rang
-          fillLevel: 95,
-          distance: data.distance,
-          lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-          timestamp: data.timestamp
-        } : bin
-      ))
-      
-      // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-      updateVehicleState('VEH-001', { hasCleanedOnce: false })
-      updateVehicleState('VEH-002', { hasCleanedOnce: false })
-      
-      console.log('🔴 BIN STATUS: FULL (Qizil) - Real-time!')
-      console.log('🔴 binData.status set to: 95')
-    })
-
-    // Quti holati o'zgarganda
-    socket.on('binStatus', ({ binId, status }) => {
-      console.log(`🗑️ REAL-TIME BIN STATUS: ${binId} = ${status}`)
-      setBinStatus(status)
-      
-      if (status === 'FULL') {
-        setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
-        ))
-        console.log('🔴 Bin marked as FULL from binStatus event')
-      } else if (status === 'EMPTY') {
-        setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
-        ))
-        console.log('🟢 Bin marked as EMPTY from binStatus event')
-      }
-    })
-
-    // Cleanup
-    return () => {
-      console.log('🔌 WebSocket disconnecting...')
-      socket.disconnect()
-    }
-  }, [])
 
   // Patrol marshruti yaratish - OSRM API orqali (Mashina 1)
   useEffect(() => {

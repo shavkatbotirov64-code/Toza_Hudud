@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { mockBins, mockVehicles, mockActivities, mockAlerts } from '../data/mockData'
 import ApiService from '../services/api'
+import { io } from 'socket.io-client'
 
 const AppContext = createContext()
 
@@ -368,13 +369,77 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval)
   }, [apiConnected])
 
-  // Real-time updates - faqat API connected bo'lganda
+  // WebSocket - Real-time ESP32 ma'lumot olish (Global - barcha sahifalarda ishlaydi)
   useEffect(() => {
-    if (!apiConnected) return // API yo'q bo'lsa, hech narsa qilmaymiz
+    console.log('🔧 AppContext: WebSocket initializing...')
+    
+    // WebSocket ulanish
+    const socket = io('https://tozahudud-production-d73f.up.railway.app', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    })
 
-    // API connected bo'lsa, WebSocket orqali real-time updates keladi
-    // Bu yerda qo'shimcha kod kerak emas
-  }, [apiConnected])
+    socket.on('connect', () => {
+      console.log('✅ AppContext WebSocket connected:', socket.id)
+    })
+
+    socket.on('disconnect', () => {
+      console.log('❌ AppContext WebSocket disconnected')
+    })
+
+    // ESP32 dan yangi ma'lumot kelganda
+    socket.on('sensorData', (data) => {
+      console.log(`📡 AppContext: REAL-TIME ESP32 SIGNAL:`, data)
+      console.log(`📡 Distance: ${data.distance} sm`)
+      console.log(`📡 BinId: ${data.binId}`)
+      
+      // Qutini FULL holatiga o'tkazish
+      setBinsData(prev => prev.map(bin => 
+        bin.id === data.binId ? {
+          ...bin,
+          status: 95, // Qizil rang
+          fillLevel: 95,
+          distance: data.distance,
+          lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: data.timestamp
+        } : bin
+      ))
+      
+      // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
+      setVehiclesData(prev => prev.map(vehicle => ({
+        ...vehicle,
+        hasCleanedOnce: false
+      })))
+      
+      console.log('🔴 AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
+      showToast(`Quti ${data.binId} to'ldi! Mashina yuborilmoqda...`, 'warning')
+    })
+
+    // Quti holati o'zgarganda
+    socket.on('binStatus', ({ binId, status }) => {
+      console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
+      
+      if (status === 'FULL') {
+        setBinsData(prev => prev.map(bin =>
+          bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
+        ))
+        console.log('🔴 AppContext: Bin marked as FULL')
+      } else if (status === 'EMPTY') {
+        setBinsData(prev => prev.map(bin =>
+          bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
+        ))
+        console.log('🟢 AppContext: Bin marked as EMPTY')
+      }
+    })
+
+    // Cleanup
+    return () => {
+      console.log('🔌 AppContext: WebSocket disconnecting...')
+      socket.disconnect()
+    }
+  }, [])
 
   const showToast = (message, type = 'info', duration = 5000) => {
     // Generate unique ID using timestamp + random number to avoid duplicates
