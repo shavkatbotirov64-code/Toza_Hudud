@@ -4,7 +4,8 @@ import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import { io } from 'socket.io-client'
 import api from '../services/api'
-import { calculateDistance, isVehicleNearBin } from '../utils/vehicleHelpers'
+import { calculateDistance } from '../utils/vehicleHelpers'
+import VehicleManager from '../utils/VehicleManager'
 import 'leaflet/dist/leaflet.css'
 
 const LiveMapSimple = () => {
@@ -14,40 +15,63 @@ const LiveMapSimple = () => {
   const binMarkersRef = useRef([]) // Barcha quti markerlari
   const vehicleMarkersRef = useRef([]) // Barcha mashina markerlari
   const routeLinesRef = useRef([]) // Barcha marshrut chiziqlari
-  const animationIntervalRef = useRef(null)
-  const animation2IntervalRef = useRef(null) // Ikkinchi mashina animatsiyasi
+  const vehicleIntervalsRef = useRef({}) // Har bir mashina uchun interval
+  const vehicleManagerRef = useRef(null) // VehicleManager instance
   const socketRef = useRef(null) // WebSocket reference
   const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
     id: 'ESP32-IBN-SINO',
-    location: [39.6742637, 66.9737814], // Ibn Sino ko'chasi 17A
+    location: [39.6742637, 66.9737814],
     address: 'Ibn Sino ko\'chasi 17A, Samarqand',
     status: 15,
     capacity: 120
   }
   
   // Quti holati
-  const [binStatus, setBinStatus] = useState('EMPTY') // 'EMPTY' yoki 'FULL'
+  const [binStatus, setBinStatus] = useState('EMPTY')
   
-  // Mashina holatlari - vehiclesData'dan
-  const vehicleState = vehiclesData.find(v => v.id === 'VEH-001') || vehiclesData[0]
-  const vehicle2State = vehiclesData.find(v => v.id === 'VEH-002') || vehiclesData[1]
+  // VehicleManager'ni yaratish
+  useEffect(() => {
+    vehicleManagerRef.current = new VehicleManager(updateVehicleState, setBinsData, setBinStatus)
+    
+    return () => {
+      if (vehicleManagerRef.current) {
+        vehicleManagerRef.current.stopAll()
+      }
+    }
+  }, [])
 
-  // Ikki nuqta orasidagi masofani hisoblash (Haversine formula)
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371 // Yer radiusi (km)
-    const dLat = (lat2 - lat1) * Math.PI / 180
-    const dLon = (lon2 - lon1) * Math.PI / 180
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-    const distance = R * c
-    return distance // km
-  }
+  // Barcha mashinalar uchun patrol marshruti yaratish
+  useEffect(() => {
+    if (!vehicleManagerRef.current) return
+
+    vehiclesData.forEach(vehicle => {
+      if (vehicle.isPatrolling && vehicle.patrolRoute.length === 0 && vehicle.patrolWaypoints) {
+        vehicleManagerRef.current.buildPatrolRoute(vehicle)
+      }
+    })
+  }, [vehiclesData])
+
+  // Barcha mashinalar uchun patrol animatsiyasini boshlash
+  useEffect(() => {
+    if (!vehicleManagerRef.current) return
+
+    vehiclesData.forEach(vehicle => {
+      if (vehicle.isPatrolling && vehicle.patrolRoute.length > 0 && !vehicle.routePath) {
+        vehicleManagerRef.current.startPatrol(vehicle)
+      } else if (!vehicle.isPatrolling && vehicle.routePath) {
+        vehicleManagerRef.current.startGoingToBin(vehicle, binData)
+      }
+    })
+
+    return () => {
+      if (vehicleManagerRef.current) {
+        vehicleManagerRef.current.stopAll()
+      }
+    }
+  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute.length}-${v.routePath ? 'route' : 'no'}`).join(',')])
 
   // OpenStreetMap OSRM API dan marshrut olish
   const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
