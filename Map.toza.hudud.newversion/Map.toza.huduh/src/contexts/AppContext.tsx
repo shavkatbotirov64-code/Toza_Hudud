@@ -61,12 +61,12 @@ export const useAppContext = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [binsData, setBinsData] = useState<Bin[]>([])
   const [vehiclesData, setVehiclesData] = useState<Vehicle[]>(() => {
-    // Load from localStorage on init
+    // Load from localStorage on init - ALOHIDA KEY ishlatamiz
     try {
-      const saved = localStorage.getItem('vehiclesData')
+      const saved = localStorage.getItem('newMapVehiclesData') // YANGI KEY
       if (saved) {
         const parsed = JSON.parse(saved)
-        console.log('🚛 Vehicles loaded from localStorage:', parsed.length)
+        console.log('🚛 Vehicles loaded from localStorage (NEW MAP):', parsed.length)
         return parsed
       }
     } catch (error) {
@@ -83,12 +83,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ))
   }
 
-  // Save vehicles to localStorage whenever they change
+  // Save vehicles to localStorage whenever they change - ALOHIDA KEY
   useEffect(() => {
     if (vehiclesData.length > 0) {
       try {
-        localStorage.setItem('vehiclesData', JSON.stringify(vehiclesData))
-        console.log('💾 Vehicles saved to localStorage:', vehiclesData.length)
+        localStorage.setItem('newMapVehiclesData', JSON.stringify(vehiclesData)) // YANGI KEY
+        console.log('💾 Vehicles saved to localStorage (NEW MAP):', vehiclesData.length)
       } catch (error) {
         console.error('❌ Error saving to localStorage:', error)
       }
@@ -165,7 +165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               
               if (existingVehicle) {
                 // Merge with existing state (preserve position, patrol state, etc.)
-                console.log(`🔄 Merging vehicle ${existingVehicle.id} with localStorage state`)
+                console.log(`🔄 Merging vehicle ${existingVehicle.id} with localStorage state (NEW MAP)`)
                 return {
                   ...existingVehicle,
                   driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
@@ -173,7 +173,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   cleaned: vehicle.totalCleanings || existingVehicle.cleaned
                 }
               } else {
-                // New vehicle - create fresh state
+                // New vehicle - create fresh state with UNIQUE ID for new map
+                const vehicleId = `NEWMAP-VEH-${String(index + 1).padStart(3, '0')}` // ALOHIDA ID
                 const basePos: [number, number] = [39.6542, 66.9597]
                 const patrolWaypoints: [number, number][] = [
                   [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02],
@@ -183,8 +184,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ]
                 
                 return {
-                  id: vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`,
-                  driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
+                  id: vehicleId, // ALOHIDA ID
+                  driver: vehicle.driverName || vehicle.driver || `New Map Driver ${index + 1}`,
                   phone: vehicle.phone || '+998 90 123 45 67',
                   status: vehicle.status || 'moving',
                   location: vehicle.location || 'Samarqand',
