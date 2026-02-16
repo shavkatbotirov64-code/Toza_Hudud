@@ -42,6 +42,10 @@ const LiveMapSimple = () => {
       }
     }
   }, [])
+  
+  // Mashina holatlari - vehiclesData'dan
+  const vehicleState = vehiclesData.find(v => v.id === 'VEH-001') || vehiclesData[0]
+  const vehicle2State = vehiclesData.find(v => v.id === 'VEH-002') || vehiclesData[1]
 
   // Barcha mashinalar uchun patrol marshruti yaratish
   useEffect(() => {
