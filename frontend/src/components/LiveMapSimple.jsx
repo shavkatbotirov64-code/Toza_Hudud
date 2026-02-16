@@ -246,11 +246,10 @@ const LiveMapSimple = () => {
         
         console.log(`✅ VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
-        setVehicle2State(prev => ({
-          ...prev,
+        updateVehicleState('VEH-002', {
           patrolRoute: fullRoute,
-          position: fullRoute[0] || prev.position
-        }))
+          position: fullRoute[0] || vehicle2State.position
+        })
       }
       
       buildPatrolRoute()
