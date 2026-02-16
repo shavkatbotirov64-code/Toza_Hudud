@@ -51,10 +51,21 @@ export const AppProvider = ({ children }) => {
       batteryLevel: 100,
     }
   ])
-  const [vehiclesData, setVehiclesData] = useState([
-    // Database bo'sh bo'lsa, default mashinalar
-    // API dan yuklanganidan keyin bu mashinalar almashtiriladi
-  ])
+  const [vehiclesData, setVehiclesData] = useState(() => {
+    // localStorage'dan mashinalar holatini yuklash
+    try {
+      const savedVehicles = localStorage.getItem('vehiclesData')
+      if (savedVehicles) {
+        const parsed = JSON.parse(savedVehicles)
+        console.log('🚛 localStorage dan mashinalar yuklandi:', parsed.length)
+        return parsed
+      }
+    } catch (error) {
+      console.error('❌ localStorage dan yuklashda xatolik:', error)
+    }
+    // Default bo'sh array
+    return []
+  })
   
   // Marshrutlar holati - "Marshrutlar" bo'limida ham, xaritada ham ko'rinadi
   // Faqat real-time faol marshrutlar ko'rsatiladi
@@ -145,6 +156,18 @@ export const AppProvider = ({ children }) => {
     document.documentElement.setAttribute('lang', language)
     localStorage.setItem('language', language)
   }, [language])
+
+  // Mashinalar holatini localStorage'ga saqlash
+  useEffect(() => {
+    if (vehiclesData.length > 0) {
+      try {
+        localStorage.setItem('vehiclesData', JSON.stringify(vehiclesData))
+        console.log('💾 Mashinalar holati saqlandi:', vehiclesData.length)
+      } catch (error) {
+        console.error('❌ localStorage ga saqlashda xatolik:', error)
+      }
+    }
+  }, [vehiclesData])
 
   // Load data from API
   const loadDataFromAPI = async () => {
@@ -268,13 +291,29 @@ export const AppProvider = ({ children }) => {
                   console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
                   const transformed = ApiService.transformVehicleData(vehicle)
                   
-                  // Har bir mashinaga alohida patrol marshrut berish
-                  const patrolIndex = index % patrolRoutes.length
-                  transformed.patrolWaypoints = patrolRoutes[patrolIndex]
-                  transformed.isPatrolling = true
-                  transformed.currentWaypointIndex = 0
+                  // localStorage'dan saqlangan holatni olish
+                  const savedVehicles = JSON.parse(localStorage.getItem('vehiclesData') || '[]')
+                  const savedVehicle = savedVehicles.find(v => v.id === transformed.id)
                   
-                  console.log(`✅ Vehicle ${index + 1} assigned patrol route ${patrolIndex + 1}`)
+                  if (savedVehicle) {
+                    // Agar localStorage'da mavjud bo'lsa, holatni qayta tiklash
+                    console.log(`♻️ Vehicle ${transformed.id} holati qayta tiklanmoqda...`)
+                    transformed.position = savedVehicle.position || transformed.position
+                    transformed.patrolRoute = savedVehicle.patrolRoute || []
+                    transformed.patrolIndex = savedVehicle.patrolIndex || 0
+                    transformed.isPatrolling = savedVehicle.isPatrolling !== undefined ? savedVehicle.isPatrolling : true
+                    transformed.routePath = savedVehicle.routePath || null
+                    transformed.currentPathIndex = savedVehicle.currentPathIndex || 0
+                    transformed.cleaned = savedVehicle.cleaned || 0
+                    console.log(`✅ Vehicle ${transformed.id} holati qayta tiklandi`)
+                  } else {
+                    // Yangi mashina - default patrol marshrut berish
+                    const patrolIndex = index % patrolRoutes.length
+                    transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                    transformed.isPatrolling = true
+                    transformed.currentWaypointIndex = 0
+                    console.log(`✅ Vehicle ${index + 1} assigned patrol route ${patrolIndex + 1}`)
+                  }
                   
                   return transformed
                 } catch (error) {
