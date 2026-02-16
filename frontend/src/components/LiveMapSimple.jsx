@@ -376,13 +376,15 @@ const LiveMapSimple = () => {
           const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
           console.log('✅ VEH-001 qutiga yetdi!')
+          console.log('⏸️ Mashina qutida to\'xtadi - 3 soniya kutilmoqda...')
           
           // Animatsiyani to'xtatish
           clearInterval(animationIntervalRef.current)
           
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
-            console.log('🧹 Quti tozalanmoqda...')
+            console.log('🧹 Tozalash boshlandi!')
+            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             
             const cleaningData = {
               binId: binData.id,
@@ -415,6 +417,8 @@ const LiveMapSimple = () => {
               })
             
             // Qutini yashil qilish
+            console.log('🟢 QUTI YASHIL QILINYAPTI - VEH-001 tomonidan')
+            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
@@ -427,7 +431,7 @@ const LiveMapSimple = () => {
               } : bin
             ))
             
-            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+            console.log('✅ BIN STATUS: EMPTY (Yashil) - Tugallandi')
             console.log('🚛 VEH-001 patrolga qaytmoqda...')
             
             // Mashina patrolga qaytadi
@@ -474,13 +478,15 @@ const LiveMapSimple = () => {
           const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
           
           console.log('✅ VEH-002 qutiga yetdi!')
+          console.log('⏸️ Mashina qutida to\'xtadi - 3 soniya kutilmoqda...')
           
           // Animatsiyani to'xtatish
           clearInterval(animation2IntervalRef.current)
           
           // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
-            console.log('🧹 Quti tozalanmoqda...')
+            console.log('🧹 Tozalash boshlandi!')
+            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             
             const cleaningData = {
               binId: binData.id,
@@ -513,6 +519,8 @@ const LiveMapSimple = () => {
               })
             
             // Qutini yashil qilish
+            console.log('🟢 QUTI YASHIL QILINYAPTI - VEH-002 tomonidan')
+            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
@@ -525,7 +533,7 @@ const LiveMapSimple = () => {
               } : bin
             ))
             
-            console.log('🟢 BIN STATUS: EMPTY (Yashil)')
+            console.log('✅ BIN STATUS: EMPTY (Yashil) - Tugallandi')
             console.log('🚛 VEH-002 patrolga qaytmoqda...')
             
             // Mashina patrolga qaytadi
