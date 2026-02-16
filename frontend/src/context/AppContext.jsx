@@ -136,6 +136,9 @@ export const AppProvider = ({ children }) => {
     }
   ])
   
+  // Quti holati - FULL yoki EMPTY
+  const [binStatus, setBinStatus] = useState('EMPTY')
+  
   // Marshrutni yangilash
   const updateRoute = (routeId, updates) => {
     setRoutesData(prev => prev.map(route =>
@@ -403,6 +406,7 @@ export const AppProvider = ({ children }) => {
       console.log(`📡 BinId: ${data.binId}`)
       
       // Qutini FULL holatiga o'tkazish
+      setBinStatus('FULL')
       setBinsData(prev => prev.map(bin => 
         bin.id === data.binId ? {
           ...bin,
@@ -427,6 +431,8 @@ export const AppProvider = ({ children }) => {
     // Quti holati o'zgarganda
     socket.on('binStatus', ({ binId, status }) => {
       console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
+      
+      setBinStatus(status)
       
       if (status === 'FULL') {
         setBinsData(prev => prev.map(bin =>
@@ -485,6 +491,8 @@ export const AppProvider = ({ children }) => {
         setLanguage,
         binsData,
         setBinsData,
+        binStatus,
+        setBinStatus,
         vehiclesData,
         setVehiclesData,
         updateVehicleState,

@@ -18,7 +18,7 @@ const LiveMapSimple = () => {
   const vehicleManagerRef = useRef(null) // VehicleManager instance
   const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
-  const { showToast, binsData, setBinsData, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
+  const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
@@ -28,9 +28,6 @@ const LiveMapSimple = () => {
     status: 15,
     capacity: 120
   }
-  
-  // Quti holati
-  const [binStatus, setBinStatus] = useState('EMPTY')
   
   // VehicleManager'ni yaratish
   useEffect(() => {
