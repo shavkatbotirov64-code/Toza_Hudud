@@ -316,7 +316,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
       
       getRoute()
     }
-  }, [binStatus, binsData, vehiclesData])
+  }, [binStatus, binsData.length, vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${!!v.routePath}`).join(',')])
 
   // Vehicle going to bin animation
   useEffect(() => {
