@@ -216,9 +216,9 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     }
   }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute?.length}-${v.routePath ? 'route' : 'no'}-${v.patrolIndex}`).join(',')])
 
-  // When bin becomes FULL, send closest vehicle
+  // When bin becomes FULL, send closest vehicle - VERSION 2.0
   useEffect(() => {
-    console.log('🔍 [NEW CODE] Checking bin status:', binStatus)
+    console.log('🔍 [VERSION 2.0] Checking bin status:', binStatus)
     console.log('🔍 Bins data:', binsData)
     console.log('🔍 Vehicles count:', vehiclesData.length)
     console.log('🔍 Vehicles data:', vehiclesData.map(v => ({
