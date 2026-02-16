@@ -207,7 +207,7 @@ const LiveMapSimple = () => {
           position: vehicleState.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 2000) // 2 soniya - sekin va silliq harakat
+      }, 3000) // 3 soniya - juda sekin va silliq harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -224,7 +224,7 @@ const LiveMapSimple = () => {
           position: vehicle2State.patrolRoute[nextIndex],
           patrolIndex: nextIndex
         })
-      }, 2000) // 2 soniya - sekin va silliq harakat
+      }, 3000) // 3 soniya - juda sekin va silliq harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -448,7 +448,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 1500) // 1.5 soniya - qutiga borishda biroz tezroq
+      }, 2500) // 2.5 soniya - qutiga borishda sekin
     }
 
     return () => {
@@ -571,7 +571,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 1500) // 1.5 soniya - qutiga borishda biroz tezroq
+      }, 2500) // 2.5 soniya - qutiga borishda sekin
     }
 
     return () => {
