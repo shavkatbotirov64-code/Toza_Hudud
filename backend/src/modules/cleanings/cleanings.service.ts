@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Cleaning } from './entities/cleaning.entity';
 import { ActivitiesService } from '../activities/activities.service';
+import { BinsService } from '../sensors/bins.service';
 
 @Injectable()
 export class CleaningsService {
@@ -12,6 +13,7 @@ export class CleaningsService {
     @InjectRepository(Cleaning)
     private cleaningRepository: Repository<Cleaning>,
     private readonly activitiesService: ActivitiesService,
+    private readonly binsService: BinsService,
   ) {}
 
   // Tozalash yozuvi yaratish
@@ -43,6 +45,14 @@ export class CleaningsService {
 
       const saved = await this.cleaningRepository.save(cleaning);
       this.logger.log(`🧹 Cleaning record created: ${saved.binId} by ${saved.vehicleId}`);
+      
+      // 🗑️ Qutini tozalash - fillLevel'ni 15 ga o'zgartirish
+      try {
+        await this.binsService.cleanBin(data.binId);
+        this.logger.log(`✅ Bin ${data.binId} fillLevel updated to 15`);
+      } catch (binError) {
+        this.logger.error(`❌ Error updating bin fillLevel: ${binError.message}`);
+      }
       
       // 📋 Faoliyat yaratish: Quti tozalandi
       try {
