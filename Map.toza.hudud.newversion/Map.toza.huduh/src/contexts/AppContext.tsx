@@ -136,12 +136,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           
           console.log('✅ Bins loaded:', transformedBins.length)
           console.log('📦 Bins data:', JSON.stringify(transformedBins, null, 2))
+          
+          // MUHIM: Quti rangini faqat backend'dan kelgan fillLevel ga qarab belgilash
+          // Frontend'da o'zgartirilgan fillLevel'ni e'tiborsiz qoldirish
           setBinsData(transformedBins)
           
-          // Update binStatus based on fillLevel
+          // Update binStatus based on fillLevel FROM BACKEND
           if (transformedBins.length > 0) {
             const firstBin = transformedBins[0]
-            console.log('🔍 First bin fillLevel:', firstBin.fillLevel)
+            console.log('🔍 First bin fillLevel FROM BACKEND:', firstBin.fillLevel)
             if (firstBin.fillLevel >= 90) {
               console.log('🔴 Bin is FULL! Setting binStatus to FULL')
               setBinStatus('FULL')

@@ -248,49 +248,32 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
       
       console.log('🚛 Bin is FULL! Finding closest vehicle...')
       
-      // Calculate distances for all patrolling vehicles
-      const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling)
-      console.log('🔍 Patrolling vehicles:', patrollingVehicles.map(v => v.id))
+      // Backend'dan eng yaqin mashinani topish va yo'naltirish
+      console.log('📡 Calling dispatch backend...')
       
-      if (patrollingVehicles.length === 0) {
-        console.log('❌ No patrolling vehicles available')
+      const dispatchResult = await api.dispatchVehicleToBin({
+        binId: binData.id,
+        binLocation: binData.location,
+        binAddress: binData.address,
+        vehicles: vehiclesData.map(v => ({
+          id: v.id,
+          driver: v.driver,
+          position: v.position,
+          isPatrolling: v.isPatrolling
+        }))
+      })
+      
+      if (!dispatchResult.success) {
+        console.error('❌ Dispatch failed:', dispatchResult.error)
         return
       }
       
-      const distances = patrollingVehicles.map(vehicle => ({
-        vehicle,
-        distance: calculateDistance(
-          vehicle.position[0],
-          vehicle.position[1],
-          binData.location[0],
-          binData.location[1]
-        )
-      }))
+      console.log('✅ Dispatch result:', dispatchResult.data)
       
-      console.log('🔍 Distances:', distances.map(d => ({ id: d.vehicle.id, distance: d.distance.toFixed(2) })))
-      
-      // Find closest vehicle
-      const closest = distances.reduce((prev, curr) => 
-        curr.distance < prev.distance ? curr : prev
-      )
-      
-      console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-      console.log(`🚀 Dispatching ${closest.vehicle.id} to bin...`)
-      
-      // Send vehicle to bin
-      const getRoute = async () => {
-        const result = await fetchRouteFromOSRM(
-          closest.vehicle.position[0],
-          closest.vehicle.position[1],
-          binData.location[0],
-          binData.location[1]
-        )
+      const { vehicleId, route, distance, estimatedTime } = dispatchResult.data
+      console.log(`📍 Route created with ${route.length} points`)
         
-        const route = result.success && result.path ? result.path : [closest.vehicle.position, binData.location]
-        
-        console.log(`📍 Route created with ${route.length} points`)
-        
-        updateVehicleState(closest.vehicle.id, {
+        updateVehicleState(vehicleId, {
           isPatrolling: false,
           routePath: route,
           currentPathIndex: 0
@@ -299,19 +282,19 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         // Create route
         const newRoute: Route = {
           id: `ROUTE-${Date.now()}`,
-          name: `${closest.vehicle.driver} → ${binData.address}`,
-          vehicle: closest.vehicle.id,
+          name: `${dispatchResult.data.vehicleDriver} → ${binData.address}`,
+          vehicle: vehicleId,
           bins: [binData.id],
           progress: 0,
-          distance: result.success ? `${result.distance} km` : 'Unknown',
-          estimatedTime: result.success ? `${result.duration} min` : 'Unknown',
+          distance: `${distance} km`,
+          estimatedTime: `${estimatedTime} min`,
           isActive: true,
           path: route
         }
         
         setRoutesData(prev => [...prev, newRoute])
         
-        console.log(`✅ ${closest.vehicle.id} dispatched successfully!`)
+        console.log(`✅ ${vehicleId} dispatched successfully!`)
       }
       
       getRoute()
@@ -379,6 +362,8 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
                 .then(result => {
                   if (result.success) {
                     console.log('✅ Tozalash yozuvi yaratildi:', result.data)
+                    console.log('✅ Backend qutini tozaladi va fillLevel 15 ga o\'zgartiradi')
+                    console.log('🔄 Keyingi polling (5 soniya) da quti yashil bo\'ladi')
                   } else {
                     console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
                   }
@@ -390,17 +375,9 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
               // Suppress unused variable warning
               void startTime
               
-              // Clean bin
-              console.log('🟢 Bin cleaned - turning green')
-              setBinStatus('EMPTY')
-              
-              setBinsData(prev => prev.map(bin =>
-                bin.id === binsData[0].id ? {
-                  ...bin,
-                  status: 15,
-                  fillLevel: 15
-                } : bin
-              ))
+              // MUHIM: Frontend'da quti rangini o'zgartirmaymiz!
+              // Backend tozalaydi va keyingi polling'da yangilanadi
+              console.log('⏳ Waiting for backend to update bin status...')
               
               console.log(`✅ ${vehicle.id} returning to patrol...`)
               
