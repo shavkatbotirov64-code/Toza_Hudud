@@ -360,7 +360,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
               
               // Create cleaning data
               const cleaningData = {
-                binId: binsData[0].id,
+                binId: binsData[0]._backendId || binsData[0].id, // Backend UUID ishlatish
                 vehicleId: vehicle.id,
                 driverName: vehicle.driver,
                 binLocation: binsData[0].address,
@@ -371,6 +371,8 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
                 notes: `Avtomatik tozalash (ESP32 signali) - ${vehicle.id}`,
                 status: 'completed'
               }
+              
+              console.log('📤 Sending cleaning data to backend:', cleaningData)
               
               // Call backend API to create cleaning record
               api.createCleaning(cleaningData)
