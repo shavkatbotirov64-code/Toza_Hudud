@@ -358,12 +358,27 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
               console.log('📤 Sending cleaning data to backend:', cleaningData)
               
               // Call backend API to create cleaning record
+              console.log('📤 Calling backend to create cleaning and update bin...')
+              
               api.createCleaning(cleaningData)
                 .then(result => {
                   if (result.success) {
                     console.log('✅ Tozalash yozuvi yaratildi:', result.data)
                     console.log('✅ Backend qutini tozaladi va fillLevel 15 ga o\'zgartiradi')
-                    console.log('🔄 Keyingi polling (5 soniya) da quti yashil bo\'ladi')
+                    
+                    // Backend tozalagandan keyin, darhol frontend'da ham yangilash
+                    console.log('🟢 Updating frontend bin status to EMPTY')
+                    setBinStatus('EMPTY')
+                    
+                    setBinsData(prev => prev.map(bin =>
+                      bin.id === binsData[0].id ? {
+                        ...bin,
+                        status: 15,
+                        fillLevel: 15
+                      } : bin
+                    ))
+                    
+                    console.log('✅ Bin status updated in frontend')
                   } else {
                     console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
                   }
@@ -374,10 +389,6 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
               
               // Suppress unused variable warning
               void startTime
-              
-              // MUHIM: Frontend'da quti rangini o'zgartirmaymiz!
-              // Backend tozalaydi va keyingi polling'da yangilanadi
-              console.log('⏳ Waiting for backend to update bin status...')
               
               console.log(`✅ ${vehicle.id} returning to patrol...`)
               
