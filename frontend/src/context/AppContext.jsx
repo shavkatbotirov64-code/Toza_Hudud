@@ -311,33 +311,67 @@ export const AppProvider = ({ children }) => {
                 ]
               ]
               
-              const transformedVehicles = vehiclesArray.map((vehicle, index) => {
+              // Backend'dan holat yuklash
+              const transformedVehicles = await Promise.all(vehiclesArray.map(async (vehicle, index) => {
                 try {
                   console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
                   const transformed = ApiService.transformVehicleData(vehicle)
                   
-                  // localStorage'dan saqlangan holatni olish
-                  const savedVehicles = JSON.parse(localStorage.getItem('vehiclesData') || '[]')
-                  const savedVehicle = savedVehicles.find(v => v.id === transformed.id)
-                  
-                  if (savedVehicle) {
-                    // Agar localStorage'da mavjud bo'lsa, holatni qayta tiklash
-                    console.log(`♻️ Vehicle ${transformed.id} holati qayta tiklanmoqda...`)
-                    transformed.position = savedVehicle.position || transformed.position
-                    transformed.patrolRoute = savedVehicle.patrolRoute || []
-                    transformed.patrolIndex = savedVehicle.patrolIndex || 0
-                    transformed.isPatrolling = savedVehicle.isPatrolling !== undefined ? savedVehicle.isPatrolling : true
-                    transformed.routePath = savedVehicle.routePath || null
-                    transformed.currentPathIndex = savedVehicle.currentPathIndex || 0
-                    transformed.cleaned = savedVehicle.cleaned || 0
-                    console.log(`✅ Vehicle ${transformed.id} holati qayta tiklandi`)
-                  } else {
-                    // Yangi mashina - default patrol marshrut berish
-                    const patrolIndex = index % patrolRoutes.length
-                    transformed.patrolWaypoints = patrolRoutes[patrolIndex]
-                    transformed.isPatrolling = true
-                    transformed.currentWaypointIndex = 0
-                    console.log(`✅ Vehicle ${index + 1} assigned patrol route ${patrolIndex + 1}`)
+                  // Backend'dan holatni olish
+                  try {
+                    const API_URL = import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'
+                    const stateResponse = await fetch(`${API_URL}/vehicles/${transformed.id}/status`)
+                    const stateData = await stateResponse.json()
+                    
+                    if (stateData.success && stateData.data) {
+                      console.log(`📥 Backend state loaded for ${transformed.id}:`, stateData.data)
+                      
+                      // Backend'dan kelgan holatni merge qilish
+                      transformed.position = [stateData.data.latitude, stateData.data.longitude]
+                      transformed.isPatrolling = stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : true
+                      transformed.hasCleanedOnce = stateData.data.hasCleanedOnce || false
+                      transformed.patrolIndex = stateData.data.patrolIndex || 0
+                      transformed.status = stateData.data.status || 'idle'
+                      
+                      if (stateData.data.patrolRoute) {
+                        transformed.patrolRoute = stateData.data.patrolRoute
+                      }
+                      if (stateData.data.currentRoute) {
+                        transformed.routePath = stateData.data.currentRoute
+                      }
+                      
+                      console.log(`✅ Vehicle ${transformed.id} state loaded from backend`)
+                    } else {
+                      console.log(`⚠️ No backend state for ${transformed.id}, using defaults`)
+                      // Default patrol marshrut berish
+                      const patrolIndex = index % patrolRoutes.length
+                      transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                      transformed.isPatrolling = true
+                      transformed.currentWaypointIndex = 0
+                    }
+                  } catch (stateError) {
+                    console.error(`❌ Failed to load state from backend for ${transformed.id}:`, stateError)
+                    
+                    // Fallback: localStorage'dan yuklash
+                    const savedVehicles = JSON.parse(localStorage.getItem('vehiclesData') || '[]')
+                    const savedVehicle = savedVehicles.find(v => v.id === transformed.id)
+                    
+                    if (savedVehicle) {
+                      console.log(`♻️ Fallback: Loading ${transformed.id} from localStorage`)
+                      transformed.position = savedVehicle.position || transformed.position
+                      transformed.patrolRoute = savedVehicle.patrolRoute || []
+                      transformed.patrolIndex = savedVehicle.patrolIndex || 0
+                      transformed.isPatrolling = savedVehicle.isPatrolling !== undefined ? savedVehicle.isPatrolling : true
+                      transformed.routePath = savedVehicle.routePath || null
+                      transformed.currentPathIndex = savedVehicle.currentPathIndex || 0
+                      transformed.cleaned = savedVehicle.cleaned || 0
+                    } else {
+                      // Default patrol marshrut berish
+                      const patrolIndex = index % patrolRoutes.length
+                      transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                      transformed.isPatrolling = true
+                      transformed.currentWaypointIndex = 0
+                    }
                   }
                   
                   return transformed
@@ -346,12 +380,13 @@ export const AppProvider = ({ children }) => {
                   console.error('❌ Vehicle data:', vehicle)
                   return null
                 }
-              }).filter(vehicle => vehicle !== null) // Remove failed transformations
+              }))
               
-              console.log('🚛 Transformed Vehicles:', transformedVehicles)
+              const validVehicles = transformedVehicles.filter(vehicle => vehicle !== null)
+              console.log('🚛 Transformed Vehicles:', validVehicles)
               
-              if (transformedVehicles.length > 0) {
-                setVehiclesData(transformedVehicles)
+              if (validVehicles.length > 0) {
+                setVehiclesData(validVehicles)
               } else {
                 console.warn('⚠️ No vehicles could be transformed')
               }
