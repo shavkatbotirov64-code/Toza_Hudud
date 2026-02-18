@@ -219,6 +219,11 @@ export class VehiclesService {
     licensePlate?: string;
     latitude: number;
     longitude: number;
+    status?: string;
+    isMoving?: boolean;
+    isPatrolling?: boolean;
+    hasCleanedOnce?: boolean;
+    patrolIndex?: number;
   }): Promise<Vehicle> {
     try {
       // Mavjudligini tekshirish
