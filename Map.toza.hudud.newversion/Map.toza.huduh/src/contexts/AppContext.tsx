@@ -77,6 +77,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   })
   const [binStatus, setBinStatus] = useState<'EMPTY' | 'FULL'>('EMPTY')
 
+  // Helper: Create route for vehicle to bin (like admin panel)
+  const createRouteForVehicle = async (vehicle: Vehicle, bin: Bin) => {
+    console.log(`🛣️ Creating route for ${vehicle.id} to ${bin.id}`)
+    
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${vehicle.position[1]},${vehicle.position[0]};${bin.location[1]},${bin.location[0]}?overview=full&geometries=geojson&continue_straight=true`
+      const response = await fetch(url)
+      const data = await response.json()
+      
+      let route: [number, number][] = [vehicle.position, bin.location]
+      
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const routeData = data.routes[0]
+        const coordinates = routeData.geometry.coordinates
+        route = coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number])
+        
+        console.log(`✅ Route found: ${(routeData.distance / 1000).toFixed(2)} km, ${(routeData.duration / 60).toFixed(1)} min`)
+      }
+      
+      // Update vehicle state
+      updateVehicleState(vehicle.id, {
+        isPatrolling: false,
+        routePath: route,
+        currentPathIndex: 0
+      })
+      
+      console.log(`✅ ${vehicle.id} dispatched to bin!`)
+    } catch (error) {
+      console.error('❌ Error creating route:', error)
+    }
+  }
+
   // Update vehicle state helper
   const updateVehicleState = (vehicleId: string, updates: Partial<Vehicle>) => {
     setVehiclesData(prev => prev.map(vehicle =>
@@ -262,6 +294,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
             } : bin
           ))
+          
+          // DISPATCH: Eng yaqin mashinani topish va yuborish (admin paneldagidek)
+          const fullBin = binsData.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
+          if (fullBin && vehiclesData.length > 0) {
+            console.log('🚛 Finding closest vehicle...')
+            
+            // Calculate distances
+            const distances = vehiclesData.map(vehicle => {
+              if (!vehicle.isPatrolling) return { vehicle, distance: Infinity }
+              
+              const R = 6371 // Earth radius in km
+              const dLat = (fullBin.location[0] - vehicle.position[0]) * Math.PI / 180
+              const dLon = (fullBin.location[1] - vehicle.position[1]) * Math.PI / 180
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(vehicle.position[0] * Math.PI / 180) * Math.cos(fullBin.location[0] * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2)
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+              const distance = R * c
+              
+              return { vehicle, distance }
+            })
+            
+            // Find closest
+            const closest = distances.reduce((min, curr) => 
+              curr.distance < min.distance ? curr : min
+            )
+            
+            if (closest.distance !== Infinity) {
+              console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+              createRouteForVehicle(closest.vehicle, fullBin)
+            }
+          }
         }
       }
       
@@ -291,7 +355,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       realtimeService.disconnect()
     }
-  }, [])
+  }, [binsData, vehiclesData]) // Dependencies: binsData va vehiclesData
 
   const value: AppContextType = {
     binsData,
