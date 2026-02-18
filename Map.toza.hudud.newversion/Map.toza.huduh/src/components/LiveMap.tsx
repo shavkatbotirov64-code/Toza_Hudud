@@ -248,32 +248,49 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
       
       console.log('🚛 Bin is FULL! Finding closest vehicle...')
       
-      // Backend'dan eng yaqin mashinani topish va yo'naltirish
-      console.log('📡 Calling dispatch backend...')
+      // Calculate distances for all patrolling vehicles (FRONTEND)
+      const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling)
+      console.log('🔍 Patrolling vehicles:', patrollingVehicles.map(v => v.id))
       
-      const dispatchResult = await api.dispatchVehicleToBin({
-        binId: binData.id,
-        binLocation: binData.location,
-        binAddress: binData.address,
-        vehicles: vehiclesData.map(v => ({
-          id: v.id,
-          driver: v.driver,
-          position: v.position,
-          isPatrolling: v.isPatrolling
-        }))
-      })
-      
-      if (!dispatchResult.success) {
-        console.error('❌ Dispatch failed:', dispatchResult.error)
+      if (patrollingVehicles.length === 0) {
+        console.log('❌ No patrolling vehicles available')
         return
       }
       
-      console.log('✅ Dispatch result:', dispatchResult.data)
+      const distances = patrollingVehicles.map(vehicle => ({
+        vehicle,
+        distance: calculateDistance(
+          vehicle.position[0],
+          vehicle.position[1],
+          binData.location[0],
+          binData.location[1]
+        )
+      }))
       
-      const { vehicleId, route, distance, estimatedTime } = dispatchResult.data
-      console.log(`📍 Route created with ${route.length} points`)
+      console.log('🔍 Distances:', distances.map(d => ({ id: d.vehicle.id, distance: d.distance.toFixed(2) })))
+      
+      // Find closest vehicle
+      const closest = distances.reduce((prev, curr) => 
+        curr.distance < prev.distance ? curr : prev
+      )
+      
+      console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+      console.log(`🚀 Dispatching ${closest.vehicle.id} to bin...`)
+      
+      // Get route from OSRM
+      const getRoute = async () => {
+        const result = await fetchRouteFromOSRM(
+          closest.vehicle.position[0],
+          closest.vehicle.position[1],
+          binData.location[0],
+          binData.location[1]
+        )
         
-        updateVehicleState(vehicleId, {
+        const route = result.success && result.path ? result.path : [closest.vehicle.position, binData.location]
+        
+        console.log(`📍 Route created with ${route.length} points`)
+        
+        updateVehicleState(closest.vehicle.id, {
           isPatrolling: false,
           routePath: route,
           currentPathIndex: 0
@@ -282,19 +299,19 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         // Create route
         const newRoute: Route = {
           id: `ROUTE-${Date.now()}`,
-          name: `${dispatchResult.data.vehicleDriver} → ${binData.address}`,
-          vehicle: vehicleId,
+          name: `${closest.vehicle.driver} → ${binData.address}`,
+          vehicle: closest.vehicle.id,
           bins: [binData.id],
           progress: 0,
-          distance: `${distance} km`,
-          estimatedTime: `${estimatedTime} min`,
+          distance: result.success ? `${result.distance} km` : 'Unknown',
+          estimatedTime: result.success ? `${result.duration} min` : 'Unknown',
           isActive: true,
           path: route
         }
         
         setRoutesData(prev => [...prev, newRoute])
         
-        console.log(`✅ ${vehicleId} dispatched successfully!`)
+        console.log(`✅ ${closest.vehicle.id} dispatched successfully!`)
       }
       
       getRoute()
