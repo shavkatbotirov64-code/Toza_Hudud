@@ -2,8 +2,8 @@ import { Controller, Get, Query, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AnalyticsService } from './analytics.service';
 
-@ApiTags('analytics')
-@Controller('analytics')
+@ApiTags('analytics', 'statistics')
+@Controller(['analytics', 'statistics'])
 export class AnalyticsController {
   private readonly logger = new Logger(AnalyticsController.name);
 
