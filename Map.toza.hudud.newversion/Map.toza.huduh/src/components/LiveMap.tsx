@@ -336,6 +336,23 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
                 ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
                 : 0
               
+              // ✨ Check if bin exists
+              if (!binsData || binsData.length === 0) {
+                console.error('❌ No bin data available for cleaning')
+                // Return to patrol anyway
+                updateVehicleState(vehicle.id, {
+                  isPatrolling: true,
+                  routePath: undefined,
+                  hasCleanedOnce: true,
+                  currentPathIndex: 0,
+                  patrolRoute: [],
+                  patrolIndex: 0,
+                  cleaned: (vehicle.cleaned || 0) + 1,
+                  status: 'moving'
+                })
+                return
+              }
+              
               // Create cleaning data
               const cleaningData = {
                 binId: binsData[0]._backendId || binsData[0].id, // Backend UUID ishlatish
