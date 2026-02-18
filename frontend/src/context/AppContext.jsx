@@ -528,36 +528,55 @@ export const AppProvider = ({ children }) => {
         
         // Eng yaqin mashinani topish va marshrut yaratish
         const fullBin = binsData.find(b => b.id === binId)
-        if (fullBin && vehiclesData.length > 0) {
-          // Har bir mashina uchun masofa hisoblash
-          const distances = vehiclesData.map(vehicle => {
-            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
+        if (fullBin) {
+          // MUHIM: setVehiclesData callback ishlatib real-time vehiclesData olish
+          setVehiclesData(currentVehicles => {
+            if (currentVehicles.length === 0) return currentVehicles
             
-            const lat1 = vehicle.position[0]
-            const lon1 = vehicle.position[1]
-            const lat2 = fullBin.location[0]
-            const lon2 = fullBin.location[1]
+            console.log('🔍 Current vehicles count:', currentVehicles.length)
             
-            const R = 6371 // Earth radius in km
-            const dLat = (lat2 - lat1) * Math.PI / 180
-            const dLon = (lon2 - lon1) * Math.PI / 180
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2)
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-            const distance = R * c
+            // Har bir mashina uchun masofa hisoblash
+            const distances = currentVehicles.map(vehicle => {
+              if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) {
+                console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasCleanedOnce=${vehicle.hasCleanedOnce}`)
+                return { vehicle, distance: Infinity }
+              }
+              
+              console.log(`📍 ${vehicle.id} current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+              
+              const lat1 = vehicle.position[0]
+              const lon1 = vehicle.position[1]
+              const lat2 = fullBin.location[0]
+              const lon2 = fullBin.location[1]
+              
+              const R = 6371 // Earth radius in km
+              const dLat = (lat2 - lat1) * Math.PI / 180
+              const dLon = (lon2 - lon1) * Math.PI / 180
+              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2)
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+              const distance = R * c
+              
+              return { vehicle, distance }
+            })
             
-            return { vehicle, distance }
+            // Eng yaqin mashinani tanlash
+            const closest = distances.reduce((min, curr) => 
+              curr.distance < min.distance ? curr : min
+            )
+            
+            if (closest.distance !== Infinity) {
+              console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+              console.log(`📍 Will start route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+              createRoute(closest.vehicle, fullBin)
+            } else {
+              console.log('❌ No available vehicles')
+            }
+            
+            return currentVehicles // State'ni o'zgartirmaslik
           })
-          
-          // Eng yaqin mashinani tanlash
-          const closest = distances.reduce((min, curr) => 
-            curr.distance < min.distance ? curr : min
-          )
-          
-          if (closest.distance !== Infinity) {
-            console.log(`🚛 Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-            createRoute(closest.vehicle, fullBin)
+        }
           }
         }
       } else if (status === 'EMPTY') {
