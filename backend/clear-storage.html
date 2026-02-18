@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Storage - Toza Hudud</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: #f9fafb;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button.success {
+            background: #10b981;
+        }
+        button.success:hover {
+            background: #059669;
+        }
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear Storage - Toza Hudud</h1>
+        <p>Bu sahifa localStorage'ni tozalash uchun. Har bir panel uchun alohida ochish kerak.</p>
+        
+        <div class="panel">
+            <h3>📋 Admin Panel</h3>
+            <p>URL: <a href="https://tozahududfrontend-production.up.railway.app" target="_blank">https://tozahududfrontend-production.up.railway.app</a></p>
+            <button onclick="clearAdminStorage()">🗑️ Clear Admin Storage</button>
+            <button onclick="openAdmin()" class="success">🚀 Open Admin Panel</button>
+            <div id="admin-status" class="status"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>🚛 Haydovchi Panel</h3>
+            <p>URL: <a href="https://map-production-d274.up.railway.app" target="_blank">https://map-production-d274.up.railway.app</a></p>
+            <button onclick="clearDriverStorage()">🗑️ Clear Driver Storage</button>
+            <button onclick="openDriver()" class="success">🚀 Open Haydovchi Panel</button>
+            <div id="driver-status" class="status"></div>
+        </div>
+        
+        <div class="panel">
+            <h3>⚠️ Ko'rsatmalar:</h3>
+            <ol>
+                <li>Avval "Clear Storage" tugmasini bosing</li>
+                <li>Keyin "Open Panel" tugmasini bosing</li>
+                <li>Yangi tab ochiladi - Ctrl+Shift+R bosing (hard refresh)</li>
+                <li>Mashinalar quti yonida ko'rinadi</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function clearAdminStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            const status = document.getElementById('admin-status');
+            status.className = 'status show success';
+            status.textContent = '✅ Admin Panel storage cleared! Endi "Open Admin Panel" bosing.';
+        }
+        
+        function clearDriverStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            const status = document.getElementById('driver-status');
+            status.className = 'status show success';
+            status.textContent = '✅ Haydovchi Panel storage cleared! Endi "Open Haydovchi Panel" bosing.';
+        }
+        
+        function openAdmin() {
+            window.open('https://tozahududfrontend-production.up.railway.app', '_blank');
+            const status = document.getElementById('admin-status');
+            status.className = 'status show info';
+            status.textContent = '📝 Yangi tab ochildi. Ctrl+Shift+R bosing!';
+        }
+        
+        function openDriver() {
+            window.open('https://map-production-d274.up.railway.app', '_blank');
+            const status = document.getElementById('driver-status');
+            status.className = 'status show info';
+            status.textContent = '📝 Yangi tab ochildi. Ctrl+Shift+R bosing!';
+        }
+    </script>
+</body>
+</html>

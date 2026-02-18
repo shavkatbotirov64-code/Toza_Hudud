@@ -240,44 +240,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
         
-        // Load vehicles
+        // Load vehicles - ALWAYS update positions from backend
         const vehiclesResult = await api.getVehicles()
         if (vehiclesResult.success && vehiclesResult.data) {
           let vehiclesArray = Array.isArray(vehiclesResult.data) ? vehiclesResult.data : vehiclesResult.data.data || []
           
-          // Only update if vehicle count changed (new vehicles added/removed)
-          if (vehiclesArray.length !== vehiclesData.length) {
-            const transformedVehicles: Vehicle[] = await Promise.all(vehiclesArray.map(async (vehicle: any, index: number) => {
-              const vehicleId = vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`
+          // ✅ ALWAYS update - load fresh positions from backend
+          const transformedVehicles: Vehicle[] = await Promise.all(vehiclesArray.map(async (vehicle: any, index: number) => {
+            const vehicleId = vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`
+            
+            // Check if vehicle exists in localStorage
+            const existingVehicle = vehiclesData.find(v => v.id === vehicleId)
+            
+            if (existingVehicle) {
+              // ✅ ALWAYS load position from backend
+              console.log(`🔄 Updating vehicle ${existingVehicle.id} from backend`)
               
-              // Check if vehicle exists in localStorage
-              const existingVehicle = vehiclesData.find(v => v.id === vehicleId)
-              
-              if (existingVehicle) {
-                // ✅ ALWAYS load position from backend, but keep other state from localStorage
-                console.log(`🔄 Merging vehicle ${existingVehicle.id}: backend position + localStorage state`)
-                
-                // Try to get fresh position from backend
-                try {
-                  const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
-                  const stateResponse = await fetch(`${API_URL}/vehicles/${vehicleId}/status`)
-                  const stateData = await stateResponse.json()
-                  
-                  if (stateData.success && stateData.data) {
-                    console.log(`📥 Backend position for ${vehicleId}: [${stateData.data.latitude}, ${stateData.data.longitude}]`)
-                    
-                    // Use backend position, keep localStorage state
-                    return {
-                      ...existingVehicle,
-                      driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
-                      phone: vehicle.phone || existingVehicle.phone,
-                      cleaned: vehicle.totalCleanings || existingVehicle.cleaned,
-                      position: [parseFloat(stateData.data.latitude), parseFloat(stateData.data.longitude)] as [number, number],
-                      isPatrolling: stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : existingVehicle.isPatrolling,
-                      hasCleanedOnce: stateData.data.hasCleanedOnce !== undefined ? stateData.data.hasCleanedOnce : existingVehicle.hasCleanedOnce,
-                      patrolIndex: stateData.data.patrolIndex !== undefined ? stateData.data.patrolIndex : existingVehicle.patrolIndex,
-                      status: stateData.data.status || existingVehicle.status
-                    }
+              // Use backend position directly
+              return {
+                ...existingVehicle,
+                driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
+                phone: vehicle.phone || existingVehicle.phone,
+                cleaned: vehicle.totalCleanings || existingVehicle.cleaned,
+                position: [parseFloat(vehicle.latitude), parseFloat(vehicle.longitude)] as [number, number],
+                isPatrolling: vehicle.isPatrolling !== undefined ? vehicle.isPatrolling : existingVehicle.isPatrolling,
+                hasCleanedOnce: vehicle.hasCleanedOnce !== undefined ? vehicle.hasCleanedOnce : existingVehicle.hasCleanedOnce,
+                patrolIndex: vehicle.patrolIndex !== undefined ? vehicle.patrolIndex : existingVehicle.patrolIndex,
+                status: vehicle.status || existingVehicle.status
+              }
                   }
                 } catch (err) {
                   console.error(`❌ Failed to load backend position for ${vehicleId}:`, err)
@@ -290,75 +280,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   phone: vehicle.phone || existingVehicle.phone,
                   cleaned: vehicle.totalCleanings || existingVehicle.cleaned
                 }
-              } else {
-                // New vehicle - try to load from backend first
-                try {
-                  const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
-                  const stateResponse = await fetch(`${API_URL}/vehicles/${vehicleId}/status`)
-                  const stateData = await stateResponse.json()
-                  
-                  if (stateData.success && stateData.data) {
-                    console.log(`📥 Backend state loaded for ${vehicleId}:`, stateData.data)
-                    
-                    return {
-                      id: vehicleId,
-                      driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
-                      phone: vehicle.phone || '+998 90 123 45 67',
-                      status: stateData.data.status || 'moving',
-                      location: vehicle.location || 'Samarqand',
-                      position: [stateData.data.latitude, stateData.data.longitude] as [number, number],
-                      cleaned: vehicle.totalCleanings || 0,
-                      isMoving: true,
-                      isPatrolling: stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : true,
-                      routePath: stateData.data.currentRoute || undefined,
-                      patrolRoute: stateData.data.patrolRoute || [],
-                      patrolIndex: stateData.data.patrolIndex || 0,
-                      currentPathIndex: 0,
-                      patrolWaypoints: stateData.data.patrolRoute || [],
-                      hasCleanedOnce: stateData.data.hasCleanedOnce || false
-                    }
-                  }
-                } catch (stateError) {
-                  console.error(`❌ Failed to load state from backend for ${vehicleId}:`, stateError)
-                }
-                
-                // Fallback: create fresh state
-                const basePos: [number, number] = [39.6542, 66.9597]
-                const patrolWaypoints: [number, number][] = [
-                  [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02],
-                  [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02],
-                  [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02],
-                  [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02]
-                ]
-                
-                return {
-                  id: vehicleId,
-                  driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
-                  phone: vehicle.phone || '+998 90 123 45 67',
-                  status: vehicle.status || 'moving',
-                  location: vehicle.location || 'Samarqand',
-                  position: (vehicle.currentLatitude && vehicle.currentLongitude 
-                    ? [parseFloat(vehicle.currentLatitude), parseFloat(vehicle.currentLongitude)]
-                    : patrolWaypoints[0]) as [number, number],
-                  cleaned: vehicle.totalCleanings || 0,
-                  isMoving: true,
-                  isPatrolling: true,
-                  routePath: undefined,
-                  patrolRoute: [],
-                  patrolIndex: 0,
-                  currentPathIndex: 0,
-                  patrolWaypoints: patrolWaypoints,
-                  hasCleanedOnce: false
-                }
+            } else {
+              // New vehicle - load from backend
+              console.log(`➕ New vehicle ${vehicleId} - loading from backend`)
+              
+              return {
+                id: vehicleId,
+                driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
+                phone: vehicle.phone || '+998 90 123 45 67',
+                status: vehicle.status || 'moving',
+                location: vehicle.location || 'Samarqand',
+                position: [parseFloat(vehicle.latitude), parseFloat(vehicle.longitude)] as [number, number],
+                cleaned: vehicle.totalCleanings || 0,
+                isMoving: true,
+                isPatrolling: vehicle.isPatrolling !== undefined ? vehicle.isPatrolling : true,
+                routePath: undefined,
+                patrolRoute: [],
+                patrolIndex: vehicle.patrolIndex || 0,
+                currentPathIndex: 0,
+                patrolWaypoints: [],
+                hasCleanedOnce: vehicle.hasCleanedOnce || false
               }
-            }))
-            
-            console.log('✅ Vehicles loaded:', transformedVehicles.length)
-            console.log('🚛 Vehicles data:', JSON.stringify(transformedVehicles, null, 2))
-            setVehiclesData(transformedVehicles)
-          } else {
-            console.log('⏭️ Vehicles count unchanged, skipping update to preserve state')
-          }
+            }
+          }))
+          
+          console.log('✅ Vehicles loaded:', transformedVehicles.length)
+          console.log('🚛 Vehicles data:', JSON.stringify(transformedVehicles, null, 2))
+          setVehiclesData(transformedVehicles)
         }
       } catch (error) {
         console.error('❌ Error loading data:', error)

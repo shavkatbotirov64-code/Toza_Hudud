@@ -1,0 +1,50 @@
+🔧 MASHINALARNI QAYTA YUKLASH - KO'RSATMALAR
+
+Backend'da mashinalar yangilandi. Endi frontend'da localStorage'ni tozalash kerak.
+
+═══════════════════════════════════════════════════════════════
+
+📋 ADMIN PANEL (Frontend):
+URL: https://tozahududfrontend-production.up.railway.app
+
+1. Panelni oching
+2. F12 bosing (Developer Tools)
+3. Console tab'ini tanlang
+4. Quyidagi kodni yozing va Enter bosing:
+
+   localStorage.clear(); location.reload(true);
+
+5. Sahifa qayta yuklanadi va mashinalar backend'dan yuklanadi
+
+═══════════════════════════════════════════════════════════════
+
+🚛 HAYDOVCHI PANEL (Map):
+URL: https://map-production-d274.up.railway.app
+
+1. Panelni oching
+2. F12 bosing (Developer Tools)
+3. Console tab'ini tanlang
+4. Quyidagi kodni yozing va Enter bosing:
+
+   localStorage.clear(); location.reload(true);
+
+5. Sahifa qayta yuklanadi va mashinalar backend'dan yuklanadi
+
+═══════════════════════════════════════════════════════════════
+
+✅ NATIJA:
+- Ikkala panelda ham mashinalar quti yonida ko'rinadi
+- VEH-001: [39.6762637, 66.9717814] (qutidan 200m janubi-sharqda)
+- VEH-002: [39.6722637, 66.9757814] (qutidan 200m shimoli-g'arbda)
+- Mashinalar avtomatik patrol qila boshlaydi (quti atrofida 500m radiusda)
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ MUHIM:
+Agar mashinalar hali ham harakatlanmasa:
+1. Browser'ni to'liq yoping
+2. Qayta oching
+3. Panelni oching
+4. Ctrl+Shift+R bosing (hard refresh)
+
+═══════════════════════════════════════════════════════════════
