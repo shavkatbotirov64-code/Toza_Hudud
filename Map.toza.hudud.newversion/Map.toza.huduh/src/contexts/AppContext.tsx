@@ -246,7 +246,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           let vehiclesArray = Array.isArray(vehiclesResult.data) ? vehiclesResult.data : vehiclesResult.data.data || []
           
           // ✅ ALWAYS update - load fresh positions from backend
-          const transformedVehicles: Vehicle[] = await Promise.all(vehiclesArray.map(async (vehicle: any, index: number) => {
+          const transformedVehicles: Vehicle[] = vehiclesArray.map((vehicle: any, index: number) => {
             const vehicleId = vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`
             
             // Check if vehicle exists in localStorage
@@ -254,7 +254,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             
             if (existingVehicle) {
               // ✅ ALWAYS load position from backend
-              console.log(`🔄 Updating vehicle ${existingVehicle.id} from backend`)
+              console.log(`🔄 Updating vehicle ${vehicleId} from backend`)
+              console.log(`   Backend position: [${vehicle.latitude}, ${vehicle.longitude}]`)
+              console.log(`   Old position: [${existingVehicle.position[0]}, ${existingVehicle.position[1]}]`)
               
               // Use backend position directly
               return {
@@ -263,26 +265,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 phone: vehicle.phone || existingVehicle.phone,
                 cleaned: vehicle.totalCleanings || existingVehicle.cleaned,
                 position: [parseFloat(vehicle.latitude), parseFloat(vehicle.longitude)] as [number, number],
-                isPatrolling: vehicle.isPatrolling !== undefined ? vehicle.isPatrolling : existingVehicle.isPatrolling,
-                hasCleanedOnce: vehicle.hasCleanedOnce !== undefined ? vehicle.hasCleanedOnce : existingVehicle.hasCleanedOnce,
-                patrolIndex: vehicle.patrolIndex !== undefined ? vehicle.patrolIndex : existingVehicle.patrolIndex,
-                status: vehicle.status || existingVehicle.status
+                // ✅ FORCE isPatrolling to true if no routePath (not going to bin)
+                isPatrolling: vehicle.isPatrolling !== undefined ? vehicle.isPatrolling : true,
+                hasCleanedOnce: vehicle.hasCleanedOnce !== undefined ? vehicle.hasCleanedOnce : false,
+                patrolIndex: vehicle.patrolIndex !== undefined ? vehicle.patrolIndex : 0,
+                status: 'moving', // ✅ FORCE status to moving
+                // ✅ Reset patrol route to empty so it gets rebuilt
+                patrolRoute: [],
+                routePath: undefined,
+                // ✅ Generate patrol waypoints if empty
+                patrolWaypoints: existingVehicle.patrolWaypoints && existingVehicle.patrolWaypoints.length > 0 
+                  ? existingVehicle.patrolWaypoints 
+                  : (() => {
+                      const binLocation = binsData.length > 0 ? binsData[0].location : [39.6742637, 66.9737814]
+                      const MAX_DISTANCE = 0.005
+                      const waypoints: [number, number][] = []
+                      for (let i = 0; i < 4; i++) {
+                        const randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                        const randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                        waypoints.push([randomLat, randomLon])
+                      }
+                      console.log(`   Generated ${waypoints.length} patrol waypoints for ${vehicleId}`)
+                      return waypoints
+                    })()
               }
-                  }
-                } catch (err) {
-                  console.error(`❌ Failed to load backend position for ${vehicleId}:`, err)
-                }
-                
-                // Fallback: use localStorage
-                return {
-                  ...existingVehicle,
-                  driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
-                  phone: vehicle.phone || existingVehicle.phone,
-                  cleaned: vehicle.totalCleanings || existingVehicle.cleaned
-                }
             } else {
               // New vehicle - load from backend
               console.log(`➕ New vehicle ${vehicleId} - loading from backend`)
+              console.log(`   Position: [${vehicle.latitude}, ${vehicle.longitude}]`)
+              
+              // ✅ Generate random patrol waypoints (4 points around bin)
+              const binLocation = binsData.length > 0 ? binsData[0].location : [39.6742637, 66.9737814]
+              const MAX_DISTANCE = 0.005 // ~500m
+              
+              const patrolWaypoints: [number, number][] = []
+              for (let i = 0; i < 4; i++) {
+                const randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                const randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                patrolWaypoints.push([randomLat, randomLon])
+              }
+              
+              console.log(`   Generated ${patrolWaypoints.length} patrol waypoints`)
               
               return {
                 id: vehicleId,
@@ -298,11 +321,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 patrolRoute: [],
                 patrolIndex: vehicle.patrolIndex || 0,
                 currentPathIndex: 0,
-                patrolWaypoints: [],
+                patrolWaypoints: patrolWaypoints,
                 hasCleanedOnce: vehicle.hasCleanedOnce || false
               }
             }
-          }))
+          })
           
           console.log('✅ Vehicles loaded:', transformedVehicles.length)
           console.log('🚛 Vehicles data:', JSON.stringify(transformedVehicles, null, 2))

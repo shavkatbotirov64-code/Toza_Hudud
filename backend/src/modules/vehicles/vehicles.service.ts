@@ -235,8 +235,11 @@ export class VehiclesService {
         driver: data.driver,
         latitude: data.latitude,
         longitude: data.longitude,
-        status: 'idle',
-        isMoving: false,
+        status: data.status || 'moving',
+        isMoving: data.isMoving !== undefined ? data.isMoving : true,
+        isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : true,
+        hasCleanedOnce: data.hasCleanedOnce || false,
+        patrolIndex: data.patrolIndex || 0,
       });
 
       const saved = await this.vehicleRepository.save(vehicle);

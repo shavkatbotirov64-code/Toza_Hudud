@@ -1,0 +1,61 @@
+🔧 HAYDOVCHI PANELNI TUZATISH
+==============================
+
+MUAMMO: Mashinalar qotib qolgan (harakatlanmayapti)
+
+SABAB:
+1. Backend'da VEH-001 status: idle edi (moving bo'lishi kerak)
+2. localStorage'da eski ma'lumotlar saqlanib qolgan
+3. VEH-002 hasCleanedOnce: true edi (false bo'lishi kerak)
+
+YECHIM:
+✅ Backend tuzatildi va deploy qilindi
+✅ Mashinalar qayta yaratildi (isPatrolling: true)
+⏳ Backend deploy bo'lmoqda (3-5 daqiqa)
+
+📋 QADAMLAR (Backend deploy bo'lgandan keyin):
+
+1️⃣ Backend deploy tugashini kutish:
+   - 3-5 daqiqa kuting
+   - Yoki backend loglarini kuzating: cd backend && railway logs
+
+2️⃣ Mashinalarni qayta yaratish:
+   cd backend
+   node reset-everything.js
+
+3️⃣ Haydovchi panelda localStorage tozalash:
+   - Brauzerda haydovchi panelni oching
+   - F12 bosing (Developer Tools)
+   - Console tabiga o'ting
+   - Quyidagi buyruqni kiriting:
+   
+     localStorage.clear(); location.reload(true);
+
+4️⃣ Admin panelda ham localStorage tozalash:
+   - Brauzerda admin panelni oching
+   - F12 bosing
+   - Console'ga kiriting:
+   
+     localStorage.clear(); location.reload(true);
+
+✅ KUTILAYOTGAN NATIJA:
+   - VEH-001: isPatrolling: true, status: moving
+   - VEH-002: isPatrolling: true, status: moving
+   - Ikkala mashina ham quti atrofida 500m radiusda patrol qiladi
+   - Console'da "🔄 VEH-001: Extending patrol route..." loglarini ko'rasiz
+
+🔍 TEKSHIRISH:
+   Console'da quyidagi loglar bo'lishi kerak:
+   ✅ "🔄 Updating vehicle VEH-001 from backend"
+   ✅ "isPatrolling: true"
+   ✅ "status: moving"
+   ✅ "🔄 VEH-001: Extending patrol route..."
+   ✅ "📍 Bin location: [39.6742637, 66.9737814]"
+
+⚠️ AGAR ISHLAMASA:
+   1. Backend loglarini tekshiring: cd backend && railway logs
+   2. Mashinalar holatini tekshiring: cd backend && node check-vehicles.js
+   3. Agar status hali ham idle bo'lsa, backend deploy tugashini kuting
+
+📞 YORDAM:
+   Backend deploy holati: https://railway.com/project/e0ee489f-1abf-4ca2-8a38-9eb343401483
