@@ -177,10 +177,22 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             extendRoute()
           } else {
             // Move to next point
+            const newPosition = vehicle.patrolRoute![nextIndex]
             updateVehicleState(vehicle.id, {
-              position: vehicle.patrolRoute![nextIndex],
+              position: newPosition,
               patrolIndex: nextIndex
             })
+            
+            // Backend'ga pozitsiyani saqlash (admin paneldagidek)
+            const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+            fetch(`${API_URL}/vehicles/${vehicle.id}/location`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                latitude: newPosition[0],
+                longitude: newPosition[1]
+              })
+            }).catch(err => console.error(`Failed to save position for ${vehicle.id}:`, err))
           }
         }, 2500) // 2.5 seconds per point
       }
@@ -304,10 +316,22 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             }, 3000) // 3 seconds cleaning time
           } else {
             // Move to next point
+            const newPosition = vehicle.routePath![nextIndex]
             updateVehicleState(vehicle.id, {
-              position: vehicle.routePath![nextIndex],
+              position: newPosition,
               currentPathIndex: nextIndex
             })
+            
+            // Backend'ga pozitsiyani saqlash (admin paneldagidek)
+            const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+            fetch(`${API_URL}/vehicles/${vehicle.id}/location`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                latitude: newPosition[0],
+                longitude: newPosition[1]
+              })
+            }).catch(err => console.error(`Failed to save position for ${vehicle.id}:`, err))
             
             // Update route progress
             const progress = Math.round((nextIndex / vehicle.routePath!.length) * 100)

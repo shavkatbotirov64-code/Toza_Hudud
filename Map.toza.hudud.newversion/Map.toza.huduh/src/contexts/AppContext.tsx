@@ -62,12 +62,12 @@ export const useAppContext = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [binsData, setBinsData] = useState<Bin[]>([])
   const [vehiclesData, setVehiclesData] = useState<Vehicle[]>(() => {
-    // Load from localStorage on init - ALOHIDA KEY ishlatamiz
+    // Load from localStorage on init - ADMIN PANEL BILAN BIR XIL KEY
     try {
-      const saved = localStorage.getItem('newMapVehiclesData') // YANGI KEY
+      const saved = localStorage.getItem('vehiclesData') // ADMIN PANEL BILAN BIR XIL
       if (saved) {
         const parsed = JSON.parse(saved)
-        console.log('🚛 Vehicles loaded from localStorage (NEW MAP):', parsed.length)
+        console.log('🚛 Vehicles loaded from localStorage:', parsed.length)
         return parsed
       }
     } catch (error) {
@@ -114,14 +114,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVehiclesData(prev => prev.map(vehicle =>
       vehicle.id === vehicleId ? { ...vehicle, ...updates } : vehicle
     ))
+    
+    // Backend'ga ham yuborish (admin paneldagidek)
+    if (updates.isPatrolling !== undefined || updates.hasCleanedOnce !== undefined || 
+        updates.patrolIndex !== undefined || updates.status !== undefined) {
+      const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+      fetch(`${API_URL}/vehicles/${vehicleId}/state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPatrolling: updates.isPatrolling,
+          hasCleanedOnce: updates.hasCleanedOnce,
+          patrolIndex: updates.patrolIndex,
+          status: updates.status,
+          patrolRoute: updates.patrolRoute,
+          currentRoute: updates.routePath
+        })
+      }).catch(err => console.error('Failed to sync state:', err))
+    }
   }
 
-  // Save vehicles to localStorage whenever they change - ALOHIDA KEY
+  // Save vehicles to localStorage whenever they change - ADMIN PANEL BILAN BIR XIL KEY
   useEffect(() => {
     if (vehiclesData.length > 0) {
       try {
-        localStorage.setItem('newMapVehiclesData', JSON.stringify(vehiclesData)) // YANGI KEY
-        console.log('💾 Vehicles saved to localStorage (NEW MAP):', vehiclesData.length)
+        localStorage.setItem('vehiclesData', JSON.stringify(vehiclesData)) // ADMIN PANEL BILAN BIR XIL
+        console.log('💾 Vehicles saved to localStorage:', vehiclesData.length)
       } catch (error) {
         console.error('❌ Error saving to localStorage:', error)
       }
@@ -230,13 +248,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           
           // Only update if vehicle count changed (new vehicles added/removed)
           if (vehiclesArray.length !== vehiclesData.length) {
-            const transformedVehicles: Vehicle[] = vehiclesArray.map((vehicle: any, index: number) => {
+            const transformedVehicles: Vehicle[] = await Promise.all(vehiclesArray.map(async (vehicle: any, index: number) => {
+              const vehicleId = vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`
+              
               // Check if vehicle exists in localStorage
-              const existingVehicle = vehiclesData.find(v => v.id === (vehicle.code || vehicle.vehicleId || `VEH-${String(index + 1).padStart(3, '0')}`))
+              const existingVehicle = vehiclesData.find(v => v.id === vehicleId)
               
               if (existingVehicle) {
                 // Merge with existing state (preserve position, patrol state, etc.)
-                console.log(`🔄 Merging vehicle ${existingVehicle.id} with localStorage state (NEW MAP)`)
+                console.log(`🔄 Merging vehicle ${existingVehicle.id} with localStorage state`)
                 return {
                   ...existingVehicle,
                   driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
@@ -244,8 +264,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   cleaned: vehicle.totalCleanings || existingVehicle.cleaned
                 }
               } else {
-                // New vehicle - create fresh state with UNIQUE ID for new map
-                const vehicleId = `NEWMAP-VEH-${String(index + 1).padStart(3, '0')}` // ALOHIDA ID
+                // New vehicle - try to load from backend first
+                try {
+                  const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+                  const stateResponse = await fetch(`${API_URL}/vehicles/${vehicleId}/status`)
+                  const stateData = await stateResponse.json()
+                  
+                  if (stateData.success && stateData.data) {
+                    console.log(`📥 Backend state loaded for ${vehicleId}:`, stateData.data)
+                    
+                    return {
+                      id: vehicleId,
+                      driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
+                      phone: vehicle.phone || '+998 90 123 45 67',
+                      status: stateData.data.status || 'moving',
+                      location: vehicle.location || 'Samarqand',
+                      position: [stateData.data.latitude, stateData.data.longitude] as [number, number],
+                      cleaned: vehicle.totalCleanings || 0,
+                      isMoving: true,
+                      isPatrolling: stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : true,
+                      routePath: stateData.data.currentRoute || undefined,
+                      patrolRoute: stateData.data.patrolRoute || [],
+                      patrolIndex: stateData.data.patrolIndex || 0,
+                      currentPathIndex: 0,
+                      patrolWaypoints: stateData.data.patrolRoute || [],
+                      hasCleanedOnce: stateData.data.hasCleanedOnce || false
+                    }
+                  }
+                } catch (stateError) {
+                  console.error(`❌ Failed to load state from backend for ${vehicleId}:`, stateError)
+                }
+                
+                // Fallback: create fresh state
                 const basePos: [number, number] = [39.6542, 66.9597]
                 const patrolWaypoints: [number, number][] = [
                   [basePos[0] + (Math.random() - 0.5) * 0.02, basePos[1] + (Math.random() - 0.5) * 0.02],
@@ -255,8 +305,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 ]
                 
                 return {
-                  id: vehicleId, // ALOHIDA ID
-                  driver: vehicle.driverName || vehicle.driver || `New Map Driver ${index + 1}`,
+                  id: vehicleId,
+                  driver: vehicle.driverName || vehicle.driver || `Driver ${index + 1}`,
                   phone: vehicle.phone || '+998 90 123 45 67',
                   status: vehicle.status || 'moving',
                   location: vehicle.location || 'Samarqand',
@@ -274,7 +324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   hasCleanedOnce: false
                 }
               }
-            })
+            }))
             
             console.log('✅ Vehicles loaded:', transformedVehicles.length)
             console.log('🚛 Vehicles data:', JSON.stringify(transformedVehicles, null, 2))
