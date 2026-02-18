@@ -28,6 +28,11 @@ export class CleaningsService {
     durationMinutes?: number;
     notes?: string;
     status?: string;
+    // ✨ YANGI: Marshrut ma'lumotlari
+    routePath?: any;
+    startTime?: Date;
+    endTime?: Date;
+    averageSpeed?: number;
   }): Promise<Cleaning> {
     try {
       const cleaning = this.cleaningRepository.create({
@@ -41,10 +46,27 @@ export class CleaningsService {
         durationMinutes: data.durationMinutes,
         notes: data.notes,
         status: data.status || 'completed',
+        // ✨ YANGI: Marshrut ma'lumotlari
+        routePath: data.routePath,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        averageSpeed: data.averageSpeed,
       });
 
       const saved = await this.cleaningRepository.save(cleaning);
       this.logger.log(`🧹 Cleaning record created: ${saved.binId} by ${saved.vehicleId}`);
+      
+      // Log marshrut ma'lumotlari
+      if (data.routePath) {
+        this.logger.log(`📍 Route path saved: ${data.routePath.length} points`);
+      }
+      if (data.startTime && data.endTime) {
+        const duration = (data.endTime.getTime() - data.startTime.getTime()) / 1000 / 60;
+        this.logger.log(`⏱️ Duration: ${duration.toFixed(1)} minutes`);
+      }
+      if (data.averageSpeed) {
+        this.logger.log(`🚗 Average speed: ${data.averageSpeed} km/h`);
+      }
       
       // 🗑️ Qutini tozalash - fillLevel'ni 15 ga o'zgartirish
       try {

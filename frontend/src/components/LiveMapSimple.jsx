@@ -462,6 +462,17 @@ const LiveMapSimple = () => {
             console.log('🧹 Tozalash boshlandi!')
             console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             
+            // ✨ Calculate average speed (km/h)
+            const distanceTraveled = calculateDistance(
+              vehicleState.routePath[0][0],
+              vehicleState.routePath[0][1],
+              binData.location[0],
+              binData.location[1]
+            )
+            const averageSpeed = durationMinutes > 0 
+              ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
+              : 0
+            
             const cleaningData = {
               binId: binData.id,
               vehicleId: vehicleState.id,
@@ -469,16 +480,20 @@ const LiveMapSimple = () => {
               binLocation: binData.address,
               fillLevelBefore: 95,
               fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                vehicleState.routePath[0][0],
-                vehicleState.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
+              distanceTraveled: distanceTraveled,
               durationMinutes: durationMinutes,
               notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
-              status: 'completed'
+              status: 'completed',
+              // ✨ YANGI: Marshrut ma'lumotlari
+              routePath: vehicleState.routePath, // To'liq marshrut nuqtalari
+              startTime: new Date(startTime), // Yo'lga chiqqan vaqt
+              endTime: new Date(), // Yetib kelgan vaqt
+              averageSpeed: averageSpeed // O'rtacha tezlik
             }
+            
+            console.log('📍 Route:', vehicleState.routePath?.length, 'points')
+            console.log('⏱️ Duration:', durationMinutes, 'min')
+            console.log('🚗 Average speed:', averageSpeed, 'km/h')
             
             api.createCleaning(cleaningData)
               .then(result => {
@@ -585,6 +600,17 @@ const LiveMapSimple = () => {
             console.log('🧹 Tozalash boshlandi!')
             console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
             
+            // ✨ Calculate average speed (km/h)
+            const distanceTraveled = calculateDistance(
+              vehicle2State.routePath[0][0],
+              vehicle2State.routePath[0][1],
+              binData.location[0],
+              binData.location[1]
+            )
+            const averageSpeed = durationMinutes > 0 
+              ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
+              : 0
+            
             const cleaningData = {
               binId: binData.id,
               vehicleId: vehicle2State.id,
@@ -592,16 +618,20 @@ const LiveMapSimple = () => {
               binLocation: binData.address,
               fillLevelBefore: 95,
               fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                vehicle2State.routePath[0][0],
-                vehicle2State.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
+              distanceTraveled: distanceTraveled,
               durationMinutes: durationMinutes,
               notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
-              status: 'completed'
+              status: 'completed',
+              // ✨ YANGI: Marshrut ma'lumotlari
+              routePath: vehicle2State.routePath, // To'liq marshrut nuqtalari
+              startTime: new Date(startTime), // Yo'lga chiqqan vaqt
+              endTime: new Date(), // Yetib kelgan vaqt
+              averageSpeed: averageSpeed // O'rtacha tezlik
             }
+            
+            console.log('📍 Route:', vehicle2State.routePath?.length, 'points')
+            console.log('⏱️ Duration:', durationMinutes, 'min')
+            console.log('🚗 Average speed:', averageSpeed, 'km/h')
             
             api.createCleaning(cleaningData)
               .then(result => {

@@ -35,6 +35,19 @@ export class Cleaning {
   @Column({ type: 'varchar', length: 20, default: 'completed' })
   status: string; // 'completed', 'partial', 'failed'
 
+  // ✨ YANGI: Marshrut ma'lumotlari
+  @Column({ type: 'jsonb', nullable: true })
+  routePath: any; // Marshrut nuqtalari [[lat, lon], [lat, lon], ...]
+
+  @Column({ type: 'timestamp', nullable: true })
+  startTime: Date; // Tozalash boshlangan vaqt (qutiga yo'l olgan vaqt)
+
+  @Column({ type: 'timestamp', nullable: true })
+  endTime: Date; // Tozalash tugagan vaqt
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  averageSpeed: number; // O'rtacha tezlik (km/h)
+
   @CreateDateColumn()
   cleanedAt: Date; // Tozalash vaqti
 }

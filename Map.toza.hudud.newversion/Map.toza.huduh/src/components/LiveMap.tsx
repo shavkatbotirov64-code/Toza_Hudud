@@ -246,6 +246,11 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
               const endTime = Date.now()
               const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
               
+              // ✨ Calculate average speed (km/h)
+              const averageSpeed = durationMinutes > 0 
+                ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
+                : 0
+              
               // Create cleaning data
               const cleaningData = {
                 binId: binsData[0]._backendId || binsData[0].id, // Backend UUID ishlatish
@@ -257,10 +262,18 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
                 distanceTraveled: distanceTraveled,
                 durationMinutes: durationMinutes,
                 notes: `Avtomatik tozalash (ESP32 signali) - ${vehicle.id}`,
-                status: 'completed'
+                status: 'completed',
+                // ✨ YANGI: Marshrut ma'lumotlari
+                routePath: vehicle.routePath, // To'liq marshrut nuqtalari
+                startTime: new Date(startTime), // Yo'lga chiqqan vaqt
+                endTime: new Date(endTime), // Yetib kelgan vaqt
+                averageSpeed: averageSpeed // O'rtacha tezlik
               }
               
               console.log('📤 Sending cleaning data to backend:', cleaningData)
+              console.log(`📍 Route: ${vehicle.routePath?.length} points`)
+              console.log(`⏱️ Duration: ${durationMinutes} min`)
+              console.log(`🚗 Average speed: ${averageSpeed} km/h`)
               
               // Call backend API to create cleaning record
               console.log('📤 Calling backend to create cleaning and update bin...')
