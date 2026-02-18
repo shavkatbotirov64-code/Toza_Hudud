@@ -93,14 +93,8 @@ const LiveMapSimple = () => {
         // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
         const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
         
-        // Nuqtalarni simplify qilish - har 3-nuqtadan bittasini olish (aniqroq)
-        // Bu mashinani ko'chalar bo'ylab aniqroq harakatlantiradi
-        const simplifiedCoordinates = leafletCoordinates.filter((coord, index) => {
-          // Birinchi va oxirgi nuqtalarni doim qoldirish
-          if (index === 0 || index === leafletCoordinates.length - 1) return true
-          // Har 3-nuqtadan bittasini olish (5 o'rniga 3 - aniqroq)
-          return index % 3 === 0
-        })
+        // OSRM'dan kelgan barcha nuqtalarni ishlatish - eng aniq yo'l
+        // Simplify qilmaslik - mashinalar ko'chalar bo'ylab aniq yurishadi
         
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
@@ -108,12 +102,11 @@ const LiveMapSimple = () => {
         console.log(`✅ Marshrut topildi (asosiy ko'chalar)!`)
         console.log(`📏 Masofa: ${distanceKm} km`)
         console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-        console.log(`📊 Original nuqtalar: ${leafletCoordinates.length}`)
-        console.log(`📊 Simplified nuqtalar: ${simplifiedCoordinates.length}`)
+        console.log(`📊 Route nuqtalar: ${leafletCoordinates.length}`)
         
         return {
           success: true,
-          path: simplifiedCoordinates,
+          path: leafletCoordinates, // Barcha nuqtalar
           distance: distanceKm,
           duration: durationMin
         }
