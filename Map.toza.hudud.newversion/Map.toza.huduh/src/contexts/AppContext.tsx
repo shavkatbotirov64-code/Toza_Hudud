@@ -181,6 +181,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (firstBin.fillLevel >= 90) {
               console.log('🔴 Bin is FULL! Setting binStatus to FULL')
               setBinStatus('FULL')
+              
+              // DISPATCH: Eng yaqin mashinani topish (polling orqali ham)
+              if (vehiclesData.length > 0) {
+                const vehicleGoingToBin = vehiclesData.find(v => !v.isPatrolling && v.routePath)
+                
+                if (!vehicleGoingToBin) {
+                  console.log('🚛 [POLLING] Finding closest vehicle...')
+                  
+                  const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling)
+                  
+                  if (patrollingVehicles.length > 0) {
+                    const distances = patrollingVehicles.map(vehicle => {
+                      const R = 6371
+                      const dLat = (firstBin.location[0] - vehicle.position[0]) * Math.PI / 180
+                      const dLon = (firstBin.location[1] - vehicle.position[1]) * Math.PI / 180
+                      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                Math.cos(vehicle.position[0] * Math.PI / 180) * Math.cos(firstBin.location[0] * Math.PI / 180) *
+                                Math.sin(dLon/2) * Math.sin(dLon/2)
+                      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+                      return { vehicle, distance: R * c }
+                    })
+                    
+                    const closest = distances.reduce((min, curr) => 
+                      curr.distance < min.distance ? curr : min
+                    )
+                    
+                    console.log(`✅ [POLLING] Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+                    createRouteForVehicle(closest.vehicle, firstBin)
+                  }
+                }
+              }
             } else {
               // Backend'da fillLevel < 90 bo'lsa, EMPTY qilish
               console.log('🟢 Bin is EMPTY! Setting binStatus to EMPTY')
