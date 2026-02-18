@@ -189,7 +189,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 if (!vehicleGoingToBin) {
                   console.log('🚛 [POLLING] Finding closest vehicle...')
                   
-                  const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling)
+                  // Faqat patrol qilayotgan va hali tozalamagan mashinalar
+                  const patrollingVehicles = vehiclesData.filter(v => v.isPatrolling && !v.hasCleanedOnce)
                   
                   if (patrollingVehicles.length > 0) {
                     const distances = patrollingVehicles.map(vehicle => {
@@ -209,6 +210,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     
                     console.log(`✅ [POLLING] Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
                     createRouteForVehicle(closest.vehicle, firstBin)
+                  } else {
+                    console.log('⏭️ [POLLING] No available vehicles (all cleaned or going to bin)')
                   }
                 }
               }
@@ -329,11 +332,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // DISPATCH: Eng yaqin mashinani topish va yuborish (admin paneldagidek)
           const fullBin = binsData.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
           if (fullBin && vehiclesData.length > 0) {
-            console.log('🚛 Finding closest vehicle...')
+            console.log('🚛 [WEBSOCKET] Finding closest vehicle...')
             
-            // Calculate distances
+            // Calculate distances - faqat patrol qilayotgan va hali tozalamagan mashinalar
             const distances = vehiclesData.map(vehicle => {
-              if (!vehicle.isPatrolling) return { vehicle, distance: Infinity }
+              if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
               
               const R = 6371 // Earth radius in km
               const dLat = (fullBin.location[0] - vehicle.position[0]) * Math.PI / 180
@@ -353,8 +356,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             )
             
             if (closest.distance !== Infinity) {
-              console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+              console.log(`✅ [WEBSOCKET] Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
               createRouteForVehicle(closest.vehicle, fullBin)
+            } else {
+              console.log('⏭️ [WEBSOCKET] No available vehicles (all cleaned or going to bin)')
             }
           }
         }

@@ -91,6 +91,8 @@ export const AppProvider = ({ children }) => {
   // Marshrut yaratish helper function
   const createRoute = async (vehicle, bin) => {
     console.log(`🛣️ Creating route for ${vehicle.id} to ${bin.id}`)
+    console.log(`📍 Vehicle current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+    console.log(`📍 Bin location: [${bin.location[0]}, ${bin.location[1]}]`)
     
     // OSRM API dan marshrut olish
     try {
@@ -108,6 +110,11 @@ export const AppProvider = ({ children }) => {
         route = coordinates.map(coord => [coord[1], coord[0]])
         distance = `${(routeData.distance / 1000).toFixed(2)} km`
         duration = `${(routeData.duration / 60).toFixed(0)} daqiqa`
+        
+        console.log(`✅ OSRM route found: ${route.length} points, ${distance}, ${duration}`)
+        console.log(`📍 Route starts from: [${route[0][0]}, ${route[0][1]}]`)
+      } else {
+        console.log(`⚠️ OSRM failed, using direct route`)
       }
       
       // Yangi marshrut yaratish
