@@ -160,6 +160,35 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     })
   }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute?.length}`).join(',')])
 
+  // ✨ Periodic check: Force vehicles back to Samarqand if they escape
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      vehiclesData.forEach(vehicle => {
+        if (!isWithinSamarqand(vehicle.position[0], vehicle.position[1])) {
+          console.log(`🚨 ${vehicle.id} escaped Samarqand! Forcing back...`)
+          const [constrainedLat, constrainedLon] = constrainToSamarqand(vehicle.position[0], vehicle.position[1])
+          
+          updateVehicleState(vehicle.id, {
+            position: [constrainedLat, constrainedLon] as [number, number]
+          })
+          
+          // Backend'ga ham yuborish
+          const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+          fetch(`${API_URL}/vehicles/${vehicle.id}/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: constrainedLat,
+              longitude: constrainedLon
+            })
+          }).catch(err => console.error(`Failed to save constrained position for ${vehicle.id}:`, err))
+        }
+      })
+    }, 5000) // Check every 5 seconds
+    
+    return () => clearInterval(checkInterval)
+  }, [vehiclesData])
+
   // Patrol animation for all vehicles
   useEffect(() => {
     const intervals: { [key: string]: ReturnType<typeof setInterval> } = {}
@@ -175,26 +204,43 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             
             const currentPos = vehicle.patrolRoute![vehicle.patrolRoute!.length - 1]
             
-            // ✨ Random pozitsiya Samarqand ichida
-            let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025
-            let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+            // ✨ MUHIM: Avval current pozitsiyani Samarqand ichida ekanligini tekshirish
+            const [currentLat, currentLon] = isWithinSamarqand(currentPos[0], currentPos[1]) 
+              ? currentPos 
+              : constrainToSamarqand(currentPos[0], currentPos[1])
+            
+            // ✨ Random pozitsiya Samarqand ichida (kichikroq radius)
+            let randomLat = currentLat + (Math.random() - 0.5) * 0.015 // 0.025 -> 0.015 (kichikroq)
+            let randomLon = currentLon + (Math.random() - 0.5) * 0.015
             
             // ✨ Samarqand chegarasiga qaytarish
             const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
             randomLat = constrainedLat
             randomLon = constrainedLon
             
+            console.log(`📍 Current position: [${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}]`)
             console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
             
             const extendRoute = async () => {
+              // ✨ OSRM'ga constrained pozitsiyalarni yuborish
               const result = await fetchRouteFromOSRM(
-                currentPos[0], currentPos[1],
+                currentLat, currentLon,
                 randomLat, randomLon
               )
               
               if (result.success && result.path && result.path.length > 1) {
                 console.log(`✅ ${vehicle.id}: Extended route (${result.path.length} points)`)
-                const extendedRoute = [...vehicle.patrolRoute!, ...result.path.slice(1)]
+                
+                // ✨ OSRM'dan kelgan barcha nuqtalarni Samarqand ichida ekanligini tekshirish
+                const constrainedPath = result.path.map(point => {
+                  if (!isWithinSamarqand(point[0], point[1])) {
+                    console.log(`⚠️ ${vehicle.id}: OSRM point outside Samarqand, constraining...`)
+                    return constrainToSamarqand(point[0], point[1]) as [number, number]
+                  }
+                  return point
+                })
+                
+                const extendedRoute = [...vehicle.patrolRoute!, ...constrainedPath.slice(1)]
                 updateVehicleState(vehicle.id, {
                   patrolRoute: extendedRoute
                 })
