@@ -204,43 +204,43 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             
             const currentPos = vehicle.patrolRoute![vehicle.patrolRoute!.length - 1]
             
-            // ✨ MUHIM: Avval current pozitsiyani Samarqand ichida ekanligini tekshirish
-            const [currentLat, currentLon] = isWithinSamarqand(currentPos[0], currentPos[1]) 
-              ? currentPos 
-              : constrainToSamarqand(currentPos[0], currentPos[1])
+            // ✨ YANGI: Quti atrofida kichik radiusda patrol qilish
+            // Qutining pozitsiyasini topish
+            const binLocation = binsData.length > 0 ? binsData[0].location : [39.6542, 66.9597]
             
-            // ✨ Random pozitsiya Samarqand ichida (kichikroq radius)
-            let randomLat = currentLat + (Math.random() - 0.5) * 0.015 // 0.025 -> 0.015 (kichikroq)
-            let randomLon = currentLon + (Math.random() - 0.5) * 0.015
+            // ✨ Qutidan maksimal 500 metr (taxminan 0.005 daraja) uzoqlikda
+            const MAX_DISTANCE_FROM_BIN = 0.005 // ~500 metr
             
-            // ✨ Samarqand chegarasiga qaytarish
-            const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
-            randomLat = constrainedLat
-            randomLon = constrainedLon
+            // Random pozitsiya quti atrofida
+            let randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
+            let randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
             
-            console.log(`📍 Current position: [${currentLat.toFixed(4)}, ${currentLon.toFixed(4)}]`)
-            console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+            // Qutidan uzoqlikni tekshirish
+            const distanceFromBin = Math.sqrt(
+              Math.pow(randomLat - binLocation[0], 2) + 
+              Math.pow(randomLon - binLocation[1], 2)
+            )
+            
+            // Agar juda uzoq bo'lsa, quti yoniga qaytarish
+            if (distanceFromBin > MAX_DISTANCE_FROM_BIN) {
+              const angle = Math.atan2(randomLat - binLocation[0], randomLon - binLocation[1])
+              randomLat = binLocation[0] + Math.sin(angle) * MAX_DISTANCE_FROM_BIN
+              randomLon = binLocation[1] + Math.cos(angle) * MAX_DISTANCE_FROM_BIN
+            }
+            
+            console.log(`📍 Bin location: [${binLocation[0].toFixed(4)}, ${binLocation[1].toFixed(4)}]`)
+            console.log(`📍 New patrol position (near bin): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+            console.log(`📏 Distance from bin: ${(distanceFromBin * 111).toFixed(0)} meters`)
             
             const extendRoute = async () => {
-              // ✨ OSRM'ga constrained pozitsiyalarni yuborish
               const result = await fetchRouteFromOSRM(
-                currentLat, currentLon,
+                currentPos[0], currentPos[1],
                 randomLat, randomLon
               )
               
               if (result.success && result.path && result.path.length > 1) {
                 console.log(`✅ ${vehicle.id}: Extended route (${result.path.length} points)`)
-                
-                // ✨ OSRM'dan kelgan barcha nuqtalarni Samarqand ichida ekanligini tekshirish
-                const constrainedPath = result.path.map(point => {
-                  if (!isWithinSamarqand(point[0], point[1])) {
-                    console.log(`⚠️ ${vehicle.id}: OSRM point outside Samarqand, constraining...`)
-                    return constrainToSamarqand(point[0], point[1]) as [number, number]
-                  }
-                  return point
-                })
-                
-                const extendedRoute = [...vehicle.patrolRoute!, ...constrainedPath.slice(1)]
+                const extendedRoute = [...vehicle.patrolRoute!, ...result.path.slice(1)]
                 updateVehicleState(vehicle.id, {
                   patrolRoute: extendedRoute
                 })

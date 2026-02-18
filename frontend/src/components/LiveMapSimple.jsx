@@ -227,19 +227,33 @@ const LiveMapSimple = () => {
         if (nextIndex >= vehicleState.patrolRoute.length) {
           console.log('🔄 VEH-001: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
           
-          // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
-          const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
-          let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida
-          let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          // ✨ YANGI: Quti atrofida kichik radiusda patrol qilish
+          const binLocation = binData.location
+          const MAX_DISTANCE_FROM_BIN = 0.005 // ~500 metr
           
-          // ✨ Samarqand chegarasiga qaytarish
-          const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
-          randomLat = constrainedLat
-          randomLon = constrainedLon
+          // Random pozitsiya quti atrofida
+          let randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
+          let randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
           
-          console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+          // Qutidan uzoqlikni tekshirish
+          const distanceFromBin = Math.sqrt(
+            Math.pow(randomLat - binLocation[0], 2) + 
+            Math.pow(randomLon - binLocation[1], 2)
+          )
+          
+          // Agar juda uzoq bo'lsa, quti yoniga qaytarish
+          if (distanceFromBin > MAX_DISTANCE_FROM_BIN) {
+            const angle = Math.atan2(randomLat - binLocation[0], randomLon - binLocation[1])
+            randomLat = binLocation[0] + Math.sin(angle) * MAX_DISTANCE_FROM_BIN
+            randomLon = binLocation[1] + Math.cos(angle) * MAX_DISTANCE_FROM_BIN
+          }
+          
+          console.log(`📍 Bin location: [${binLocation[0].toFixed(4)}, ${binLocation[1].toFixed(4)}]`)
+          console.log(`📍 New patrol position (near bin): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+          console.log(`📏 Distance from bin: ${(distanceFromBin * 111).toFixed(0)} meters`)
           
           // Yangi marshrut yaratish va qo'shish
+          const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
           const extendRoute = async () => {
             const result = await fetchRouteFromOSRM(
               currentPos[0], currentPos[1],
@@ -248,14 +262,11 @@ const LiveMapSimple = () => {
             
             if (result.success && result.path.length > 1) {
               console.log(`✅ VEH-001: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
-              // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicleState.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-001', {
                 patrolRoute: extendedRoute
-                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
               })
             } else {
-              // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
               const extendedRoute = [...vehicleState.patrolRoute, [randomLat, randomLon]]
               updateVehicleState('VEH-001', {
                 patrolRoute: extendedRoute
@@ -307,19 +318,33 @@ const LiveMapSimple = () => {
         if (nextIndex >= vehicle2State.patrolRoute.length) {
           console.log('🔄 VEH-002: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
           
-          // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
-          const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
-          let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida
-          let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          // ✨ YANGI: Quti atrofida kichik radiusda patrol qilish
+          const binLocation = binData.location
+          const MAX_DISTANCE_FROM_BIN = 0.005 // ~500 metr
           
-          // ✨ Samarqand chegarasiga qaytarish
-          const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
-          randomLat = constrainedLat
-          randomLon = constrainedLon
+          // Random pozitsiya quti atrofida
+          let randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
+          let randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE_FROM_BIN * 2
           
-          console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+          // Qutidan uzoqlikni tekshirish
+          const distanceFromBin = Math.sqrt(
+            Math.pow(randomLat - binLocation[0], 2) + 
+            Math.pow(randomLon - binLocation[1], 2)
+          )
+          
+          // Agar juda uzoq bo'lsa, quti yoniga qaytarish
+          if (distanceFromBin > MAX_DISTANCE_FROM_BIN) {
+            const angle = Math.atan2(randomLat - binLocation[0], randomLon - binLocation[1])
+            randomLat = binLocation[0] + Math.sin(angle) * MAX_DISTANCE_FROM_BIN
+            randomLon = binLocation[1] + Math.cos(angle) * MAX_DISTANCE_FROM_BIN
+          }
+          
+          console.log(`📍 Bin location: [${binLocation[0].toFixed(4)}, ${binLocation[1].toFixed(4)}]`)
+          console.log(`📍 New patrol position (near bin): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
+          console.log(`📏 Distance from bin: ${(distanceFromBin * 111).toFixed(0)} meters`)
           
           // Yangi marshrut yaratish va qo'shish
+          const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
           const extendRoute = async () => {
             const result = await fetchRouteFromOSRM(
               currentPos[0], currentPos[1],
@@ -328,14 +353,11 @@ const LiveMapSimple = () => {
             
             if (result.success && result.path.length > 1) {
               console.log(`✅ VEH-002: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
-              // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicle2State.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-002', {
                 patrolRoute: extendedRoute
-                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
               })
             } else {
-              // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
               const extendedRoute = [...vehicle2State.patrolRoute, [randomLat, randomLon]]
               updateVehicleState('VEH-002', {
                 patrolRoute: extendedRoute
