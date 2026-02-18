@@ -134,7 +134,7 @@ export class DispatchService {
     try {
       const result = await this.findClosestVehicle(binId, vehicles);
 
-      if (!result.success) {
+      if (!result.success || !result.data) {
         return result;
       }
 
