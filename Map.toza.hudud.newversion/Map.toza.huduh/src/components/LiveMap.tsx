@@ -9,31 +9,6 @@ interface LiveMapProps {
   compact?: boolean
 }
 
-interface Bin {
-  id: string
-  location: [number, number]
-  address: string
-  status: number
-  capacity: number
-  fillLevel?: number
-}
-
-interface Vehicle {
-  id: string
-  driver: string
-  status: string
-  position: [number, number]
-  cleaned?: number
-  isMoving?: boolean
-  isPatrolling?: boolean
-  routePath?: [number, number][]
-  patrolRoute?: [number, number][]
-  patrolIndex?: number
-  currentPathIndex?: number
-  patrolWaypoints?: [number, number][]
-  hasCleanedOnce?: boolean
-}
-
 interface Route {
   id: string
   name: string
