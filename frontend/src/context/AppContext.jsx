@@ -86,6 +86,24 @@ export const AppProvider = ({ children }) => {
     setVehiclesData(prev => prev.map(vehicle =>
       vehicle.id === vehicleId ? { ...vehicle, ...updates } : vehicle
     ))
+    
+    // Backend'ga ham yuborish (async, kutmaymiz)
+    if (updates.isPatrolling !== undefined || updates.hasCleanedOnce !== undefined || 
+        updates.patrolIndex !== undefined || updates.status !== undefined) {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'
+      fetch(`${API_URL}/vehicles/${vehicleId}/state`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isPatrolling: updates.isPatrolling,
+          hasCleanedOnce: updates.hasCleanedOnce,
+          patrolIndex: updates.patrolIndex,
+          status: updates.status,
+          patrolRoute: updates.patrolRoute,
+          currentRoute: updates.routePath
+        })
+      }).catch(err => console.error('Failed to sync state:', err))
+    }
   }
   
   // Marshrut yaratish helper function

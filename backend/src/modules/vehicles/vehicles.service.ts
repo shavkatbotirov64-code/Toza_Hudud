@@ -104,6 +104,39 @@ export class VehiclesService {
     }
   }
 
+  // Mashina holatini yangilash
+  async updateState(
+    vehicleId: string,
+    data: {
+      isPatrolling?: boolean;
+      hasCleanedOnce?: boolean;
+      patrolIndex?: number;
+      status?: string;
+      patrolRoute?: any;
+      currentRoute?: any;
+    },
+  ): Promise<Vehicle> {
+    try {
+      const vehicle = await this.getVehicleStatus(vehicleId);
+      
+      if (data.isPatrolling !== undefined) vehicle.isPatrolling = data.isPatrolling;
+      if (data.hasCleanedOnce !== undefined) vehicle.hasCleanedOnce = data.hasCleanedOnce;
+      if (data.patrolIndex !== undefined) vehicle.patrolIndex = data.patrolIndex;
+      if (data.status !== undefined) vehicle.status = data.status;
+      if (data.patrolRoute !== undefined) vehicle.patrolRoute = data.patrolRoute;
+      if (data.currentRoute !== undefined) vehicle.currentRoute = data.currentRoute;
+      
+      vehicle.updatedAt = new Date();
+
+      const saved = await this.vehicleRepository.save(vehicle);
+      this.logger.log(`🔄 Vehicle state updated: ${vehicleId}`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`❌ Error updating state: ${error.message}`);
+      throw error;
+    }
+  }
+
   // Mashina harakatini boshlash
   async startMoving(vehicleId: string, targetBinId: string): Promise<Vehicle> {
     try {

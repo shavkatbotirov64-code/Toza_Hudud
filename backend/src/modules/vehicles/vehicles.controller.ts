@@ -100,6 +100,36 @@ export class VehiclesController {
     }
   }
 
+  @Put(':vehicleId/state')
+  @ApiOperation({ summary: 'Mashina holatini yangilash' })
+  @ApiResponse({ status: 200, description: 'Holat yangilandi' })
+  async updateState(
+    @Param('vehicleId') vehicleId: string,
+    @Body() data: {
+      isPatrolling?: boolean;
+      hasCleanedOnce?: boolean;
+      patrolIndex?: number;
+      status?: string;
+      patrolRoute?: any;
+      currentRoute?: any;
+    },
+  ) {
+    try {
+      this.logger.log(`🔄 Updating state for ${vehicleId}:`, data)
+      const vehicle = await this.vehiclesService.updateState(vehicleId, data);
+      return {
+        success: true,
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   @Put(':vehicleId/start-moving')
   @ApiOperation({ summary: 'Mashina harakatni boshlash' })
   @ApiResponse({ status: 200, description: 'Harakat boshlandi' })
