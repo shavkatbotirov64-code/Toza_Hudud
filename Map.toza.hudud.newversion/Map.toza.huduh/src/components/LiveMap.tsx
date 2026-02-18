@@ -100,19 +100,19 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
         const route = data.routes[0]
         const coordinates = route.geometry.coordinates
         const leafletCoordinates: [number, number][] = coordinates.map((coord: number[]) => [coord[1], coord[0]])
-        const simplifiedCoordinates = leafletCoordinates.filter((_coord, index) => {
-          if (index === 0 || index === leafletCoordinates.length - 1) return true
-          return index % 3 === 0
-        })
+        
+        // OSRM'dan kelgan barcha nuqtalarni ishlatish - eng aniq yo'l
+        // Simplify qilmaslik!
         
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
         
         console.log(`✅ Route found: ${distanceKm} km, ${durationMin} min`)
+        console.log(`📊 Route points: ${leafletCoordinates.length}`)
         
         return {
           success: true,
-          path: simplifiedCoordinates,
+          path: leafletCoordinates, // Barcha nuqtalar
           distance: distanceKm,
           duration: durationMin
         }
