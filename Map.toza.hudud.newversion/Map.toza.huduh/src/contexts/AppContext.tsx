@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import api from '../services/api'
+// @ts-ignore - JS file without types
 import { realtimeService } from '../services/realtimeService.js'
 
 interface Bin {
@@ -137,28 +138,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.log('✅ Bins loaded:', transformedBins.length)
           console.log('📦 Bins data:', JSON.stringify(transformedBins, null, 2))
           
-          // MUHIM: Quti rangini faqat backend'dan kelgan fillLevel ga qarab belgilash
-          // Lekin agar frontend'da EMPTY bo'lsa, uni saqlab qolish (tozalangandan keyin)
-          const currentBinStatus = binStatus
-          
           setBinsData(transformedBins)
           
-          // Update binStatus based on fillLevel FROM BACKEND
+          // Update binStatus based on fillLevel FROM BACKEND - ALWAYS sync with backend
           if (transformedBins.length > 0) {
             const firstBin = transformedBins[0]
             console.log('🔍 First bin fillLevel FROM BACKEND:', firstBin.fillLevel)
-            console.log('🔍 Current binStatus in frontend:', currentBinStatus)
+            console.log('🔍 Current binStatus in frontend:', binStatus)
             
             if (firstBin.fillLevel >= 90) {
               console.log('🔴 Bin is FULL! Setting binStatus to FULL')
               setBinStatus('FULL')
-            } else if (firstBin.fillLevel < 90 && currentBinStatus === 'FULL') {
-              // Agar backend'da bo'sh bo'lsa va frontend'da to'liq bo'lsa, yangilash
+            } else {
+              // Backend'da fillLevel < 90 bo'lsa, EMPTY qilish
               console.log('🟢 Bin is EMPTY! Setting binStatus to EMPTY')
               setBinStatus('EMPTY')
-            } else if (currentBinStatus === 'EMPTY') {
-              // Agar frontend'da EMPTY bo'lsa, uni saqlab qolish
-              console.log('✅ Keeping binStatus as EMPTY (already cleaned)')
             }
           }
         }
