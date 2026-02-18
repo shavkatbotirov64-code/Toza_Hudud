@@ -253,18 +253,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const existingVehicle = vehiclesData.find(v => v.id === vehicleId)
             
             if (existingVehicle) {
-              // ✅ ALWAYS load position from backend
-              console.log(`🔄 Updating vehicle ${vehicleId} from backend`)
-              console.log(`   Backend position: [${vehicle.latitude}, ${vehicle.longitude}]`)
-              console.log(`   Old position: [${existingVehicle.position[0]}, ${existingVehicle.position[1]}]`)
+              // ✅ Check if we should update position from backend
+              const backendPosition: [number, number] = [parseFloat(vehicle.latitude), parseFloat(vehicle.longitude)]
+              const currentPosition = existingVehicle.position
               
-              // Use backend position directly
+              // Calculate distance between backend and current position
+              const distance = Math.sqrt(
+                Math.pow(backendPosition[0] - currentPosition[0], 2) + 
+                Math.pow(backendPosition[1] - currentPosition[1], 2)
+              )
+              
+              // If vehicle is patrolling and distance is small (< 0.01 degrees ~1km), ignore backend position
+              // This prevents teleportation during patrol animation
+              const shouldUpdatePosition = !existingVehicle.isPatrolling || distance > 0.01
+              
+              if (shouldUpdatePosition) {
+                console.log(`🔄 Updating vehicle ${vehicleId} from backend`)
+                console.log(`   Backend position: [${vehicle.latitude}, ${vehicle.longitude}]`)
+                console.log(`   Old position: [${currentPosition[0]}, ${currentPosition[1]}]`)
+                console.log(`   Distance: ${(distance * 111).toFixed(0)} km`)
+              } else {
+                console.log(`⏭️ Skipping position update for ${vehicleId} (patrolling, distance: ${(distance * 111).toFixed(0)} m)`)
+              }
+              
+              // Use backend position only if needed
               return {
                 ...existingVehicle,
                 driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
                 phone: vehicle.phone || existingVehicle.phone,
                 cleaned: vehicle.totalCleanings || existingVehicle.cleaned,
-                position: [parseFloat(vehicle.latitude), parseFloat(vehicle.longitude)] as [number, number],
+                position: shouldUpdatePosition ? backendPosition : existingVehicle.position,
                 // ✅ FORCE isPatrolling to true if no routePath (not going to bin)
                 isPatrolling: vehicle.isPatrolling !== undefined ? vehicle.isPatrolling : true,
                 hasCleanedOnce: vehicle.hasCleanedOnce !== undefined ? vehicle.hasCleanedOnce : false,
