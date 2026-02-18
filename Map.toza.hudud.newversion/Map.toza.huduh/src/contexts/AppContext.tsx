@@ -247,6 +247,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.log('🔴 Bin is FULL!')
           setBinStatus('FULL')
           
+          // MUHIM: hasCleanedOnce ni reset qilish - yangi FULL signal uchun
+          setVehiclesData(prev => prev.map(vehicle => ({
+            ...vehicle,
+            hasCleanedOnce: false
+          })))
+          
           // Update bin in binsData
           setBinsData(prev => prev.map(bin =>
             bin.sensorId === sensorData.binId || bin.id === sensorData.binId ? {
