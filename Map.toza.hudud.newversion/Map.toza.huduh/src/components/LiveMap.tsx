@@ -23,7 +23,7 @@ interface Route {
 
 const LiveMap = ({ compact = false }: LiveMapProps) => {
   const { language } = useLanguage()
-  const { binsData, vehiclesData, binStatus, setBinStatus, setBinsData, updateVehicleState } = useAppContext()
+  const { binsData, vehiclesData, setBinStatus, setBinsData, updateVehicleState } = useAppContext()
   
   // Suppress unused variable warnings
   void compact
