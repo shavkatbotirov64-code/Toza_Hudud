@@ -26,7 +26,7 @@ export class DispatchController {
         status: string;
       }>;
     },
-  ) {
+  ): Promise<any> {
     try {
       const result = await this.dispatchService.findClosestVehicle(
         data.binId,
@@ -59,7 +59,7 @@ export class DispatchController {
         status: string;
       }>;
     },
-  ) {
+  ): Promise<any> {
     try {
       const result = await this.dispatchService.dispatchVehicleToBin(
         data.binId,
