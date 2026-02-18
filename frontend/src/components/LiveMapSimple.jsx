@@ -20,6 +20,29 @@ const LiveMapSimple = () => {
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
+  // ✨ Samarqand shahar chegarasi
+  const SAMARQAND_BOUNDS = {
+    north: 39.70,
+    south: 39.62,
+    east: 67.00,
+    west: 66.92
+  }
+
+  // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+  const isWithinSamarqand = (lat, lon) => {
+    return lat >= SAMARQAND_BOUNDS.south && 
+           lat <= SAMARQAND_BOUNDS.north && 
+           lon >= SAMARQAND_BOUNDS.west && 
+           lon <= SAMARQAND_BOUNDS.east
+  }
+
+  // ✨ Pozitsiyani Samarqand chegarasiga qaytarish
+  const constrainToSamarqand = (lat, lon) => {
+    const constrainedLat = Math.max(SAMARQAND_BOUNDS.south, Math.min(SAMARQAND_BOUNDS.north, lat))
+    const constrainedLon = Math.max(SAMARQAND_BOUNDS.west, Math.min(SAMARQAND_BOUNDS.east, lon))
+    return [constrainedLat, constrainedLon]
+  }
+  
   // Birinchi quti (ESP32-IBN-SINO)
   const binData = binsData[0] || {
     id: 'ESP32-IBN-SINO',
@@ -206,8 +229,15 @@ const LiveMapSimple = () => {
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida
+          let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          
+          // ✨ Samarqand chegarasiga qaytarish
+          const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
+          randomLat = constrainedLat
+          randomLon = constrainedLon
+          
+          console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
           
           // Yangi marshrut yaratish va qo'shish
           const extendRoute = async () => {
@@ -236,13 +266,20 @@ const LiveMapSimple = () => {
           extendRoute()
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
+          let newPosition = vehicleState.patrolRoute[nextIndex]
+          
+          // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+          if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+            console.log(`⚠️ VEH-001: Position outside Samarqand, constraining...`)
+            newPosition = constrainToSamarqand(newPosition[0], newPosition[1])
+          }
+          
           updateVehicleState('VEH-001', {
-            position: vehicleState.patrolRoute[nextIndex],
+            position: newPosition,
             patrolIndex: nextIndex
           })
           
           // Backend'ga pozitsiyani yuborish
-          const newPosition = vehicleState.patrolRoute[nextIndex]
           fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-001/location`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -272,8 +309,15 @@ const LiveMapSimple = () => {
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida
+          let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+          
+          // ✨ Samarqand chegarasiga qaytarish
+          const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
+          randomLat = constrainedLat
+          randomLon = constrainedLon
+          
+          console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
           
           // Yangi marshrut yaratish va qo'shish
           const extendRoute = async () => {
@@ -302,13 +346,20 @@ const LiveMapSimple = () => {
           extendRoute()
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
+          let newPosition = vehicle2State.patrolRoute[nextIndex]
+          
+          // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+          if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+            console.log(`⚠️ VEH-002: Position outside Samarqand, constraining...`)
+            newPosition = constrainToSamarqand(newPosition[0], newPosition[1])
+          }
+          
           updateVehicleState('VEH-002', {
-            position: vehicle2State.patrolRoute[nextIndex],
+            position: newPosition,
             patrolIndex: nextIndex
           })
           
           // Backend'ga pozitsiyani yuborish
-          const newPosition = vehicle2State.patrolRoute[nextIndex]
           fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-002/location`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

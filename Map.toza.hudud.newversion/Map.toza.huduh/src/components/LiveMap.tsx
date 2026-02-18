@@ -38,6 +38,29 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
   const [loading, setLoading] = useState(false) // Start with false
   const [mapReady, setMapReady] = useState(false)
 
+  // ✨ Samarqand shahar chegarasi
+  const SAMARQAND_BOUNDS = {
+    north: 39.70,
+    south: 39.62,
+    east: 67.00,
+    west: 66.92
+  }
+
+  // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+  const isWithinSamarqand = (lat: number, lon: number): boolean => {
+    return lat >= SAMARQAND_BOUNDS.south && 
+           lat <= SAMARQAND_BOUNDS.north && 
+           lon >= SAMARQAND_BOUNDS.west && 
+           lon <= SAMARQAND_BOUNDS.east
+  }
+
+  // ✨ Pozitsiyani Samarqand chegarasiga qaytarish
+  const constrainToSamarqand = (lat: number, lon: number): [number, number] => {
+    const constrainedLat = Math.max(SAMARQAND_BOUNDS.south, Math.min(SAMARQAND_BOUNDS.north, lat))
+    const constrainedLon = Math.max(SAMARQAND_BOUNDS.west, Math.min(SAMARQAND_BOUNDS.east, lon))
+    return [constrainedLat, constrainedLon]
+  }
+
   // Helper: Calculate distance between two points
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371 // Earth radius in km
@@ -151,8 +174,17 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             console.log(`🔄 ${vehicle.id}: Extending patrol route...`)
             
             const currentPos = vehicle.patrolRoute![vehicle.patrolRoute!.length - 1]
-            const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025
-            const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+            
+            // ✨ Random pozitsiya Samarqand ichida
+            let randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025
+            let randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
+            
+            // ✨ Samarqand chegarasiga qaytarish
+            const [constrainedLat, constrainedLon] = constrainToSamarqand(randomLat, randomLon)
+            randomLat = constrainedLat
+            randomLon = constrainedLon
+            
+            console.log(`📍 New random position (constrained): [${randomLat.toFixed(4)}, ${randomLon.toFixed(4)}]`)
             
             const extendRoute = async () => {
               const result = await fetchRouteFromOSRM(
@@ -177,7 +209,14 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             extendRoute()
           } else {
             // Move to next point
-            const newPosition = vehicle.patrolRoute![nextIndex]
+            let newPosition = vehicle.patrolRoute![nextIndex]
+            
+            // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+            if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+              console.log(`⚠️ ${vehicle.id}: Position outside Samarqand, constraining...`)
+              newPosition = constrainToSamarqand(newPosition[0], newPosition[1]) as [number, number]
+            }
+            
             updateVehicleState(vehicle.id, {
               position: newPosition,
               patrolIndex: nextIndex
@@ -329,7 +368,14 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
             }, 3000) // 3 seconds cleaning time
           } else {
             // Move to next point
-            const newPosition = vehicle.routePath![nextIndex]
+            let newPosition = vehicle.routePath![nextIndex]
+            
+            // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+            if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+              console.log(`⚠️ ${vehicle.id}: Position outside Samarqand (going to bin), constraining...`)
+              newPosition = constrainToSamarqand(newPosition[0], newPosition[1]) as [number, number]
+            }
+            
             updateVehicleState(vehicle.id, {
               position: newPosition,
               currentPathIndex: nextIndex
