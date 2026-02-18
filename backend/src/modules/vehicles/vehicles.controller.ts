@@ -303,4 +303,100 @@ export class VehiclesController {
       };
     }
   }
+
+  // ✨ YANGI: Patrol marshrut boshqaruvi
+
+  @Get(':vehicleId/patrol-route')
+  @ApiOperation({ summary: 'Mashina patrol marshrutini olish' })
+  @ApiResponse({ status: 200, description: 'Patrol marshrut' })
+  async getPatrolRoute(@Param('vehicleId') vehicleId: string) {
+    try {
+      this.logger.log(`📍 Getting patrol route for ${vehicleId}`);
+      const vehicle = await this.vehiclesService.getVehicleStatus(vehicleId);
+      return {
+        success: true,
+        data: {
+          vehicleId: vehicle.vehicleId,
+          patrolRoute: vehicle.patrolRoute,
+          patrolIndex: vehicle.patrolIndex,
+          isPatrolling: vehicle.isPatrolling,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error getting patrol route: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Post(':vehicleId/patrol-route')
+  @ApiOperation({ summary: 'Mashina patrol marshrutini belgilash' })
+  @ApiResponse({ status: 200, description: 'Patrol marshrut belgilandi' })
+  async setPatrolRoute(
+    @Param('vehicleId') vehicleId: string,
+    @Body() data: { waypoints: any[] },
+  ) {
+    try {
+      this.logger.log(`📍 Setting patrol route for ${vehicleId}: ${data.waypoints?.length} waypoints`);
+      const vehicle = await this.vehiclesService.updateState(vehicleId, {
+        patrolRoute: data.waypoints,
+        patrolIndex: 0,
+        isPatrolling: true,
+      });
+      
+      // WebSocket orqali barcha clientlarga yuborish
+      this.vehiclesGateway.broadcastVehicleState(vehicleId, {
+        patrolRoute: data.waypoints,
+        patrolIndex: 0,
+        isPatrolling: true,
+      });
+      
+      return {
+        success: true,
+        message: 'Patrol route set successfully',
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error setting patrol route: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  @Delete(':vehicleId/patrol-route')
+  @ApiOperation({ summary: 'Patrol marshrutini o\'chirish' })
+  @ApiResponse({ status: 200, description: 'Patrol marshrut o\'chirildi' })
+  async clearPatrolRoute(@Param('vehicleId') vehicleId: string) {
+    try {
+      this.logger.log(`🗑️ Clearing patrol route for ${vehicleId}`);
+      const vehicle = await this.vehiclesService.updateState(vehicleId, {
+        patrolRoute: null,
+        patrolIndex: 0,
+        isPatrolling: false,
+      });
+      
+      // WebSocket orqali barcha clientlarga yuborish
+      this.vehiclesGateway.broadcastVehicleState(vehicleId, {
+        patrolRoute: null,
+        patrolIndex: 0,
+        isPatrolling: false,
+      });
+      
+      return {
+        success: true,
+        message: 'Patrol route cleared successfully',
+        data: vehicle,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error clearing patrol route: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

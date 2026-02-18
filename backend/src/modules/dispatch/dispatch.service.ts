@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Bin } from '../sensors/entities/bin.entity';
+import { Dispatch } from './entities/dispatch.entity';
 
 interface Vehicle {
   id: string;
@@ -20,6 +21,8 @@ export class DispatchService {
   constructor(
     @InjectRepository(Bin)
     private binRepository: Repository<Bin>,
+    @InjectRepository(Dispatch)
+    private dispatchRepository: Repository<Dispatch>,
   ) {}
 
   // Calculate distance between two points (Haversine formula)
@@ -141,17 +144,32 @@ export class DispatchService {
         `🚀 Dispatching ${vehicle.vehicleId} to bin ${bin.code}`,
       );
 
+      // Create dispatch record
+      const dispatch = this.dispatchRepository.create({
+        vehicleId: vehicle.vehicleId,
+        binId: bin.id,
+        binAddress: bin.address,
+        distance: distance,
+        estimatedTime: Math.round((distance / 30) * 60), // 30 km/h
+        priority: 'medium',
+        status: 'pending',
+      });
+
+      const savedDispatch = await this.dispatchRepository.save(dispatch);
+      this.logger.log(`📝 Dispatch record created: ${savedDispatch.id}`);
+
       // Return dispatch information
       return {
         success: true,
         data: {
+          dispatchId: savedDispatch.id,
           vehicleId: vehicle.vehicleId,
           vehicleName: vehicle.driverName,
           binId: bin.id,
           binCode: bin.code,
           binAddress: bin.address,
           distance: distance.toFixed(2),
-          estimatedTime: Math.round((distance / 30) * 60), // Assuming 30 km/h average speed
+          estimatedTime: Math.round((distance / 30) * 60),
           route: {
             start: {
               latitude: parseFloat(vehicle.currentLatitude),
@@ -166,6 +184,154 @@ export class DispatchService {
       };
     } catch (error) {
       this.logger.error(`❌ Error dispatching vehicle: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ✨ YANGI: Dispatch tarixi
+  async getDispatchHistory(limit: number = 50) {
+    try {
+      const dispatches = await this.dispatchRepository.find({
+        order: { createdAt: 'DESC' },
+        take: limit,
+      });
+
+      this.logger.log(`📋 Retrieved ${dispatches.length} dispatch records`);
+
+      return {
+        success: true,
+        data: dispatches,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error getting dispatch history: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ✨ YANGI: Qo'lda dispatch yaratish
+  async createDispatch(data: {
+    vehicleId: string;
+    binId: string;
+    priority?: string;
+    notes?: string;
+  }) {
+    try {
+      const dispatch = this.dispatchRepository.create({
+        vehicleId: data.vehicleId,
+        binId: data.binId,
+        priority: data.priority || 'medium',
+        status: 'pending',
+        notes: data.notes,
+      });
+
+      const saved = await this.dispatchRepository.save(dispatch);
+      this.logger.log(`📝 Manual dispatch created: ${saved.id}`);
+
+      return {
+        success: true,
+        data: saved,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error creating dispatch: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ✨ YANGI: Dispatch holatini yangilash
+  async updateDispatchStatus(
+    dispatchId: string,
+    status: string,
+    notes?: string,
+  ) {
+    try {
+      const dispatch = await this.dispatchRepository.findOne({
+        where: { id: dispatchId },
+      });
+
+      if (!dispatch) {
+        return {
+          success: false,
+          error: 'Dispatch not found',
+        };
+      }
+
+      dispatch.status = status;
+      if (notes) dispatch.notes = notes;
+
+      if (status === 'in-progress' && !dispatch.startedAt) {
+        dispatch.startedAt = new Date();
+      }
+
+      if (status === 'completed' && !dispatch.completedAt) {
+        dispatch.completedAt = new Date();
+      }
+
+      const saved = await this.dispatchRepository.save(dispatch);
+      this.logger.log(`✅ Dispatch ${dispatchId} status updated to ${status}`);
+
+      return {
+        success: true,
+        data: saved,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error updating dispatch: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ✨ YANGI: Mashina bo'yicha dispatch tarixi
+  async getDispatchesByVehicle(vehicleId: string, limit: number = 20) {
+    try {
+      const dispatches = await this.dispatchRepository.find({
+        where: { vehicleId },
+        order: { createdAt: 'DESC' },
+        take: limit,
+      });
+
+      this.logger.log(`🚛 Retrieved ${dispatches.length} dispatches for ${vehicleId}`);
+
+      return {
+        success: true,
+        data: dispatches,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ✨ YANGI: Quti bo'yicha dispatch tarixi
+  async getDispatchesByBin(binId: string, limit: number = 20) {
+    try {
+      const dispatches = await this.dispatchRepository.find({
+        where: { binId },
+        order: { createdAt: 'DESC' },
+        take: limit,
+      });
+
+      this.logger.log(`🗑️ Retrieved ${dispatches.length} dispatches for bin ${binId}`);
+
+      return {
+        success: true,
+        data: dispatches,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error: ${error.message}`);
       return {
         success: false,
         error: error.message,
