@@ -254,8 +254,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               const existingVehicle = vehiclesData.find(v => v.id === vehicleId)
               
               if (existingVehicle) {
-                // Merge with existing state (preserve position, patrol state, etc.)
-                console.log(`🔄 Merging vehicle ${existingVehicle.id} with localStorage state`)
+                // ✅ ALWAYS load position from backend, but keep other state from localStorage
+                console.log(`🔄 Merging vehicle ${existingVehicle.id}: backend position + localStorage state`)
+                
+                // Try to get fresh position from backend
+                try {
+                  const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+                  const stateResponse = await fetch(`${API_URL}/vehicles/${vehicleId}/status`)
+                  const stateData = await stateResponse.json()
+                  
+                  if (stateData.success && stateData.data) {
+                    console.log(`📥 Backend position for ${vehicleId}: [${stateData.data.latitude}, ${stateData.data.longitude}]`)
+                    
+                    // Use backend position, keep localStorage state
+                    return {
+                      ...existingVehicle,
+                      driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,
+                      phone: vehicle.phone || existingVehicle.phone,
+                      cleaned: vehicle.totalCleanings || existingVehicle.cleaned,
+                      position: [parseFloat(stateData.data.latitude), parseFloat(stateData.data.longitude)] as [number, number],
+                      isPatrolling: stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : existingVehicle.isPatrolling,
+                      hasCleanedOnce: stateData.data.hasCleanedOnce !== undefined ? stateData.data.hasCleanedOnce : existingVehicle.hasCleanedOnce,
+                      patrolIndex: stateData.data.patrolIndex !== undefined ? stateData.data.patrolIndex : existingVehicle.patrolIndex,
+                      status: stateData.data.status || existingVehicle.status
+                    }
+                  }
+                } catch (err) {
+                  console.error(`❌ Failed to load backend position for ${vehicleId}:`, err)
+                }
+                
+                // Fallback: use localStorage
                 return {
                   ...existingVehicle,
                   driver: vehicle.driverName || vehicle.driver || existingVehicle.driver,

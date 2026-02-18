@@ -596,10 +596,28 @@ const LiveMapSimple = () => {
           }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
+          let newPosition = vehicleState.routePath[nextIndex]
+          
+          // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+          if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+            console.log(`⚠️ VEH-001: Position outside Samarqand (going to bin), constraining...`)
+            newPosition = constrainToSamarqand(newPosition[0], newPosition[1])
+          }
+          
           updateVehicleState('VEH-001', {
-            position: vehicleState.routePath[nextIndex],
+            position: newPosition,
             currentPathIndex: nextIndex
           })
+          
+          // Backend'ga pozitsiyani saqlash (haydovchi paneldagidek)
+          fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-001/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: newPosition[0],
+              longitude: newPosition[1]
+            })
+          }).catch(err => console.error('Failed to save position for VEH-001:', err))
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicleState.routePath.length) * 100)
@@ -734,10 +752,28 @@ const LiveMapSimple = () => {
           }, 3000) // 3 soniya tozalash
         } else {
           // Keyingi nuqtaga o'tish
+          let newPosition = vehicle2State.routePath[nextIndex]
+          
+          // ✨ Pozitsiya Samarqand ichida ekanligini tekshirish
+          if (!isWithinSamarqand(newPosition[0], newPosition[1])) {
+            console.log(`⚠️ VEH-002: Position outside Samarqand (going to bin), constraining...`)
+            newPosition = constrainToSamarqand(newPosition[0], newPosition[1])
+          }
+          
           updateVehicleState('VEH-002', {
-            position: vehicle2State.routePath[nextIndex],
+            position: newPosition,
             currentPathIndex: nextIndex
           })
+          
+          // Backend'ga pozitsiyani saqlash (haydovchi paneldagidek)
+          fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-002/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: newPosition[0],
+              longitude: newPosition[1]
+            })
+          }).catch(err => console.error('Failed to save position for VEH-002:', err))
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicle2State.routePath.length) * 100)
