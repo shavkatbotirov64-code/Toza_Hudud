@@ -85,8 +85,8 @@ export class DispatchService {
         const distance = this.calculateDistance(
           parseFloat(vehicle.currentLatitude),
           parseFloat(vehicle.currentLongitude),
-          parseFloat(bin.latitude),
-          parseFloat(bin.longitude),
+          parseFloat(bin.latitude as any),
+          parseFloat(bin.longitude as any),
         );
 
         return {
@@ -113,8 +113,8 @@ export class DispatchService {
             id: bin.id,
             code: bin.code,
             location: {
-              latitude: parseFloat(bin.latitude),
-              longitude: parseFloat(bin.longitude),
+              latitude: parseFloat(bin.latitude as any),
+              longitude: parseFloat(bin.longitude as any),
             },
             address: bin.address,
           },
