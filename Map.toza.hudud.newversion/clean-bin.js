@@ -7,13 +7,12 @@ async function cleanBin() {
     console.log('🧹 Cleaning bin...')
     
     const response = await fetch(`${backendUrl}/bins/${binId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        fillLevel: 15,
-        status: 'EMPTY'
+        fillLevel: 15
       })
     })
     

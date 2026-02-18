@@ -7,13 +7,12 @@ async function fillBin() {
     console.log('📦 Filling bin to 95%...')
     
     const response = await fetch(`${backendUrl}/bins/${binId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        fillLevel: 95,
-        status: 'FULL'
+        fillLevel: 95
       })
     })
     
