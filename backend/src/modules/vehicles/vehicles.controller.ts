@@ -1,13 +1,17 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
+import { VehiclesGateway } from './vehicles.gateway';
 
 @ApiTags('vehicles')
 @Controller('vehicles')
 export class VehiclesController {
   private readonly logger = new Logger(VehiclesController.name);
 
-  constructor(private readonly vehiclesService: VehiclesService) {}
+  constructor(
+    private readonly vehiclesService: VehiclesService,
+    private readonly vehiclesGateway: VehiclesGateway,
+  ) {}
 
   @Post('status')
   @ApiOperation({ summary: 'Mashina holatini yaratish yoki yangilash' })
@@ -87,6 +91,10 @@ export class VehiclesController {
         data.latitude,
         data.longitude,
       );
+      
+      // ✨ WebSocket orqali barcha clientlarga yuborish
+      this.vehiclesGateway.broadcastVehiclePosition(vehicleId, data.latitude, data.longitude);
+      
       return {
         success: true,
         data: vehicle,
@@ -117,6 +125,10 @@ export class VehiclesController {
     try {
       this.logger.log(`🔄 Updating state for ${vehicleId}:`, data)
       const vehicle = await this.vehiclesService.updateState(vehicleId, data);
+      
+      // ✨ WebSocket orqali barcha clientlarga yuborish
+      this.vehiclesGateway.broadcastVehicleState(vehicleId, data);
+      
       return {
         success: true,
         data: vehicle,

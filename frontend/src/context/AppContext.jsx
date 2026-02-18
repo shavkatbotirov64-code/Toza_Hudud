@@ -630,14 +630,41 @@ export const AppProvider = ({ children }) => {
             return currentVehicles // State'ni o'zgartirmaslik
           })
         }
-          }
-        }
       } else if (status === 'EMPTY') {
         setBinsData(prev => prev.map(bin =>
           bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
         ))
         console.log('🟢 AppContext: Bin marked as EMPTY')
       }
+    })
+
+    // ✨ YANGI: Mashina pozitsiyasi real-time yangilanganda
+    socket.on('vehiclePositionUpdate', (data) => {
+      console.log(`📥 Real-time position update: ${data.vehicleId} → [${data.latitude}, ${data.longitude}]`)
+      
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          position: [data.latitude, data.longitude]
+        } : vehicle
+      ))
+    })
+
+    // ✨ YANGI: Mashina holati real-time yangilanganda
+    socket.on('vehicleStateUpdate', (data) => {
+      console.log(`📥 Real-time state update: ${data.vehicleId}`, data)
+      
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : vehicle.isPatrolling,
+          hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
+          patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
+          status: data.status || vehicle.status,
+          patrolRoute: data.patrolRoute || vehicle.patrolRoute,
+          routePath: data.currentRoute || vehicle.routePath
+        } : vehicle
+      ))
     })
 
     // Cleanup

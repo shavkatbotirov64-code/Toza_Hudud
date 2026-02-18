@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { io } from 'socket.io-client'
 import api from '../services/api'
-// @ts-ignore - JS file without types
-import { realtimeService } from '../services/realtimeService.js'
 
 interface Bin {
   id: string
@@ -348,98 +347,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Initialize WebSocket for real-time updates
   useEffect(() => {
     console.log('🔌 Initializing WebSocket...')
-    realtimeService.connect()
+    
+    // Direct socket.io connection (like admin panel)
+    const socket = io('https://tozahudud-production-d73f.up.railway.app', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    })
+
+    socket.on('connect', () => {
+      console.log('✅ Haydovchi WebSocket connected:', socket.id)
+    })
+
+    socket.on('disconnect', () => {
+      console.log('❌ Haydovchi WebSocket disconnected')
+    })
     
     // Listen for sensor data updates (ESP32 signals)
-    realtimeService.onMapUpdate((data: any) => {
-      console.log('📥 WebSocket update received:', data)
+    socket.on('sensorData', (sensorData: any) => {
+      console.log('📊 Sensor data:', sensorData)
       
-      if (data.type === 'sensorData' && data.data) {
-        const sensorData = data.data
-        console.log('📊 Sensor data:', sensorData)
+      // Update bin status if distance <= 20cm (FULL)
+      if (sensorData.distance <= 20) {
+        console.log('🔴 Bin is FULL!')
+        setBinStatus('FULL')
         
-        // Update bin status if distance <= 20cm (FULL)
-        if (sensorData.distance <= 20) {
-          console.log('🔴 Bin is FULL!')
-          setBinStatus('FULL')
-          
-          // MUHIM: hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-          setVehiclesData(prev => prev.map(vehicle => ({
-            ...vehicle,
-            hasCleanedOnce: false
-          })))
-          
-          // Update bin in binsData
-          setBinsData(prev => prev.map(bin =>
-            bin.sensorId === sensorData.binId || bin.id === sensorData.binId ? {
-              ...bin,
-              status: 95,
-              fillLevel: 95,
-              lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-            } : bin
-          ))
-          
-          // DISPATCH: Eng yaqin mashinani topish va yuborish (admin paneldagidek)
-          const fullBin = binsData.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
-          if (fullBin && vehiclesData.length > 0) {
-            console.log('🚛 [WEBSOCKET] Finding closest vehicle...')
-            
-            // Calculate distances - faqat patrol qilayotgan va hali tozalamagan mashinalar
-            const distances = vehiclesData.map(vehicle => {
-              if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
-              
-              const R = 6371 // Earth radius in km
-              const dLat = (fullBin.location[0] - vehicle.position[0]) * Math.PI / 180
-              const dLon = (fullBin.location[1] - vehicle.position[1]) * Math.PI / 180
-              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                        Math.cos(vehicle.position[0] * Math.PI / 180) * Math.cos(fullBin.location[0] * Math.PI / 180) *
-                        Math.sin(dLon/2) * Math.sin(dLon/2)
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-              const distance = R * c
-              
-              return { vehicle, distance }
-            })
-            
-            // Find closest
-            const closest = distances.reduce((min, curr) => 
-              curr.distance < min.distance ? curr : min
-            )
-            
-            if (closest.distance !== Infinity) {
-              console.log(`✅ [WEBSOCKET] Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-              createRouteForVehicle(closest.vehicle, fullBin)
-            } else {
-              console.log('⏭️ [WEBSOCKET] No available vehicles (all cleaned or going to bin)')
-            }
-          }
-        }
-      }
-      
-      // Listen for bin updates (cleaning, etc.)
-      if (data.type === 'binUpdate' && data.data) {
-        const binUpdate = data.data
-        console.log('📦 Bin update:', binUpdate)
+        // MUHIM: hasCleanedOnce ni reset qilish - yangi FULL signal uchun
+        setVehiclesData(prev => prev.map(vehicle => ({
+          ...vehicle,
+          hasCleanedOnce: false
+        })))
         
+        // Update bin in binsData
         setBinsData(prev => prev.map(bin =>
-          bin.id === binUpdate.binId || bin._backendId === binUpdate.binId ? {
+          bin.sensorId === sensorData.binId || bin.id === sensorData.binId ? {
             ...bin,
-            status: binUpdate.fillLevel || bin.status,
-            fillLevel: binUpdate.fillLevel || bin.fillLevel,
+            status: 95,
+            fillLevel: 95,
             lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
           } : bin
         ))
         
-        // Update binStatus
-        if (binUpdate.fillLevel >= 90) {
-          setBinStatus('FULL')
-        } else {
-          setBinStatus('EMPTY')
+        // DISPATCH: Eng yaqin mashinani topish va yuborish (admin paneldagidek)
+        const fullBin = binsData.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
+        if (fullBin && vehiclesData.length > 0) {
+          console.log('🚛 [WEBSOCKET] Finding closest vehicle...')
+          
+          // Calculate distances - faqat patrol qilayotgan va hali tozalamagan mashinalar
+          const distances = vehiclesData.map(vehicle => {
+            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
+            
+            const R = 6371 // Earth radius in km
+            const dLat = (fullBin.location[0] - vehicle.position[0]) * Math.PI / 180
+            const dLon = (fullBin.location[1] - vehicle.position[1]) * Math.PI / 180
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(vehicle.position[0] * Math.PI / 180) * Math.cos(fullBin.location[0] * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2)
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+            const distance = R * c
+            
+            return { vehicle, distance }
+          })
+          
+          // Find closest
+          const closest = distances.reduce((min, curr) => 
+            curr.distance < min.distance ? curr : min
+          )
+          
+          if (closest.distance !== Infinity) {
+            console.log(`✅ [WEBSOCKET] Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+            createRouteForVehicle(closest.vehicle, fullBin)
+          } else {
+            console.log('⏭️ [WEBSOCKET] No available vehicles (all cleaned or going to bin)')
+          }
         }
       }
     })
     
+    // Listen for bin updates (cleaning, etc.)
+    socket.on('binUpdate', (binUpdate: any) => {
+      console.log('📦 Bin update:', binUpdate)
+      
+      setBinsData(prev => prev.map(bin =>
+        bin.id === binUpdate.binId || bin._backendId === binUpdate.binId ? {
+          ...bin,
+          status: binUpdate.fillLevel || bin.status,
+          fillLevel: binUpdate.fillLevel || bin.fillLevel,
+          lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+        } : bin
+      ))
+      
+      // Update binStatus
+      if (binUpdate.fillLevel >= 90) {
+        setBinStatus('FULL')
+      } else {
+        setBinStatus('EMPTY')
+      }
+    })
+
+    // ✨ YANGI: Mashina pozitsiyasi real-time yangilanganda
+    socket.on('vehiclePositionUpdate', (data: any) => {
+      console.log(`📥 Real-time position update: ${data.vehicleId} → [${data.latitude}, ${data.longitude}]`)
+      
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          position: [data.latitude, data.longitude] as [number, number]
+        } : vehicle
+      ))
+    })
+
+    // ✨ YANGI: Mashina holati real-time yangilanganda
+    socket.on('vehicleStateUpdate', (data: any) => {
+      console.log(`📥 Real-time state update: ${data.vehicleId}`, data)
+      
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : vehicle.isPatrolling,
+          hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
+          patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
+          status: data.status || vehicle.status,
+          patrolRoute: data.patrolRoute || vehicle.patrolRoute,
+          routePath: data.currentRoute || vehicle.routePath
+        } : vehicle
+      ))
+    })
+    
     return () => {
-      realtimeService.disconnect()
+      console.log('🔌 Haydovchi WebSocket disconnecting...')
+      socket.disconnect()
     }
   }, [binsData, vehiclesData]) // Dependencies: binsData va vehiclesData
 
