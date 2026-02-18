@@ -81,6 +81,7 @@ export class VehiclesController {
     @Body() data: { latitude: number; longitude: number },
   ) {
     try {
+      this.logger.log(`📍 Updating location for ${vehicleId}: [${data.latitude}, ${data.longitude}]`)
       const vehicle = await this.vehiclesService.updateLocation(
         vehicleId,
         data.latitude,

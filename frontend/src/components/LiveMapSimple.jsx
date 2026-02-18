@@ -240,6 +240,17 @@ const LiveMapSimple = () => {
             position: vehicleState.patrolRoute[nextIndex],
             patrolIndex: nextIndex
           })
+          
+          // Backend'ga pozitsiyani yuborish
+          const newPosition = vehicleState.patrolRoute[nextIndex]
+          fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-001/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: newPosition[0],
+              longitude: newPosition[1]
+            })
+          }).catch(err => console.error('Failed to update position:', err))
         }
       }, 2500) // 2.5 soniya - sekin va silliq harakat
 
@@ -295,6 +306,17 @@ const LiveMapSimple = () => {
             position: vehicle2State.patrolRoute[nextIndex],
             patrolIndex: nextIndex
           })
+          
+          // Backend'ga pozitsiyani yuborish
+          const newPosition = vehicle2State.patrolRoute[nextIndex]
+          fetch(`${import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'}/vehicles/VEH-002/location`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              latitude: newPosition[0],
+              longitude: newPosition[1]
+            })
+          }).catch(err => console.error('Failed to update position:', err))
         }
       }, 2500) // 2.5 soniya - sekin va silliq harakat
 
