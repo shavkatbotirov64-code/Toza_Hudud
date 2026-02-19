@@ -654,17 +654,17 @@ export const AppProvider = ({ children }) => {
       }
     })
 
-    // ✨ YANGI: Mashina pozitsiyasi real-time yangilanganda
-    socket.on('vehiclePositionUpdate', (data) => {
-      console.log(`📥 Real-time position update: ${data.vehicleId} → [${data.latitude}, ${data.longitude}]`)
-      
-      setVehiclesData(prev => prev.map(vehicle =>
-        vehicle.id === data.vehicleId ? {
-          ...vehicle,
-          position: [data.latitude, data.longitude]
-        } : vehicle
-      ))
-    })
+    // ✨ Mashina pozitsiyasi real-time yangilanganda - O'CHIRILGAN (frontend o'zi animatsiya qiladi)
+    // socket.on('vehiclePositionUpdate', (data) => {
+    //   console.log(`📥 Real-time position update: ${data.vehicleId} → [${data.latitude}, ${data.longitude}]`)
+    //   
+    //   setVehiclesData(prev => prev.map(vehicle =>
+    //     vehicle.id === data.vehicleId ? {
+    //       ...vehicle,
+    //       position: [data.latitude, data.longitude]
+    //     } : vehicle
+    //   ))
+    // })
 
     // ✨ YANGI: Mashina holati real-time yangilanganda
     socket.on('vehicleStateUpdate', (data) => {

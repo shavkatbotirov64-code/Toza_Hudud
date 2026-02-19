@@ -1,45 +1,82 @@
-// Mashinalarni Samarqand ichiga qaytarish
-const API_URL = 'https://tozahudud-production-d73f.up.railway.app';
+const { Pool } = require('pg');
+require('dotenv').config();
 
-// Samarqand markaziy nuqtalari
-const SAMARQAND_POSITIONS = [
-  { vehicleId: 'VEH-001', lat: 39.6542, lon: 66.9597 }, // Registon atrofi
-  { vehicleId: 'VEH-002', lat: 39.6650, lon: 66.9750 }  // Shimoliy hudud
-];
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-async function resetPositions() {
-  console.log('🔄 Resetting vehicle positions to Samarqand...\n');
+// Quti lokatsiyasi - Ibn Sino ko'chasi 17A
+const BIN_LOCATION = {
+  lat: 39.6742637,
+  lon: 66.9737814
+};
 
-  for (const pos of SAMARQAND_POSITIONS) {
-    try {
-      console.log(`📍 Resetting ${pos.vehicleId} to [${pos.lat}, ${pos.lon}]`);
-      
-      const response = await fetch(`${API_URL}/vehicles/${pos.vehicleId}/location`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          latitude: pos.lat,
-          longitude: pos.lon
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log(`✅ ${pos.vehicleId} position reset successfully`);
-      } else {
-        console.log(`❌ Failed to reset ${pos.vehicleId}: ${data.error}`);
-      }
-    } catch (error) {
-      console.error(`❌ Error resetting ${pos.vehicleId}:`, error.message);
-    }
+async function resetVehiclePositions() {
+  try {
+    console.log('🔄 Resetting vehicle positions to bin area...');
+    
+    // VEH-001: Qutidan 200m shimolda
+    const veh001_lat = BIN_LOCATION.lat + 0.002; // ~200m shimol
+    const veh001_lon = BIN_LOCATION.lon + 0.001; // ~100m sharq
+    
+    // VEH-002: Qutidan 200m janubda
+    const veh002_lat = BIN_LOCATION.lat - 0.002; // ~200m janub
+    const veh002_lon = BIN_LOCATION.lon - 0.001; // ~100m g'arb
+    
+    // VEH-001 ni yangilash
+    await pool.query(`
+      UPDATE vehicles
+      SET 
+        latitude = $1,
+        longitude = $2,
+        "isPatrolling" = true,
+        "hasCleanedOnce" = false,
+        "patrolIndex" = 0,
+        "patrolRoute" = NULL,
+        "currentRoute" = NULL,
+        status = 'idle',
+        "isMoving" = false,
+        "targetBinId" = NULL,
+        "updatedAt" = NOW()
+      WHERE "vehicleId" = 'VEH-001'
+    `, [veh001_lat, veh001_lon]);
+    
+    console.log(`✅ VEH-001 reset: [${veh001_lat}, ${veh001_lon}]`);
+    
+    // VEH-002 ni yangilash
+    await pool.query(`
+      UPDATE vehicles
+      SET 
+        latitude = $1,
+        longitude = $2,
+        "isPatrolling" = true,
+        "hasCleanedOnce" = false,
+        "patrolIndex" = 0,
+        "patrolRoute" = NULL,
+        "currentRoute" = NULL,
+        status = 'idle',
+        "isMoving" = false,
+        "targetBinId" = NULL,
+        "updatedAt" = NOW()
+      WHERE "vehicleId" = 'VEH-002'
+    `, [veh002_lat, veh002_lon]);
+    
+    console.log(`✅ VEH-002 reset: [${veh002_lat}, ${veh002_lon}]`);
+    
+    console.log('');
+    console.log('📍 Bin location:', BIN_LOCATION);
+    console.log('🚛 VEH-001: ~200m shimolda');
+    console.log('🚛 VEH-002: ~200m janubda');
+    console.log('');
+    console.log('✅ All vehicles reset to bin area!');
+    
+    await pool.end();
+  } catch (error) {
+    console.error('❌ Error:', error);
+    await pool.end();
+    process.exit(1);
   }
-
-  console.log('\n✅ All positions reset!');
-  console.log('📝 Now refresh the browser and clear localStorage:');
-  console.log('   1. Open browser console (F12)');
-  console.log('   2. Run: localStorage.clear()');
-  console.log('   3. Refresh page (F5)');
 }
 
-resetPositions();
+resetVehiclePositions();
