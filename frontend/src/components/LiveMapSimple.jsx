@@ -442,6 +442,16 @@ const LiveMapSimple = () => {
 
   // Quti FULL bo'lganda - qaysi mashina yaqin bo'lsa o'sha borsin
   useEffect(() => {
+    console.log('🔍 Bin Status Check:', {
+      binStatus,
+      binData_status: binData.status,
+      binData_fillLevel: binData.fillLevel,
+      vehicleState_hasCleanedOnce: vehicleState?.hasCleanedOnce,
+      vehicle2State_hasCleanedOnce: vehicle2State?.hasCleanedOnce,
+      vehicleState_isPatrolling: vehicleState?.isPatrolling,
+      vehicle2State_isPatrolling: vehicle2State?.isPatrolling
+    })
+    
     if (binStatus === 'FULL' && !vehicleState.hasCleanedOnce && !vehicle2State.hasCleanedOnce) {
       console.log('🚛 Quti to\'ldi! Eng yaqin mashinani topish...')
       
