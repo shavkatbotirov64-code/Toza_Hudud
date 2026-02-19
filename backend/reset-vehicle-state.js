@@ -1,42 +1,40 @@
-// Mashinalarning holatini reset qilish
-const API_URL = 'https://tozahudud-production-d73f.up.railway.app';
+const { Pool } = require('pg');
+require('dotenv').config();
 
-const VEHICLES = ['VEH-001', 'VEH-002'];
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-async function resetState() {
-  console.log('🔄 Resetting vehicle states...\n');
-
-  for (const vehicleId of VEHICLES) {
-    try {
-      console.log(`🔄 Resetting ${vehicleId} state...`);
-      
-      const response = await fetch(`${API_URL}/vehicles/${vehicleId}/state`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          isPatrolling: true,
-          hasCleanedOnce: false,
-          patrolIndex: 0,
-          status: 'moving',
-          patrolRoute: [],
-          currentRoute: null
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        console.log(`✅ ${vehicleId} state reset successfully`);
-      } else {
-        console.log(`❌ Failed to reset ${vehicleId}: ${data.error}`);
-      }
-    } catch (error) {
-      console.error(`❌ Error resetting ${vehicleId}:`, error.message);
-    }
+async function resetVehicleStates() {
+  try {
+    console.log('🔄 Resetting vehicle states...');
+    
+    // Reset all vehicles to patrol mode
+    const result = await pool.query(`
+      UPDATE vehicles
+      SET 
+        "isPatrolling" = true,
+        "hasCleanedOnce" = false,
+        "patrolIndex" = 0,
+        "patrolRoute" = NULL,
+        "currentRoute" = NULL,
+        status = 'idle',
+        "isMoving" = false,
+        "targetBinId" = NULL
+      WHERE "vehicleId" IN ('VEH-001', 'VEH-002')
+      RETURNING "vehicleId", "isPatrolling", "hasCleanedOnce", status
+    `);
+    
+    console.log('✅ Vehicle states reset successfully!');
+    console.log('📊 Updated vehicles:', result.rows);
+    
+    await pool.end();
+  } catch (error) {
+    console.error('❌ Error:', error);
+    await pool.end();
+    process.exit(1);
   }
-
-  console.log('\n✅ All states reset!');
-  console.log('📝 Vehicles are now patrolling from Samarqand center');
 }
 
-resetState();
+resetVehicleStates();

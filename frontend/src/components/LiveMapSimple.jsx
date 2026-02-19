@@ -195,58 +195,37 @@ const LiveMapSimple = () => {
     }
   }, [vehicleState?.isPatrolling, vehicleState?.patrolRoute?.length])
 
-  // Patrol marshruti yaratish - OSRM yoki to'g'ri chiziq
+  // Patrol marshruti yaratish - Backend OSRM API orqali (Mashina 2)
   useEffect(() => {
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda...')
+      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (Backend OSRM API)...')
       
       const buildPatrolRoute = async () => {
         const waypoints = vehicle2State.patrolWaypoints
         let fullRoute = []
-        let osrmSuccess = 0
-        let osrmFailed = 0
         
         for (let i = 0; i < waypoints.length - 1; i++) {
           const start = waypoints[i]
           const end = waypoints[i + 1]
           
-          // OSRM'ni sinab ko'rish (5s timeout)
-          try {
-            const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 5000)
-            
-            const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`
-            const response = await fetch(url, { signal: controller.signal })
-            clearTimeout(timeoutId)
-            
-            if (response.ok) {
-              const data = await response.json()
-              if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-                const coordinates = data.routes[0].geometry.coordinates
-                const leafletCoords = coordinates.map(coord => [coord[1], coord[0]])
-                fullRoute = [...fullRoute, ...leafletCoords]
-                osrmSuccess++
-                continue
-              }
-            }
-          } catch (error) {
-            // OSRM ishlamadi, to'g'ri chiziq ishlatamiz
-          }
+          const result = await fetchRouteFromOSRM(start[0], start[1], end[0], end[1])
           
-          // Fallback: to'g'ri chiziq (10 nuqta interpolatsiya)
-          osrmFailed++
-          for (let j = 0; j <= 10; j++) {
-            const t = j / 10
-            const lat = start[0] + (end[0] - start[0]) * t
-            const lon = start[1] + (end[1] - start[1]) * t
-            fullRoute.push([lat, lon])
+          if (result.success) {
+            fullRoute = [...fullRoute, ...result.path]
+          } else {
+            // Fallback: to'g'ri chiziq
+            for (let j = 0; j <= 10; j++) {
+              const t = j / 10
+              const lat = start[0] + (end[0] - start[0]) * t
+              const lon = start[1] + (end[1] - start[1]) * t
+              fullRoute.push([lat, lon])
+            }
           }
         }
         
         console.log(`✅ VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
-        console.log(`   OSRM: ${osrmSuccess} muvaffaqiyatli, ${osrmFailed} fallback`)
         
         updateVehicleState('VEH-002', {
           patrolRoute: fullRoute,
