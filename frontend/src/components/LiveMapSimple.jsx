@@ -109,26 +109,35 @@ const LiveMapSimple = () => {
       }
       
       // Katta transport vositalari uchun - faqat asosiy ko'chalar
-      // exclude=motorway - avtomagistrallarni chiqarib tashlash
-      // continue_straight=true - to'g'ri yo'lni afzal ko'rish
       const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
       
-      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda (asosiy ko'chalar)...`)
+      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda...`)
       console.log(`📍 Start: [${startLat}, ${startLon}]`)
       console.log(`📍 End: [${endLat}, ${endLon}]`)
+      console.log(`🔗 URL: ${url}`)
       
-      // ✅ Timeout qo'shish (20 soniya - OSRM ba'zan sekin ishlaydi)
+      // ✅ Timeout qo'shish (15 soniya)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 20000)
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
       
       const response = await fetch(url, { 
         signal: controller.signal,
         mode: 'cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
+        headers: {
+          'Accept': 'application/json'
+        }
       })
       clearTimeout(timeoutId)
       
+      console.log(`📡 OSRM Response status: ${response.status}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
       const data = await response.json()
+      console.log(`📦 OSRM Response code: ${data.code}`)
       
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
         const route = data.routes[0]
@@ -137,25 +146,22 @@ const LiveMapSimple = () => {
         // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
         const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
         
-        // OSRM'dan kelgan barcha nuqtalarni ishlatish - eng aniq yo'l
-        // Simplify qilmaslik - mashinalar ko'chalar bo'ylab aniq yurishadi
-        
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
         
-        console.log(`✅ Marshrut topildi (asosiy ko'chalar)!`)
+        console.log(`✅ Marshrut topildi!`)
         console.log(`📏 Masofa: ${distanceKm} km`)
         console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-        console.log(`📊 Route nuqtalar: ${leafletCoordinates.length}`)
+        console.log(`📊 Nuqtalar: ${leafletCoordinates.length}`)
         
         return {
           success: true,
-          path: leafletCoordinates, // Barcha nuqtalar
+          path: leafletCoordinates,
           distance: distanceKm,
           duration: durationMin
         }
       } else {
-        console.warn('⚠️ OSRM: Marshrut topilmadi, to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
+        console.warn(`⚠️ OSRM: Marshrut topilmadi (code: ${data.code}), to'g'ri chiziq ishlatiladi`)
         return { 
           success: false,
           path: [[startLat, startLon], [endLat, endLon]]
@@ -163,10 +169,11 @@ const LiveMapSimple = () => {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.warn('⚠️ OSRM API timeout (20s), to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
+        console.warn('⚠️ OSRM API timeout (15s), to\'g\'ri chiziq ishlatiladi')
       } else {
         console.warn('⚠️ OSRM API xatolik:', error.message)
       }
+      // Fallback: to'g'ridan-to'g'ri chiziq
       return { 
         success: false,
         path: [[startLat, startLon], [endLat, endLon]]
