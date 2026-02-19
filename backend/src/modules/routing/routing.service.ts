@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 
-interface RouteResult {
+export interface RouteResult {
   success: boolean;
   path: [number, number][];
   distance?: string;

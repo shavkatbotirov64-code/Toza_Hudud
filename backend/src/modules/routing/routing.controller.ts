@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Logger } from '@nestjs/common';
-import { RoutingService } from './routing.service';
+import { RoutingService, RouteResult } from './routing.service';
 
 @Controller('routing')
 export class RoutingController {
@@ -17,7 +17,7 @@ export class RoutingController {
     @Query('startLon') startLon: string,
     @Query('endLat') endLat: string,
     @Query('endLon') endLon: string,
-  ) {
+  ): Promise<{ success: boolean; data: RouteResult }> {
     this.logger.log(`📍 Route request: [${startLat}, ${startLon}] → [${endLat}, ${endLon}]`);
 
     const result = await this.routingService.getRoute(
