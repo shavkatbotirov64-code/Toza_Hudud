@@ -181,27 +181,28 @@ const LiveMapSimple = () => {
     }
   }
 
-  // Patrol marshruti yaratish - OSRM API orqali (Mashina 1)
+  // Patrol marshruti yaratish - Oddiy to'g'ri chiziq (OSRM bloklangan)
   useEffect(() => {
     if (!vehicleState) return // Mashina mavjud emas
     
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
+      console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (to\'g\'ri chiziq)...')
       
-      const buildPatrolRoute = async () => {
+      const buildPatrolRoute = () => {
         const waypoints = vehicleState.patrolWaypoints
         let fullRoute = []
         
+        // Har bir waypoint orasida 10 ta nuqta yaratish (silliq harakat)
         for (let i = 0; i < waypoints.length - 1; i++) {
           const start = waypoints[i]
           const end = waypoints[i + 1]
           
-          const result = await fetchRouteFromOSRM(start[0], start[1], end[0], end[1])
-          
-          if (result.success) {
-            fullRoute = [...fullRoute, ...result.path]
-          } else {
-            fullRoute = [...fullRoute, start, end]
+          // Start va end orasida interpolatsiya
+          for (let j = 0; j <= 10; j++) {
+            const t = j / 10
+            const lat = start[0] + (end[0] - start[0]) * t
+            const lon = start[1] + (end[1] - start[1]) * t
+            fullRoute.push([lat, lon])
           }
         }
         
@@ -217,27 +218,28 @@ const LiveMapSimple = () => {
     }
   }, [vehicleState?.isPatrolling, vehicleState?.patrolRoute?.length])
 
-  // Patrol marshruti yaratish - OSRM API orqali (Mashina 2)
+  // Patrol marshruti yaratish - Oddiy to'g'ri chiziq (OSRM bloklangan)
   useEffect(() => {
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (OSRM API)...')
+      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (to\'g\'ri chiziq)...')
       
-      const buildPatrolRoute = async () => {
+      const buildPatrolRoute = () => {
         const waypoints = vehicle2State.patrolWaypoints
         let fullRoute = []
         
+        // Har bir waypoint orasida 10 ta nuqta yaratish (silliq harakat)
         for (let i = 0; i < waypoints.length - 1; i++) {
           const start = waypoints[i]
           const end = waypoints[i + 1]
           
-          const result = await fetchRouteFromOSRM(start[0], start[1], end[0], end[1])
-          
-          if (result.success) {
-            fullRoute = [...fullRoute, ...result.path]
-          } else {
-            fullRoute = [...fullRoute, start, end]
+          // Start va end orasida interpolatsiya
+          for (let j = 0; j <= 10; j++) {
+            const t = j / 10
+            const lat = start[0] + (end[0] - start[0]) * t
+            const lon = start[1] + (end[1] - start[1]) * t
+            fullRoute.push([lat, lon])
           }
         }
         
