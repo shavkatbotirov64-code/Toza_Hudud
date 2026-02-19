@@ -117,7 +117,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Backend'ga ham yuborish (admin paneldagidek)
     if (updates.isPatrolling !== undefined || updates.hasCleanedOnce !== undefined || 
         updates.patrolIndex !== undefined || updates.status !== undefined) {
-      const API_URL = 'https://tozahudud-production-d73f.up.railway.app'
+      const API_URL = import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'
       fetch(`${API_URL}/vehicles/${vehicleId}/state`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -399,4 +399,29 @@ export class VehiclesController {
       };
     }
   }
+
+  // ✨ YANGI: Default mashinalarni qayta yaratish (test uchun)
+  @Post('initialize-defaults')
+  @ApiOperation({ summary: 'Default mashinalarni qayta yaratish' })
+  @ApiResponse({ status: 200, description: 'Default mashinalar yaratildi' })
+  async initializeDefaults() {
+    try {
+      this.logger.log('🔄 Manually initializing default vehicles...');
+      await this.vehiclesService.initializeDefaultVehicles();
+      
+      const vehicles = await this.vehiclesService.getAllVehicles();
+      
+      return {
+        success: true,
+        message: 'Default vehicles initialized successfully',
+        data: vehicles,
+      };
+    } catch (error) {
+      this.logger.error(`❌ Error initializing defaults: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }

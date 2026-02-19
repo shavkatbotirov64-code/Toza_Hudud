@@ -97,6 +97,17 @@ const LiveMapSimple = () => {
   // OpenStreetMap OSRM API dan marshrut olish
   const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
     try {
+      // ✅ Pozitsiyalarni Samarqand chegarasida ekanligini tekshirish
+      if (!isWithinSamarqand(startLat, startLon) || !isWithinSamarqand(endLat, endLon)) {
+        console.warn('⚠️ OSRM: Pozitsiyalar Samarqand tashqarisida, constraining...')
+        const [constrainedStartLat, constrainedStartLon] = constrainToSamarqand(startLat, startLon)
+        const [constrainedEndLat, constrainedEndLon] = constrainToSamarqand(endLat, endLon)
+        startLat = constrainedStartLat
+        startLon = constrainedStartLon
+        endLat = constrainedEndLat
+        endLon = constrainedEndLon
+      }
+      
       // Katta transport vositalari uchun - faqat asosiy ko'chalar
       // exclude=motorway - avtomagistrallarni chiqarib tashlash
       // continue_straight=true - to'g'ri yo'lni afzal ko'rish
@@ -106,7 +117,13 @@ const LiveMapSimple = () => {
       console.log(`📍 Start: [${startLat}, ${startLon}]`)
       console.log(`📍 End: [${endLat}, ${endLon}]`)
       
-      const response = await fetch(url)
+      // ✅ Timeout qo'shish (10 soniya)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
+      const response = await fetch(url, { signal: controller.signal })
+      clearTimeout(timeoutId)
+      
       const data = await response.json()
       
       if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
@@ -134,12 +151,22 @@ const LiveMapSimple = () => {
           duration: durationMin
         }
       } else {
-        console.warn('⚠️ OSRM: Marshrut topilmadi, backup ishlatiladi')
-        return { success: false }
+        console.warn('⚠️ OSRM: Marshrut topilmadi, to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
+        return { 
+          success: false,
+          path: [[startLat, startLon], [endLat, endLon]]
+        }
       }
     } catch (error) {
-      console.error('❌ OSRM API xatolik:', error)
-      return { success: false }
+      if (error.name === 'AbortError') {
+        console.error('❌ OSRM API timeout (10s), to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
+      } else {
+        console.error('❌ OSRM API xatolik:', error)
+      }
+      return { 
+        success: false,
+        path: [[startLat, startLon], [endLat, endLon]]
+      }
     }
   }
 
