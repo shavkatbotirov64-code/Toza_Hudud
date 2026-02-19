@@ -331,11 +331,27 @@ export const AppProvider = ({ children }) => {
                       transformed.isPatrolling = stateData.data.isPatrolling !== undefined ? stateData.data.isPatrolling : true
                       transformed.hasCleanedOnce = stateData.data.hasCleanedOnce || false
                       transformed.patrolIndex = stateData.data.patrolIndex || 0
-                      transformed.status = stateData.data.status || 'idle'
+                      transformed.status = stateData.data.status || 'moving'
                       
-                      if (stateData.data.patrolRoute) {
+                      // ✨ YANGI: Patrol route bo'sh bo'lsa, waypoints yaratish
+                      if (stateData.data.patrolRoute && Array.isArray(stateData.data.patrolRoute) && stateData.data.patrolRoute.length > 0) {
                         transformed.patrolRoute = stateData.data.patrolRoute
+                      } else {
+                        // Patrol route bo'sh - waypoints yaratish
+                        console.log(`⚠️ ${transformed.id}: patrolRoute bo'sh, waypoints yaratilmoqda...`)
+                        const binLocation = binsData.length > 0 ? binsData[0].location : [39.6742637, 66.9737814]
+                        const MAX_DISTANCE = 0.005 // ~500m
+                        const waypoints = []
+                        for (let i = 0; i < 4; i++) {
+                          const randomLat = binLocation[0] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                          const randomLon = binLocation[1] + (Math.random() - 0.5) * MAX_DISTANCE * 2
+                          waypoints.push([randomLat, randomLon])
+                        }
+                        transformed.patrolWaypoints = waypoints
+                        transformed.patrolRoute = [] // Bo'sh - LiveMapSimple'da yaratiladi
+                        console.log(`✅ ${transformed.id}: ${waypoints.length} waypoints yaratildi`)
                       }
+                      
                       if (stateData.data.currentRoute) {
                         transformed.routePath = stateData.data.currentRoute
                       }
