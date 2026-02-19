@@ -117,11 +117,15 @@ const LiveMapSimple = () => {
       console.log(`📍 Start: [${startLat}, ${startLon}]`)
       console.log(`📍 End: [${endLat}, ${endLon}]`)
       
-      // ✅ Timeout qo'shish (10 soniya)
+      // ✅ Timeout qo'shish (20 soniya - OSRM ba'zan sekin ishlaydi)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      const timeoutId = setTimeout(() => controller.abort(), 20000)
       
-      const response = await fetch(url, { signal: controller.signal })
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        mode: 'cors',
+        cache: 'no-cache'
+      })
       clearTimeout(timeoutId)
       
       const data = await response.json()
@@ -159,9 +163,9 @@ const LiveMapSimple = () => {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        console.error('❌ OSRM API timeout (10s), to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
+        console.warn('⚠️ OSRM API timeout (20s), to\'g\'ridan-to\'g\'ri chiziq ishlatiladi')
       } else {
-        console.error('❌ OSRM API xatolik:', error)
+        console.warn('⚠️ OSRM API xatolik:', error.message)
       }
       return { 
         success: false,
