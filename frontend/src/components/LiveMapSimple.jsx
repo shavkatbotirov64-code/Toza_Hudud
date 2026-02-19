@@ -94,115 +94,141 @@ const LiveMapSimple = () => {
   //   }
   // }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute.length}-${v.routePath ? 'route' : 'no'}`).join(',')])
 
-  // OpenStreetMap OSRM API dan marshrut olish
-  const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
-    try {
-      // ✅ Pozitsiyalarni Samarqand chegarasida ekanligini tekshirish
-      if (!isWithinSamarqand(startLat, startLon) || !isWithinSamarqand(endLat, endLon)) {
-        console.warn('⚠️ OSRM: Pozitsiyalar Samarqand tashqarisida, constraining...')
-        const [constrainedStartLat, constrainedStartLon] = constrainToSamarqand(startLat, startLon)
-        const [constrainedEndLat, constrainedEndLon] = constrainToSamarqand(endLat, endLon)
-        startLat = constrainedStartLat
-        startLon = constrainedStartLon
-        endLat = constrainedEndLat
-        endLon = constrainedEndLon
-      }
-      
-      // Katta transport vositalari uchun - faqat asosiy ko'chalar
-      const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
-      
-      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda...`)
-      console.log(`📍 Start: [${startLat}, ${startLon}]`)
-      console.log(`📍 End: [${endLat}, ${endLon}]`)
-      console.log(`🔗 URL: ${url}`)
-      
-      // ✅ Timeout qo'shish (15 soniya)
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
-      
-      const response = await fetch(url, { 
-        signal: controller.signal,
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-          'Accept': 'application/json'
+  // OpenStreetMap OSRM API dan marshrut olish (retry mexanizmi bilan)
+  const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon, retries = 3) => {
+    // ✅ Pozitsiyalarni Samarqand chegarasida ekanligini tekshirish
+    if (!isWithinSamarqand(startLat, startLon) || !isWithinSamarqand(endLat, endLon)) {
+      console.warn('⚠️ OSRM: Pozitsiyalar Samarqand tashqarisida, constraining...')
+      const [constrainedStartLat, constrainedStartLon] = constrainToSamarqand(startLat, startLon)
+      const [constrainedEndLat, constrainedEndLon] = constrainToSamarqand(endLat, endLon)
+      startLat = constrainedStartLat
+      startLon = constrainedStartLon
+      endLat = constrainedEndLat
+      endLon = constrainedEndLon
+    }
+    
+    // Katta transport vositalari uchun - faqat asosiy ko'chalar
+    const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
+    
+    console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda... (${4 - retries}/3 urinish)`)
+    console.log(`📍 Start: [${startLat}, ${startLon}]`)
+    console.log(`📍 End: [${endLat}, ${endLon}]`)
+    
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        console.log(`🔄 Urinish ${attempt + 1}/${retries}...`)
+        
+        // ✅ Timeout qo'shish (30 soniya - Samarqand uchun ko'proq vaqt)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+        
+        const response = await fetch(url, { 
+          signal: controller.signal,
+          mode: 'cors',
+          cache: 'no-cache',
+          headers: {
+            'Accept': 'application/json'
+          }
+        })
+        clearTimeout(timeoutId)
+        
+        console.log(`📡 OSRM Response status: ${response.status}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-      })
-      clearTimeout(timeoutId)
-      
-      console.log(`📡 OSRM Response status: ${response.status}`)
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      console.log(`📦 OSRM Response code: ${data.code}`)
-      
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const route = data.routes[0]
-        const coordinates = route.geometry.coordinates
         
-        // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
-        const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
+        const data = await response.json()
+        console.log(`📦 OSRM Response code: ${data.code}`)
         
-        const distanceKm = (route.distance / 1000).toFixed(2)
-        const durationMin = (route.duration / 60).toFixed(1)
-        
-        console.log(`✅ Marshrut topildi!`)
-        console.log(`📏 Masofa: ${distanceKm} km`)
-        console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-        console.log(`📊 Nuqtalar: ${leafletCoordinates.length}`)
-        
-        return {
-          success: true,
-          path: leafletCoordinates,
-          distance: distanceKm,
-          duration: durationMin
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const route = data.routes[0]
+          const coordinates = route.geometry.coordinates
+          
+          // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
+          const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
+          
+          const distanceKm = (route.distance / 1000).toFixed(2)
+          const durationMin = (route.duration / 60).toFixed(1)
+          
+          console.log(`✅ OSRM marshrut topildi!`)
+          console.log(`📏 Masofa: ${distanceKm} km`)
+          console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
+          console.log(`📊 Nuqtalar: ${leafletCoordinates.length}`)
+          
+          return {
+            success: true,
+            path: leafletCoordinates,
+            distance: distanceKm,
+            duration: durationMin
+          }
+        } else {
+          console.warn(`⚠️ OSRM: Marshrut topilmadi (code: ${data.code})`)
+          if (attempt < retries - 1) {
+            console.log(`⏳ 2 soniya kutib, qayta urinilmoqda...`)
+            await new Promise(resolve => setTimeout(resolve, 2000))
+            continue
+          }
         }
-      } else {
-        console.warn(`⚠️ OSRM: Marshrut topilmadi (code: ${data.code}), to'g'ri chiziq ishlatiladi`)
-        return { 
-          success: false,
-          path: [[startLat, startLon], [endLat, endLon]]
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.warn(`⚠️ OSRM API timeout (30s) - urinish ${attempt + 1}/${retries}`)
+        } else {
+          console.warn(`⚠️ OSRM API xatolik: ${error.message}`)
+        }
+        
+        // Agar oxirgi urinish bo'lmasa, qayta urinish
+        if (attempt < retries - 1) {
+          console.log(`⏳ 2 soniya kutib, qayta urinilmoqda...`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+          continue
         }
       }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        console.warn('⚠️ OSRM API timeout (15s), to\'g\'ri chiziq ishlatiladi')
-      } else {
-        console.warn('⚠️ OSRM API xatolik:', error.message)
-      }
-      // Fallback: to'g'ridan-to'g'ri chiziq
-      return { 
-        success: false,
-        path: [[startLat, startLon], [endLat, endLon]]
-      }
+    }
+    
+    // Barcha urinishlar muvaffaqiyatsiz - to'g'ri chiziq interpolatsiya (10 nuqta)
+    console.warn('❌ OSRM barcha urinishlar muvaffaqiyatsiz, to\'g\'ri chiziq interpolatsiya ishlatiladi')
+    const interpolatedPath = []
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10
+      const lat = startLat + (endLat - startLat) * t
+      const lon = startLon + (endLon - startLon) * t
+      interpolatedPath.push([lat, lon])
+    }
+    
+    return { 
+      success: false,
+      path: interpolatedPath
     }
   }
 
-  // Patrol marshruti yaratish - Oddiy to'g'ri chiziq (OSRM bloklangan)
+  // Patrol marshruti yaratish - OSRM API orqali (Mashina 1)
   useEffect(() => {
     if (!vehicleState) return // Mashina mavjud emas
     
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (to\'g\'ri chiziq)...')
+      console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
       
-      const buildPatrolRoute = () => {
+      const buildPatrolRoute = async () => {
         const waypoints = vehicleState.patrolWaypoints
         let fullRoute = []
         
-        // Har bir waypoint orasida 10 ta nuqta yaratish (silliq harakat)
         for (let i = 0; i < waypoints.length - 1; i++) {
           const start = waypoints[i]
           const end = waypoints[i + 1]
           
-          // Start va end orasida interpolatsiya
-          for (let j = 0; j <= 10; j++) {
-            const t = j / 10
-            const lat = start[0] + (end[0] - start[0]) * t
-            const lon = start[1] + (end[1] - start[1]) * t
-            fullRoute.push([lat, lon])
+          const result = await fetchRouteFromOSRM(start[0], start[1], end[0], end[1])
+          
+          if (result.success) {
+            fullRoute = [...fullRoute, ...result.path]
+          } else {
+            // Fallback: to'g'ri chiziq
+            for (let j = 0; j <= 10; j++) {
+              const t = j / 10
+              const lat = start[0] + (end[0] - start[0]) * t
+              const lon = start[1] + (end[1] - start[1]) * t
+              fullRoute.push([lat, lon])
+            }
           }
         }
         
@@ -218,23 +244,48 @@ const LiveMapSimple = () => {
     }
   }, [vehicleState?.isPatrolling, vehicleState?.patrolRoute?.length])
 
-  // Patrol marshruti yaratish - Oddiy to'g'ri chiziq (OSRM bloklangan)
+  // Patrol marshruti yaratish - OSRM yoki to'g'ri chiziq
   useEffect(() => {
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (to\'g\'ri chiziq)...')
+      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda...')
       
-      const buildPatrolRoute = () => {
+      const buildPatrolRoute = async () => {
         const waypoints = vehicle2State.patrolWaypoints
         let fullRoute = []
+        let osrmSuccess = 0
+        let osrmFailed = 0
         
-        // Har bir waypoint orasida 10 ta nuqta yaratish (silliq harakat)
         for (let i = 0; i < waypoints.length - 1; i++) {
           const start = waypoints[i]
           const end = waypoints[i + 1]
           
-          // Start va end orasida interpolatsiya
+          // OSRM'ni sinab ko'rish (5s timeout)
+          try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 5000)
+            
+            const url = `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=full&geometries=geojson`
+            const response = await fetch(url, { signal: controller.signal })
+            clearTimeout(timeoutId)
+            
+            if (response.ok) {
+              const data = await response.json()
+              if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                const coordinates = data.routes[0].geometry.coordinates
+                const leafletCoords = coordinates.map(coord => [coord[1], coord[0]])
+                fullRoute = [...fullRoute, ...leafletCoords]
+                osrmSuccess++
+                continue
+              }
+            }
+          } catch (error) {
+            // OSRM ishlamadi, to'g'ri chiziq ishlatamiz
+          }
+          
+          // Fallback: to'g'ri chiziq (10 nuqta interpolatsiya)
+          osrmFailed++
           for (let j = 0; j <= 10; j++) {
             const t = j / 10
             const lat = start[0] + (end[0] - start[0]) * t
@@ -244,6 +295,7 @@ const LiveMapSimple = () => {
         }
         
         console.log(`✅ VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        console.log(`   OSRM: ${osrmSuccess} muvaffaqiyatli, ${osrmFailed} fallback`)
         
         updateVehicleState('VEH-002', {
           patrolRoute: fullRoute,
