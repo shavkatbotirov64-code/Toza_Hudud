@@ -94,111 +94,62 @@ const LiveMapSimple = () => {
   //   }
   // }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute.length}-${v.routePath ? 'route' : 'no'}`).join(',')])
 
-  // OpenStreetMap OSRM API dan marshrut olish (retry mexanizmi bilan)
-  const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon, retries = 3) => {
-    // ✅ Pozitsiyalarni Samarqand chegarasida ekanligini tekshirish
-    if (!isWithinSamarqand(startLat, startLon) || !isWithinSamarqand(endLat, endLon)) {
-      console.warn('⚠️ OSRM: Pozitsiyalar Samarqand tashqarisida, constraining...')
-      const [constrainedStartLat, constrainedStartLon] = constrainToSamarqand(startLat, startLon)
-      const [constrainedEndLat, constrainedEndLon] = constrainToSamarqand(endLat, endLon)
-      startLat = constrainedStartLat
-      startLon = constrainedStartLon
-      endLat = constrainedEndLat
-      endLon = constrainedEndLon
-    }
-    
-    // Katta transport vositalari uchun - faqat asosiy ko'chalar
-    const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
-    
-    console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda... (${4 - retries}/3 urinish)`)
-    console.log(`📍 Start: [${startLat}, ${startLon}]`)
-    console.log(`📍 End: [${endLat}, ${endLon}]`)
-    
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        console.log(`🔄 Urinish ${attempt + 1}/${retries}...`)
-        
-        // ✅ Timeout qo'shish (30 soniya - Samarqand uchun ko'proq vaqt)
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000)
-        
-        const response = await fetch(url, { 
-          signal: controller.signal,
-          mode: 'cors',
-          cache: 'no-cache',
-          headers: {
-            'Accept': 'application/json'
-          }
-        })
-        clearTimeout(timeoutId)
-        
-        console.log(`📡 OSRM Response status: ${response.status}`)
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  // Backend OSRM API dan marshrut olish
+  const fetchRouteFromOSRM = async (startLat, startLon, endLat, endLon) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'
+      const url = `${API_URL}/routing/route?startLat=${startLat}&startLon=${startLon}&endLat=${endLat}&endLon=${endLon}`
+      
+      console.log(`🗺️ Backend OSRM API: Marshrut so'ralmoqda...`)
+      console.log(`📍 Start: [${startLat}, ${startLon}]`)
+      console.log(`📍 End: [${endLat}, ${endLon}]`)
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
         }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        console.log(`✅ Backend OSRM marshrut topildi!`)
+        console.log(`📏 Masofa: ${result.data.distance || 'Noma\'lum'}`)
+        console.log(`⏱️ Vaqt: ${result.data.duration || 'Noma\'lum'}`)
+        console.log(`📊 Nuqtalar: ${result.data.path.length}`)
         
-        const data = await response.json()
-        console.log(`📦 OSRM Response code: ${data.code}`)
-        
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const route = data.routes[0]
-          const coordinates = route.geometry.coordinates
-          
-          // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
-          const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
-          
-          const distanceKm = (route.distance / 1000).toFixed(2)
-          const durationMin = (route.duration / 60).toFixed(1)
-          
-          console.log(`✅ OSRM marshrut topildi!`)
-          console.log(`📏 Masofa: ${distanceKm} km`)
-          console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-          console.log(`📊 Nuqtalar: ${leafletCoordinates.length}`)
-          
-          return {
-            success: true,
-            path: leafletCoordinates,
-            distance: distanceKm,
-            duration: durationMin
-          }
-        } else {
-          console.warn(`⚠️ OSRM: Marshrut topilmadi (code: ${data.code})`)
-          if (attempt < retries - 1) {
-            console.log(`⏳ 2 soniya kutib, qayta urinilmoqda...`)
-            await new Promise(resolve => setTimeout(resolve, 2000))
-            continue
-          }
+        return {
+          success: result.data.success,
+          path: result.data.path,
+          distance: result.data.distance,
+          duration: result.data.duration
         }
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          console.warn(`⚠️ OSRM API timeout (30s) - urinish ${attempt + 1}/${retries}`)
-        } else {
-          console.warn(`⚠️ OSRM API xatolik: ${error.message}`)
-        }
-        
-        // Agar oxirgi urinish bo'lmasa, qayta urinish
-        if (attempt < retries - 1) {
-          console.log(`⏳ 2 soniya kutib, qayta urinilmoqda...`)
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          continue
+      } else {
+        console.warn(`⚠️ Backend OSRM: Marshrut topilmadi`)
+        return {
+          success: false,
+          path: [[startLat, startLon], [endLat, endLon]]
         }
       }
-    }
-    
-    // Barcha urinishlar muvaffaqiyatsiz - to'g'ri chiziq interpolatsiya (10 nuqta)
-    console.warn('❌ OSRM barcha urinishlar muvaffaqiyatsiz, to\'g\'ri chiziq interpolatsiya ishlatiladi')
-    const interpolatedPath = []
-    for (let i = 0; i <= 10; i++) {
-      const t = i / 10
-      const lat = startLat + (endLat - startLat) * t
-      const lon = startLon + (endLon - startLon) * t
-      interpolatedPath.push([lat, lon])
-    }
-    
-    return { 
-      success: false,
-      path: interpolatedPath
+    } catch (error) {
+      console.warn('⚠️ Backend OSRM API xatolik:', error.message)
+      // Fallback: to'g'ri chiziq interpolatsiya (10 nuqta)
+      const interpolatedPath = []
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10
+        const lat = startLat + (endLat - startLat) * t
+        const lon = startLon + (endLon - startLon) * t
+        interpolatedPath.push([lat, lon])
+      }
+      return {
+        success: false,
+        path: interpolatedPath
+      }
     }
   }
 

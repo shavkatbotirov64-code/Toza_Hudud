@@ -15,6 +15,7 @@ import { RoutesModule } from './modules/routes/routes.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ActivitiesModule } from './modules/activities/activities.module';
+import { RoutingModule } from './modules/routing/routing.module';
 import { getDatabaseConfig } from './config/database.config';
 import appConfig from './config/app.config';
 
@@ -46,6 +47,7 @@ import appConfig from './config/app.config';
     NotificationsModule,
     AnalyticsModule,
     ActivitiesModule,
+    RoutingModule,
   ],
   controllers: [AppController, ESP32Controller],
   providers: [AppService],
