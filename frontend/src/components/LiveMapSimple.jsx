@@ -186,8 +186,8 @@ const LiveMapSimple = () => {
         console.log(`✅ VEH-001 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
         updateVehicleState('VEH-001', {
-          patrolRoute: fullRoute,
-          position: fullRoute[0] || vehicleState.position
+          patrolRoute: fullRoute
+          // position o'zgartirilmaydi - hozirgi pozitsiyada qoladi
         })
       }
       
@@ -228,8 +228,8 @@ const LiveMapSimple = () => {
         console.log(`✅ VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
         updateVehicleState('VEH-002', {
-          patrolRoute: fullRoute,
-          position: fullRoute[0] || vehicle2State.position
+          patrolRoute: fullRoute
+          // position o'zgartirilmaydi - hozirgi pozitsiyada qoladi
         })
       }
       
