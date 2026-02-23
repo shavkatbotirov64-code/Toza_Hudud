@@ -14,6 +14,49 @@ export const useAppContext = () => {
 }
 
 export const AppProvider = ({ children }) => {
+  const ASSIGNMENT_LOCK_MS = 10 * 60 * 1000
+  const assignmentLocksRef = useRef(new Map())
+
+  const calculateDistanceKm = (start, end) => {
+    const lat1 = start[0]
+    const lon1 = start[1]
+    const lat2 = end[0]
+    const lon2 = end[1]
+    const R = 6371
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    return R * c
+  }
+
+  const getActiveAssignmentLock = (binId) => {
+    const lock = assignmentLocksRef.current.get(binId)
+    if (!lock) return null
+    if (lock.expiresAt <= Date.now()) {
+      assignmentLocksRef.current.delete(binId)
+      return null
+    }
+    return lock
+  }
+
+  const setAssignmentLock = (binId, vehicleId) => {
+    assignmentLocksRef.current.set(binId, {
+      vehicleId,
+      expiresAt: Date.now() + ASSIGNMENT_LOCK_MS
+    })
+  }
+
+  const clearVehicleAssignmentLocks = (vehicleId) => {
+    for (const [binId, lock] of assignmentLocksRef.current.entries()) {
+      if (lock.vehicleId === vehicleId) {
+        assignmentLocksRef.current.delete(binId)
+      }
+    }
+  }
+
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light'
   })
@@ -152,12 +195,12 @@ export const AppProvider = ({ children }) => {
       updateVehicleState(vehicle.id, {
         isPatrolling: false,
         routePath: route,
-        currentPathIndex: 0
+        currentPathIndex: 0,
+        targetBinId: bin.id
       })
       
       // Marshrutni qo'shish
-      setRoutesData(prev => [...prev, newRoute])
-      
+      setRoutesData(prev => [...prev.filter(routeItem => routeItem.vehicle !== vehicle.id), newRoute])
       console.log(`✅ Route created: ${newRoute.id}`)
     } catch (error) {
       console.error('❌ Error creating route:', error)
@@ -556,6 +599,16 @@ export const AppProvider = ({ children }) => {
 
     // ESP32 dan yangi ma'lumot kelganda
     socket.on('sensorData', (data) => {
+      const distance = Number(data.distance)
+      if (!Number.isFinite(distance)) {
+        console.log('sensorData ignored: invalid distance format')
+        return
+      }
+
+      if (distance > 20) {
+        console.log(`sensorData ignored: distance=${distance} (>20 cm)`)
+        return
+      }
       console.log(`📡 AppContext: REAL-TIME ESP32 SIGNAL:`, data)
       console.log(`📡 Distance: ${data.distance} sm`)
       console.log(`📡 BinId: ${data.binId}`)
@@ -564,19 +617,24 @@ export const AppProvider = ({ children }) => {
       setBinStatus('FULL')
       setBinsData(prev => {
         const updatedBins = prev.map(bin => 
-          bin.id === data.binId ? {
+          (bin.id === data.binId || bin.sensorId === data.binId) ? {
             ...bin,
             status: 95, // Qizil rang
             fillLevel: 95,
-            distance: data.distance,
+            distance: distance,
             lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
             timestamp: data.timestamp
           } : bin
         )
         
         // ✨ YANGI: Eng yaqin mashinani topish va yuborish
-        const fullBin = updatedBins.find(b => b.id === data.binId)
+        const fullBin = updatedBins.find(b => b.id === data.binId || b.sensorId === data.binId)
         if (fullBin) {
+          const activeLock = getActiveAssignmentLock(fullBin.id)
+          if (activeLock) {
+            console.log(`sensorData skipped: ${fullBin.id} already assigned to ${activeLock.vehicleId}`)
+            return updatedBins
+          }
           console.log('🚛 ESP32 signal: Eng yaqin mashinani topish...')
           
           // setVehiclesData callback ishlatib real-time vehiclesData olish
@@ -590,26 +648,15 @@ export const AppProvider = ({ children }) => {
             
             // Har bir mashina uchun masofa hisoblash
             const distances = currentVehicles.map(vehicle => {
-              if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) {
-                console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasCleanedOnce=${vehicle.hasCleanedOnce}`)
+              const hasActiveRoute = Array.isArray(vehicle.routePath) && vehicle.routePath.length > 0
+              if (!vehicle.isPatrolling || hasActiveRoute) {
+                console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasActiveRoute=${hasActiveRoute}`)
                 return { vehicle, distance: Infinity }
               }
               
               console.log(`📍 ${vehicle.id} position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
               
-              const lat1 = vehicle.position[0]
-              const lon1 = vehicle.position[1]
-              const lat2 = fullBin.location[0]
-              const lon2 = fullBin.location[1]
-              
-              const R = 6371 // Earth radius in km
-              const dLat = (lat2 - lat1) * Math.PI / 180
-              const dLon = (lon2 - lon1) * Math.PI / 180
-              const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                        Math.sin(dLon/2) * Math.sin(dLon/2)
-              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-              const distance = R * c
+              const distance = calculateDistanceKm(vehicle.position, fullBin.location)
               
               console.log(`📏 ${vehicle.id} distance: ${distance.toFixed(2)} km`)
               
@@ -626,16 +673,21 @@ export const AppProvider = ({ children }) => {
               console.log(`📍 Starting route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
               
               // Faqat eng yaqin mashinani yuborish
+              setAssignmentLock(fullBin.id, closest.vehicle.id)
               createRoute(closest.vehicle, fullBin)
+              setBinsData(prevBins => prevBins.map(bin =>
+                (bin.id === fullBin.id || bin.sensorId === fullBin.sensorId) ? {
+                  ...bin,
+                  assignedVehicleId: closest.vehicle.id,
+                  assignmentStatus: 'ASSIGNED',
+                  assignmentUpdatedAt: new Date().toISOString()
+                } : bin
+              ))
             } else {
               console.log('❌ No available vehicles (all busy or cleaned)')
             }
             
-            // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-            return currentVehicles.map(vehicle => ({
-              ...vehicle,
-              hasCleanedOnce: false
-            }))
+            return currentVehicles
           })
         }
         
@@ -741,10 +793,22 @@ export const AppProvider = ({ children }) => {
           hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
           patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
           status: data.status || vehicle.status,
-          patrolRoute: data.patrolRoute || vehicle.patrolRoute,
+          patrolRoute: data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute,
           routePath: data.currentRoute !== undefined ? data.currentRoute : vehicle.routePath
         } : vehicle
       ))
+
+      if (data.isPatrolling === true && data.currentRoute === null) {
+        clearVehicleAssignmentLocks(data.vehicleId)
+        setBinsData(prevBins => prevBins.map(bin =>
+          bin.assignedVehicleId === data.vehicleId ? {
+            ...bin,
+            assignedVehicleId: null,
+            assignmentStatus: 'UNASSIGNED',
+            assignmentUpdatedAt: new Date().toISOString()
+          } : bin
+        ))
+      }
     })
 
     // Cleanup
