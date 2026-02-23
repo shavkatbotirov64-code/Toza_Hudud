@@ -72,7 +72,7 @@ export class DispatchService implements OnModuleDestroy {
 
     const binId = (payload.binId || this.DEFAULT_BIN_ID).trim();
     const location = (payload.location || this.DEFAULT_LOCATION).trim();
-    const readingTimestamp = payload.timestamp ? new Date(payload.timestamp) : new Date();
+    const readingTimestamp = this.resolveReadingTimestamp(payload.timestamp);
 
     const savedReading = await this.sensorReadingRepository.save(
       this.sensorReadingRepository.create({
@@ -753,6 +753,32 @@ export class DispatchService implements OnModuleDestroy {
     } catch (_error) {
       return null;
     }
+  }
+
+  private resolveReadingTimestamp(rawTimestamp?: string) {
+    if (!rawTimestamp) {
+      return new Date();
+    }
+
+    // Accept ISO/date strings or unix timestamps (seconds/milliseconds).
+    if (/^\d+$/.test(rawTimestamp)) {
+      const numeric = Number(rawTimestamp);
+      if (Number.isFinite(numeric)) {
+        const asMillis = rawTimestamp.length <= 10 ? numeric * 1000 : numeric;
+        const parsedNumeric = new Date(asMillis);
+        if (!Number.isNaN(parsedNumeric.getTime())) {
+          return parsedNumeric;
+        }
+      }
+    }
+
+    const parsed = new Date(rawTimestamp);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+
+    this.logger.warn(`Invalid sensor timestamp "${rawTimestamp}", falling back to server time`);
+    return new Date();
   }
 
   private async safeLogActivity(
