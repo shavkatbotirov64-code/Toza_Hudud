@@ -36,6 +36,27 @@ export class SensorsController {
     }
   }
 
+  // GET fallback for simple firmware clients sending query params
+  @Get('distance')
+  async receiveDistanceGet(@Query() query: any) {
+    try {
+      const payload: SensorData = {
+        distance: Number(query?.distance ?? query?.distanceCm ?? query?.distance_cm ?? query?.cm),
+        binId: query?.binId || query?.sensorId || query?.sensor_id,
+        location: query?.location || query?.locationName || query?.address,
+        timestamp: query?.timestamp || query?.time || query?.ts,
+      };
+      this.logger.log(`Sensor distance query payload: ${JSON.stringify(payload)}`);
+      return await this.dispatchService.handleSensorDistance(payload);
+    } catch (error) {
+      this.logger.error(`Sensor distance GET processing failed: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   @Get('latest')
   @ApiOperation({ summary: "Oxirgi sensor ma'lumotlarini olish" })
   @ApiResponse({ status: 200, description: "Oxirgi ma'lumotlar" })
