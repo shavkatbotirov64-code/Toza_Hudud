@@ -1,85 +1,16 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Vehicle } from './entities/vehicle.entity';
 
 @Injectable()
-export class VehiclesService implements OnModuleInit {
+export class VehiclesService {
   private readonly logger = new Logger(VehiclesService.name);
 
   constructor(
     @InjectRepository(Vehicle)
     private vehicleRepository: Repository<Vehicle>,
   ) {}
-
-  // 🚀 Backend start bo'lganda avtomatik mashinalar yaratish
-  async onModuleInit() {
-    this.logger.log('🔧 Initializing vehicles...');
-    await this.initializeDefaultVehicles();
-  }
-
-  // Default mashinalarni yaratish (agar mavjud bo'lmasa)
-  async initializeDefaultVehicles() {
-    try {
-      // Bin location - Ibn Sino ko'chasi 17A
-      const binLocation = {
-        lat: 39.6742637,
-        lon: 66.9737814
-      };
-
-      // Default mashinalar
-      const defaultVehicles = [
-        {
-          vehicleId: 'VEH-001',
-          driver: 'Aziz Rahimov',
-          phone: '+998 90 123 45 67',
-          licensePlate: '01 A 123 BC',
-          // 200m shimolda
-          latitude: binLocation.lat + 0.002,
-          longitude: binLocation.lon - 0.002,
-          status: 'moving',
-          isMoving: true,
-          isPatrolling: true,
-          hasCleanedOnce: false,
-          patrolIndex: 0
-        },
-        {
-          vehicleId: 'VEH-002',
-          driver: 'Bobur Karimov',
-          phone: '+998 91 234 56 78',
-          licensePlate: '01 B 456 DE',
-          // 200m janubda
-          latitude: binLocation.lat - 0.002,
-          longitude: binLocation.lon + 0.002,
-          status: 'moving',
-          isMoving: true,
-          isPatrolling: true,
-          hasCleanedOnce: false,
-          patrolIndex: 0
-        }
-      ];
-
-      // Har bir default mashinani tekshirish va yaratish
-      for (const vehicleData of defaultVehicles) {
-        const existing = await this.vehicleRepository.findOne({
-          where: { vehicleId: vehicleData.vehicleId }
-        });
-
-        if (!existing) {
-          const vehicle = this.vehicleRepository.create(vehicleData);
-          await this.vehicleRepository.save(vehicle);
-          this.logger.log(`✅ Created vehicle: ${vehicleData.vehicleId} at [${vehicleData.latitude}, ${vehicleData.longitude}]`);
-        } else {
-          this.logger.log(`✓ Vehicle ${vehicleData.vehicleId} already exists`);
-        }
-      }
-
-      const totalVehicles = await this.vehicleRepository.count();
-      this.logger.log(`🎉 Vehicles initialization complete: ${totalVehicles} vehicles in database`);
-    } catch (error) {
-      this.logger.error(`❌ Error initializing default vehicles: ${error.message}`);
-    }
-  }
 
   // Mashina yaratish yoki yangilash
   async upsertVehicle(data: {
@@ -173,39 +104,6 @@ export class VehiclesService implements OnModuleInit {
     }
   }
 
-  // Mashina holatini yangilash
-  async updateState(
-    vehicleId: string,
-    data: {
-      isPatrolling?: boolean;
-      hasCleanedOnce?: boolean;
-      patrolIndex?: number;
-      status?: string;
-      patrolRoute?: any;
-      currentRoute?: any;
-    },
-  ): Promise<Vehicle> {
-    try {
-      const vehicle = await this.getVehicleStatus(vehicleId);
-      
-      if (data.isPatrolling !== undefined) vehicle.isPatrolling = data.isPatrolling;
-      if (data.hasCleanedOnce !== undefined) vehicle.hasCleanedOnce = data.hasCleanedOnce;
-      if (data.patrolIndex !== undefined) vehicle.patrolIndex = data.patrolIndex;
-      if (data.status !== undefined) vehicle.status = data.status;
-      if (data.patrolRoute !== undefined) vehicle.patrolRoute = data.patrolRoute;
-      if (data.currentRoute !== undefined) vehicle.currentRoute = data.currentRoute;
-      
-      vehicle.updatedAt = new Date();
-
-      const saved = await this.vehicleRepository.save(vehicle);
-      this.logger.log(`🔄 Vehicle state updated: ${vehicleId}`);
-      return saved;
-    } catch (error) {
-      this.logger.error(`❌ Error updating state: ${error.message}`);
-      throw error;
-    }
-  }
-
   // Mashina harakatini boshlash
   async startMoving(vehicleId: string, targetBinId: string): Promise<Vehicle> {
     try {
@@ -288,11 +186,6 @@ export class VehiclesService implements OnModuleInit {
     licensePlate?: string;
     latitude: number;
     longitude: number;
-    status?: string;
-    isMoving?: boolean;
-    isPatrolling?: boolean;
-    hasCleanedOnce?: boolean;
-    patrolIndex?: number;
   }): Promise<Vehicle> {
     try {
       // Mavjudligini tekshirish
@@ -309,11 +202,8 @@ export class VehiclesService implements OnModuleInit {
         driver: data.driver,
         latitude: data.latitude,
         longitude: data.longitude,
-        status: data.status || 'moving',
-        isMoving: data.isMoving !== undefined ? data.isMoving : true,
-        isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : true,
-        hasCleanedOnce: data.hasCleanedOnce || false,
-        patrolIndex: data.patrolIndex || 0,
+        status: 'idle',
+        isMoving: false,
       });
 
       const saved = await this.vehicleRepository.save(vehicle);

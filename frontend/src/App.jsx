@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { AppProvider } from './context/AppContext'
 import LoadingScreen from './components/LoadingScreen'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -251,7 +252,12 @@ function AppContent() {
 }
 
 function App() {
-  return <AppContent />
+  return (
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
+  )
 }
 
 export default App
+

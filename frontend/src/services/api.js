@@ -467,7 +467,7 @@ class ApiService {
           parseFloat(backendBin.latitude),
           parseFloat(backendBin.longitude),
         ],
-        status: parseFloat(backendBin.fillLevel), // ✅ MUHIM: status = fillLevel (xaritada ishlatiladi)
+        status: this.getFillLevelStatus(parseFloat(backendBin.fillLevel)),
         lastUpdate: new Date(backendBin.lastUpdate).toLocaleTimeString(
           'uz-UZ',
           {

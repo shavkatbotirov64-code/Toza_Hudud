@@ -35,22 +35,6 @@ export class Vehicle {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   totalDistanceTraveled: number; // Jami bosib o'tgan masofa (km)
 
-  // Patrol state
-  @Column({ type: 'boolean', default: true })
-  isPatrolling: boolean; // Patrol qilyaptimi
-
-  @Column({ type: 'boolean', default: false })
-  hasCleanedOnce: boolean; // Bir marta tozaladimi
-
-  @Column({ type: 'int', default: 0 })
-  patrolIndex: number; // Patrol marshrut indexi
-
-  @Column({ type: 'jsonb', nullable: true })
-  patrolRoute: any; // Patrol marshrut nuqtalari
-
-  @Column({ type: 'jsonb', nullable: true })
-  currentRoute: any; // Hozirgi marshrut (qutiga borayotganda)
-
   @CreateDateColumn()
   createdAt: Date;
 

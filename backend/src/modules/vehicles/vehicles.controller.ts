@@ -1,17 +1,13 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { VehiclesService } from './vehicles.service';
-import { VehiclesGateway } from './vehicles.gateway';
 
 @ApiTags('vehicles')
 @Controller('vehicles')
 export class VehiclesController {
   private readonly logger = new Logger(VehiclesController.name);
 
-  constructor(
-    private readonly vehiclesService: VehiclesService,
-    private readonly vehiclesGateway: VehiclesGateway,
-  ) {}
+  constructor(private readonly vehiclesService: VehiclesService) {}
 
   @Post('status')
   @ApiOperation({ summary: 'Mashina holatini yaratish yoki yangilash' })
@@ -85,50 +81,11 @@ export class VehiclesController {
     @Body() data: { latitude: number; longitude: number },
   ) {
     try {
-      this.logger.log(`📍 Updating location for ${vehicleId}: [${data.latitude}, ${data.longitude}]`)
       const vehicle = await this.vehiclesService.updateLocation(
         vehicleId,
         data.latitude,
         data.longitude,
       );
-      
-      // ✨ WebSocket orqali barcha clientlarga yuborish
-      this.vehiclesGateway.broadcastVehiclePosition(vehicleId, data.latitude, data.longitude);
-      
-      return {
-        success: true,
-        data: vehicle,
-      };
-    } catch (error) {
-      this.logger.error(`❌ Error: ${error.message}`);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  @Put(':vehicleId/state')
-  @ApiOperation({ summary: 'Mashina holatini yangilash' })
-  @ApiResponse({ status: 200, description: 'Holat yangilandi' })
-  async updateState(
-    @Param('vehicleId') vehicleId: string,
-    @Body() data: {
-      isPatrolling?: boolean;
-      hasCleanedOnce?: boolean;
-      patrolIndex?: number;
-      status?: string;
-      patrolRoute?: any;
-      currentRoute?: any;
-    },
-  ) {
-    try {
-      this.logger.log(`🔄 Updating state for ${vehicleId}:`, data)
-      const vehicle = await this.vehiclesService.updateState(vehicleId, data);
-      
-      // ✨ WebSocket orqali barcha clientlarga yuborish
-      this.vehiclesGateway.broadcastVehicleState(vehicleId, data);
-      
       return {
         success: true,
         data: vehicle,
@@ -297,127 +254,6 @@ export class VehiclesController {
       };
     } catch (error) {
       this.logger.error(`❌ Error deleting vehicle: ${error.message}`);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // ✨ YANGI: Patrol marshrut boshqaruvi
-
-  @Get(':vehicleId/patrol-route')
-  @ApiOperation({ summary: 'Mashina patrol marshrutini olish' })
-  @ApiResponse({ status: 200, description: 'Patrol marshrut' })
-  async getPatrolRoute(@Param('vehicleId') vehicleId: string) {
-    try {
-      this.logger.log(`📍 Getting patrol route for ${vehicleId}`);
-      const vehicle = await this.vehiclesService.getVehicleStatus(vehicleId);
-      return {
-        success: true,
-        data: {
-          vehicleId: vehicle.vehicleId,
-          patrolRoute: vehicle.patrolRoute,
-          patrolIndex: vehicle.patrolIndex,
-          isPatrolling: vehicle.isPatrolling,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`❌ Error getting patrol route: ${error.message}`);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  @Post(':vehicleId/patrol-route')
-  @ApiOperation({ summary: 'Mashina patrol marshrutini belgilash' })
-  @ApiResponse({ status: 200, description: 'Patrol marshrut belgilandi' })
-  async setPatrolRoute(
-    @Param('vehicleId') vehicleId: string,
-    @Body() data: { waypoints: any[] },
-  ) {
-    try {
-      this.logger.log(`📍 Setting patrol route for ${vehicleId}: ${data.waypoints?.length} waypoints`);
-      const vehicle = await this.vehiclesService.updateState(vehicleId, {
-        patrolRoute: data.waypoints,
-        patrolIndex: 0,
-        isPatrolling: true,
-      });
-      
-      // WebSocket orqali barcha clientlarga yuborish
-      this.vehiclesGateway.broadcastVehicleState(vehicleId, {
-        patrolRoute: data.waypoints,
-        patrolIndex: 0,
-        isPatrolling: true,
-      });
-      
-      return {
-        success: true,
-        message: 'Patrol route set successfully',
-        data: vehicle,
-      };
-    } catch (error) {
-      this.logger.error(`❌ Error setting patrol route: ${error.message}`);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  @Delete(':vehicleId/patrol-route')
-  @ApiOperation({ summary: 'Patrol marshrutini o\'chirish' })
-  @ApiResponse({ status: 200, description: 'Patrol marshrut o\'chirildi' })
-  async clearPatrolRoute(@Param('vehicleId') vehicleId: string) {
-    try {
-      this.logger.log(`🗑️ Clearing patrol route for ${vehicleId}`);
-      const vehicle = await this.vehiclesService.updateState(vehicleId, {
-        patrolRoute: null,
-        patrolIndex: 0,
-        isPatrolling: false,
-      });
-      
-      // WebSocket orqali barcha clientlarga yuborish
-      this.vehiclesGateway.broadcastVehicleState(vehicleId, {
-        patrolRoute: null,
-        patrolIndex: 0,
-        isPatrolling: false,
-      });
-      
-      return {
-        success: true,
-        message: 'Patrol route cleared successfully',
-        data: vehicle,
-      };
-    } catch (error) {
-      this.logger.error(`❌ Error clearing patrol route: ${error.message}`);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // ✨ YANGI: Default mashinalarni qayta yaratish (test uchun)
-  @Post('initialize-defaults')
-  @ApiOperation({ summary: 'Default mashinalarni qayta yaratish' })
-  @ApiResponse({ status: 200, description: 'Default mashinalar yaratildi' })
-  async initializeDefaults() {
-    try {
-      this.logger.log('🔄 Manually initializing default vehicles...');
-      await this.vehiclesService.initializeDefaultVehicles();
-      
-      const vehicles = await this.vehiclesService.getAllVehicles();
-      
-      return {
-        success: true,
-        message: 'Default vehicles initialized successfully',
-        data: vehicles,
-      };
-    } catch (error) {
-      this.logger.error(`❌ Error initializing defaults: ${error.message}`);
       return {
         success: false,
         error: error.message,

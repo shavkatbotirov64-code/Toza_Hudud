@@ -5,7 +5,10 @@ import { AppProvider } from './context/AppContext'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <AppProvider>
-    <App />
-  </AppProvider>
+  <React.StrictMode>
+    <AppProvider>
+      <App />
+    </AppProvider>
+  </React.StrictMode>
 )
+

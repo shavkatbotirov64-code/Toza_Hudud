@@ -7,21 +7,17 @@ class RealtimeService {
     this.listeners = new Map();
   }
 
-  connect(url = 'https://tozahudud-production-d73f.up.railway.app') {
+  connect(url = 'http://localhost:3002') {
     if (this.socket) {
       console.log('🔌 Already connected to WebSocket');
       return;
     }
 
-    console.log('🔌 Connecting to WebSocket:', url);
-
     this.socket = io(url, {
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity,
-      timeout: 20000,
+      reconnectionAttempts: 5,
     });
 
     this.socket.on('connect', () => {
@@ -29,27 +25,14 @@ class RealtimeService {
       console.log('✅ [DRIVER] WebSocket connected');
     });
 
-    this.socket.on('disconnect', (reason) => {
+    this.socket.on('disconnect', () => {
       this.connected = false;
-      console.log('❌ [DRIVER] WebSocket disconnected:', reason);
+      console.log('❌ [DRIVER] WebSocket disconnected');
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('❌ [DRIVER] WebSocket connection error:', error.message);
-    });
-
-    // Listen for sensor data updates (ESP32 signals)
-    this.socket.on('sensorData', (data) => {
-      console.log('📥 [WebSocket] Sensor data received:', data);
-      const listeners = this.listeners.get('mapUpdate') || [];
-      listeners.forEach((callback) => callback({ type: 'sensorData', data }));
-    });
-    
-    // Listen for general map updates
     this.socket.on('mapUpdate', (data) => {
-      console.log('📥 [WebSocket] Map update received:', data);
       const listeners = this.listeners.get('mapUpdate') || [];
-      listeners.forEach((callback) => callback({ type: 'mapUpdate', data }));
+      listeners.forEach((callback) => callback(data));
     });
   }
 
