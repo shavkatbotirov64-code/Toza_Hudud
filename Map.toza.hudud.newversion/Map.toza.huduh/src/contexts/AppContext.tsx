@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
 import api from '../services/api'
 
@@ -75,6 +75,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return []
   })
   const [binStatus, setBinStatus] = useState<'EMPTY' | 'FULL'>('EMPTY')
+  const binsDataRef = useRef<Bin[]>([])
+  const vehiclesDataRef = useRef<Vehicle[]>([])
+
+  const normalizeRoutePath = (routePath: Vehicle['routePath'] | null | undefined): Vehicle['routePath'] | undefined => {
+    if (Array.isArray(routePath) && routePath.length === 0) return undefined
+    return routePath === null ? undefined : routePath
+  }
+
+  const hasRoutePoints = (routePath: Vehicle['routePath'] | null | undefined): boolean => {
+    return Array.isArray(routePath) && routePath.length > 0
+  }
+
+  useEffect(() => {
+    binsDataRef.current = binsData
+  }, [binsData])
+
+  useEffect(() => {
+    vehiclesDataRef.current = vehiclesData
+  }, [vehiclesData])
 
   // Helper: Create route for vehicle to bin (like admin panel)
   const createRouteForVehicle = async (vehicle: Vehicle, bin: Bin) => {
@@ -201,7 +220,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               
               // DISPATCH: Eng yaqin mashinani topish (polling orqali ham)
               if (vehiclesData.length > 0) {
-                const vehicleGoingToBin = vehiclesData.find(v => !v.isPatrolling && v.routePath)
+                const vehicleGoingToBin = vehiclesData.find(v => !v.isPatrolling && hasRoutePoints(v.routePath))
                 
                 if (!vehicleGoingToBin) {
                   console.log('🚛 [POLLING] Finding closest vehicle...')
@@ -407,13 +426,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ))
         
         // DISPATCH: Eng yaqin mashinani topish va yuborish (admin paneldagidek)
-        const fullBin = binsData.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
-        if (fullBin && vehiclesData.length > 0) {
+        const fullBin = binsDataRef.current.find(b => b.sensorId === sensorData.binId || b.id === sensorData.binId)
+        const currentVehicles = vehiclesDataRef.current
+        if (fullBin && currentVehicles.length > 0) {
           console.log('🚛 [WEBSOCKET] Finding closest vehicle...')
           
           // Calculate distances - faqat patrol qilayotgan va hali tozalamagan mashinalar
-          const distances = vehiclesData.map(vehicle => {
-            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
+          const distances = currentVehicles.map(vehicle => {
+            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce || hasRoutePoints(vehicle.routePath)) return { vehicle, distance: Infinity }
             
             const R = 6371 // Earth radius in km
             const dLat = (fullBin.location[0] - vehicle.position[0]) * Math.PI / 180
@@ -486,8 +506,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
           patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
           status: data.status || vehicle.status,
-          patrolRoute: data.patrolRoute || vehicle.patrolRoute,
-          routePath: data.currentRoute !== undefined ? data.currentRoute : vehicle.routePath
+          patrolRoute: data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute,
+          routePath: data.currentRoute !== undefined ? normalizeRoutePath(data.currentRoute) : vehicle.routePath
         } : vehicle
       ))
     })
@@ -496,7 +516,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('🔌 Haydovchi WebSocket disconnecting...')
       socket.disconnect()
     }
-  }, [binsData, vehiclesData]) // Dependencies: binsData va vehiclesData
+  }, [])
 
   const value: AppContextType = {
     binsData,

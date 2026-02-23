@@ -49,12 +49,21 @@ export const AppProvider = ({ children }) => {
     })
   }
 
+  const clearAssignmentLock = (binId) => {
+    assignmentLocksRef.current.delete(binId)
+  }
+
   const clearVehicleAssignmentLocks = (vehicleId) => {
     for (const [binId, lock] of assignmentLocksRef.current.entries()) {
       if (lock.vehicleId === vehicleId) {
         assignmentLocksRef.current.delete(binId)
       }
     }
+  }
+
+  const normalizeRoutePath = (routePath) => {
+    if (Array.isArray(routePath) && routePath.length === 0) return null
+    return routePath
   }
 
   const [theme, setTheme] = useState(() => {
@@ -100,11 +109,11 @@ export const AppProvider = ({ children }) => {
       const savedVehicles = localStorage.getItem('vehiclesData')
       if (savedVehicles) {
         const parsed = JSON.parse(savedVehicles)
-        console.log('🚛 localStorage dan mashinalar yuklandi:', parsed.length)
+        console.log('ðŸš› localStorage dan mashinalar yuklandi:', parsed.length)
         return parsed
       }
     } catch (error) {
-      console.error('❌ localStorage dan yuklashda xatolik:', error)
+      console.error('âŒ localStorage dan yuklashda xatolik:', error)
     }
     // Default bo'sh array
     return []
@@ -151,62 +160,76 @@ export const AppProvider = ({ children }) => {
   
   // Marshrut yaratish helper function
   const createRoute = async (vehicle, bin) => {
-    console.log(`🛣️ Creating route for ${vehicle.id} to ${bin.id}`)
-    console.log(`📍 Vehicle current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
-    console.log(`📍 Bin location: [${bin.location[0]}, ${bin.location[1]}]`)
-    
-    // OSRM API dan marshrut olish
+    if (!vehicle?.position || !bin?.location) {
+      console.error('createRoute: coordinates missing', { vehicleId: vehicle?.id, binId: bin?.id })
+      return false
+    }
+
+    console.log(`Creating route for ${vehicle.id} to ${bin.id}`)
+    console.log(`Vehicle current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+    console.log(`Bin location: [${bin.location[0]}, ${bin.location[1]}]`)
+
     try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${vehicle.position[1]},${vehicle.position[0]};${bin.location[1]},${bin.location[0]}?overview=full&geometries=geojson`
-      const response = await fetch(url)
-      const data = await response.json()
-      
+      const API_URL = import.meta.env.VITE_API_URL || 'https://tozahudud-production-d73f.up.railway.app'
       let route = [vehicle.position, bin.location]
       let distance = 'Noma\'lum'
       let duration = 'Noma\'lum'
-      
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const routeData = data.routes[0]
-        const coordinates = routeData.geometry.coordinates
-        route = coordinates.map(coord => [coord[1], coord[0]])
-        distance = `${(routeData.distance / 1000).toFixed(2)} km`
-        duration = `${(routeData.duration / 60).toFixed(0)} daqiqa`
-        
-        console.log(`✅ OSRM route found: ${route.length} points, ${distance}, ${duration}`)
-        console.log(`📍 Route starts from: [${route[0][0]}, ${route[0][1]}]`)
-      } else {
-        console.log(`⚠️ OSRM failed, using direct route`)
+
+      // Avval backend routing endpoint'ni ishlatamiz
+      try {
+        const backendUrl = `${API_URL}/routing/route?startLat=${vehicle.position[0]}&startLon=${vehicle.position[1]}&endLat=${bin.location[0]}&endLon=${bin.location[1]}`
+        const backendResponse = await fetch(backendUrl)
+        const backendData = await backendResponse.json()
+
+        if (backendResponse.ok && backendData?.success && backendData?.data?.path?.length > 1) {
+          route = backendData.data.path
+          distance = backendData.data.distance || distance
+          duration = backendData.data.duration || duration
+        } else {
+          throw new Error('Backend route not available')
+        }
+      } catch (backendError) {
+        console.warn('Backend routing failed, fallback to OSRM public API:', backendError)
+
+        const url = `https://router.project-osrm.org/route/v1/driving/${vehicle.position[1]},${vehicle.position[0]};${bin.location[1]},${bin.location[0]}?overview=full&geometries=geojson&continue_straight=true`
+        const response = await fetch(url)
+        const data = await response.json()
+
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const routeData = data.routes[0]
+          const coordinates = routeData.geometry.coordinates
+          route = coordinates.map(coord => [coord[1], coord[0]])
+          distance = `${(routeData.distance / 1000).toFixed(2)} km`
+          duration = `${(routeData.duration / 60).toFixed(0)} daqiqa`
+        }
       }
-      
-      // Yangi marshrut yaratish
+
       const newRoute = {
         id: `ROUTE-${Date.now()}`,
-        name: `${vehicle.driver} → ${bin.address}`,
+        name: `${vehicle.driver} -> ${bin.id}`,
         vehicle: vehicle.id,
         bins: [bin.id],
         progress: 0,
-        distance: distance,
+        distance,
         estimatedTime: duration,
         isActive: true,
         path: route
       }
-      
-      // Mashina holatini yangilash
+
       updateVehicleState(vehicle.id, {
         isPatrolling: false,
         routePath: route,
         currentPathIndex: 0,
         targetBinId: bin.id
       })
-      
-      // Marshrutni qo'shish
+
       setRoutesData(prev => [...prev.filter(routeItem => routeItem.vehicle !== vehicle.id), newRoute])
-      console.log(`✅ Route created: ${newRoute.id}`)
+      return true
     } catch (error) {
-      console.error('❌ Error creating route:', error)
+      console.error('Error creating route:', error)
+      return false
     }
   }
-  
   const [activityData, setActivityData] = useState([]) // Bo'sh array - API dan yuklanadi
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -230,31 +253,31 @@ export const AppProvider = ({ children }) => {
     if (vehiclesData.length > 0) {
       try {
         localStorage.setItem('vehiclesData', JSON.stringify(vehiclesData))
-        console.log('💾 Mashinalar holati saqlandi:', vehiclesData.length)
+        console.log('ðŸ’¾ Mashinalar holati saqlandi:', vehiclesData.length)
       } catch (error) {
-        console.error('❌ localStorage ga saqlashda xatolik:', error)
+        console.error('âŒ localStorage ga saqlashda xatolik:', error)
       }
     }
   }, [vehiclesData])
 
   // Load data from API
   const loadDataFromAPI = async () => {
-    console.log('🔄 Loading data from API...')
+    console.log('ðŸ”„ Loading data from API...')
     
     try {
       // Test API connection first
       const connectionTest = await ApiService.testConnection()
-      console.log('🔗 API Connection Test:', connectionTest)
+      console.log('ðŸ”— API Connection Test:', connectionTest)
       
       if (connectionTest.success) {
         setApiConnected(true)
-        console.log('✅ API connected successfully')
+        console.log('âœ… API connected successfully')
         
         // Load bins
         const binsResult = await ApiService.getBins()
-        console.log('📦 Bins Result:', binsResult)
-        console.log('📦 Bins Result Data:', binsResult.data)
-        console.log('📦 Bins Result Data Type:', typeof binsResult.data)
+        console.log('ðŸ“¦ Bins Result:', binsResult)
+        console.log('ðŸ“¦ Bins Result Data:', binsResult.data)
+        console.log('ðŸ“¦ Bins Result Data Type:', typeof binsResult.data)
         
         try {
           if (binsResult.success && binsResult.data) {
@@ -263,57 +286,57 @@ export const AppProvider = ({ children }) => {
             // Agar data object bo'lsa va data property'si bo'lsa
             if (typeof binsResult.data === 'object' && !Array.isArray(binsResult.data) && binsResult.data.data) {
               binsArray = binsResult.data.data
-              console.log('📦 Using nested data array:', binsArray)
+              console.log('ðŸ“¦ Using nested data array:', binsArray)
             }
             
-            console.log('📦 BinsArray:', binsArray)
-            console.log('📦 BinsArray length:', binsArray?.length)
-            console.log('📦 BinsArray is Array:', Array.isArray(binsArray))
+            console.log('ðŸ“¦ BinsArray:', binsArray)
+            console.log('ðŸ“¦ BinsArray length:', binsArray?.length)
+            console.log('ðŸ“¦ BinsArray is Array:', Array.isArray(binsArray))
             
             if (Array.isArray(binsArray) && binsArray.length > 0) {
-              console.log('📦 Processing bins array:', binsArray.length, 'items')
-              console.log('📦 First bin raw data:', binsArray[0])
+              console.log('ðŸ“¦ Processing bins array:', binsArray.length, 'items')
+              console.log('ðŸ“¦ First bin raw data:', binsArray[0])
               
               const transformedBins = binsArray.map((bin, index) => {
                 try {
-                  console.log(`📦 Transforming bin ${index + 1}:`, bin)
+                  console.log(`ðŸ“¦ Transforming bin ${index + 1}:`, bin)
                   const transformed = ApiService.transformBinData(bin)
-                  console.log(`✅ Bin ${index + 1} transformed:`, transformed)
+                  console.log(`âœ… Bin ${index + 1} transformed:`, transformed)
                   return transformed
                 } catch (error) {
-                  console.error(`❌ Error transforming bin ${index + 1}:`, error)
-                  console.error('❌ Bin data:', bin)
+                  console.error(`âŒ Error transforming bin ${index + 1}:`, error)
+                  console.error('âŒ Bin data:', bin)
                   return null
                 }
               }).filter(bin => bin !== null) // Remove failed transformations
               
-              console.log('📦 Transformed Bins:', transformedBins)
-              console.log('📦 Setting binsData with', transformedBins.length, 'bins')
+              console.log('ðŸ“¦ Transformed Bins:', transformedBins)
+              console.log('ðŸ“¦ Setting binsData with', transformedBins.length, 'bins')
               
               if (transformedBins.length > 0) {
                 setBinsData(transformedBins)
-                console.log('✅ BinsData set successfully')
+                console.log('âœ… BinsData set successfully')
               } else {
-                console.warn('⚠️ No bins could be transformed')
+                console.warn('âš ï¸ No bins could be transformed')
               }
             } else {
-              console.log('📦 No bins data or empty array')
-              console.log('📦 BinsArray:', binsArray)
+              console.log('ðŸ“¦ No bins data or empty array')
+              console.log('ðŸ“¦ BinsArray:', binsArray)
             }
           } else {
-            console.log('📦 API call failed or no data')
-            console.log('📦 binsResult.success:', binsResult.success)
-            console.log('📦 binsResult.data:', binsResult.data)
+            console.log('ðŸ“¦ API call failed or no data')
+            console.log('ðŸ“¦ binsResult.success:', binsResult.success)
+            console.log('ðŸ“¦ binsResult.data:', binsResult.data)
           }
         } catch (error) {
-          console.error('❌ Error processing bins data:', error)
-          console.error('❌ Error stack:', error.stack)
+          console.error('âŒ Error processing bins data:', error)
+          console.error('âŒ Error stack:', error.stack)
           showToast('Qutilar ma\'lumotini yuklashda xatolik', 'error')
         }
         
         // Load vehicles
         const vehiclesResult = await ApiService.getVehicles()
-        console.log('🚛 Vehicles Result:', vehiclesResult)
+        console.log('ðŸš› Vehicles Result:', vehiclesResult)
         
         try {
           if (vehiclesResult.success && vehiclesResult.data) {
@@ -322,11 +345,11 @@ export const AppProvider = ({ children }) => {
             // Agar data object bo'lsa va data property'si bo'lsa
             if (typeof vehiclesResult.data === 'object' && !Array.isArray(vehiclesResult.data) && vehiclesResult.data.data) {
               vehiclesArray = vehiclesResult.data.data
-              console.log('🚛 Using nested data array:', vehiclesArray)
+              console.log('ðŸš› Using nested data array:', vehiclesArray)
             }
             
             if (Array.isArray(vehiclesArray) && vehiclesArray.length > 0) {
-              console.log('🚛 Processing vehicles array:', vehiclesArray.length, 'items')
+              console.log('ðŸš› Processing vehicles array:', vehiclesArray.length, 'items')
               
               // Har xil patrol marshrutlari
               const patrolRoutes = [
@@ -357,7 +380,7 @@ export const AppProvider = ({ children }) => {
               // Backend'dan holat yuklash
               const transformedVehicles = await Promise.all(vehiclesArray.map(async (vehicle, index) => {
                 try {
-                  console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
+                  console.log(`ðŸš› Transforming vehicle ${index + 1}:`, vehicle)
                   const transformed = ApiService.transformVehicleData(vehicle)
                   
                   // Backend'dan holatni olish
@@ -367,7 +390,7 @@ export const AppProvider = ({ children }) => {
                     const stateData = await stateResponse.json()
                     
                     if (stateData.success && stateData.data) {
-                      console.log(`📥 Backend state loaded for ${transformed.id}:`, stateData.data)
+                      console.log(`ðŸ“¥ Backend state loaded for ${transformed.id}:`, stateData.data)
                       
                       // Backend'dan kelgan holatni merge qilish
                       transformed.position = [stateData.data.latitude, stateData.data.longitude]
@@ -376,12 +399,12 @@ export const AppProvider = ({ children }) => {
                       transformed.patrolIndex = stateData.data.patrolIndex || 0
                       transformed.status = stateData.data.status || 'moving'
                       
-                      // ✨ YANGI: Patrol route bo'sh bo'lsa, waypoints yaratish
+                      // âœ¨ YANGI: Patrol route bo'sh bo'lsa, waypoints yaratish
                       if (stateData.data.patrolRoute && Array.isArray(stateData.data.patrolRoute) && stateData.data.patrolRoute.length > 0) {
                         transformed.patrolRoute = stateData.data.patrolRoute
                       } else {
                         // Patrol route bo'sh - waypoints yaratish
-                        console.log(`⚠️ ${transformed.id}: patrolRoute bo'sh, waypoints yaratilmoqda...`)
+                        console.log(`âš ï¸ ${transformed.id}: patrolRoute bo'sh, waypoints yaratilmoqda...`)
                         const binLocation = binsData.length > 0 ? binsData[0].location : [39.6742637, 66.9737814]
                         const MAX_DISTANCE = 0.005 // ~500m
                         const waypoints = []
@@ -392,16 +415,16 @@ export const AppProvider = ({ children }) => {
                         }
                         transformed.patrolWaypoints = waypoints
                         transformed.patrolRoute = [] // Bo'sh - LiveMapSimple'da yaratiladi
-                        console.log(`✅ ${transformed.id}: ${waypoints.length} waypoints yaratildi`)
+                        console.log(`âœ… ${transformed.id}: ${waypoints.length} waypoints yaratildi`)
                       }
                       
-                      if (stateData.data.currentRoute) {
-                        transformed.routePath = stateData.data.currentRoute
+                      if (stateData.data.currentRoute !== undefined) {
+                        transformed.routePath = normalizeRoutePath(stateData.data.currentRoute)
                       }
                       
-                      console.log(`✅ Vehicle ${transformed.id} state loaded from backend`)
+                      console.log(`âœ… Vehicle ${transformed.id} state loaded from backend`)
                     } else {
-                      console.log(`⚠️ No backend state for ${transformed.id}, using defaults`)
+                      console.log(`âš ï¸ No backend state for ${transformed.id}, using defaults`)
                       // Default patrol marshrut berish
                       const patrolIndex = index % patrolRoutes.length
                       transformed.patrolWaypoints = patrolRoutes[patrolIndex]
@@ -409,14 +432,14 @@ export const AppProvider = ({ children }) => {
                       transformed.currentWaypointIndex = 0
                     }
                   } catch (stateError) {
-                    console.error(`❌ Failed to load state from backend for ${transformed.id}:`, stateError)
+                    console.error(`âŒ Failed to load state from backend for ${transformed.id}:`, stateError)
                     
                     // Fallback: localStorage'dan yuklash
                     const savedVehicles = JSON.parse(localStorage.getItem('vehiclesData') || '[]')
                     const savedVehicle = savedVehicles.find(v => v.id === transformed.id)
                     
                     if (savedVehicle) {
-                      console.log(`♻️ Fallback: Loading ${transformed.id} from localStorage`)
+                      console.log(`â™»ï¸ Fallback: Loading ${transformed.id} from localStorage`)
                       transformed.position = savedVehicle.position || transformed.position
                       transformed.patrolRoute = savedVehicle.patrolRoute || []
                       transformed.patrolIndex = savedVehicle.patrolIndex || 0
@@ -435,35 +458,35 @@ export const AppProvider = ({ children }) => {
                   
                   return transformed
                 } catch (error) {
-                  console.error(`❌ Error transforming vehicle ${index + 1}:`, error)
-                  console.error('❌ Vehicle data:', vehicle)
+                  console.error(`âŒ Error transforming vehicle ${index + 1}:`, error)
+                  console.error('âŒ Vehicle data:', vehicle)
                   return null
                 }
               }))
               
               const validVehicles = transformedVehicles.filter(vehicle => vehicle !== null)
-              console.log('🚛 Transformed Vehicles:', validVehicles)
+              console.log('ðŸš› Transformed Vehicles:', validVehicles)
               
               if (validVehicles.length > 0) {
                 setVehiclesData(validVehicles)
               } else {
-                console.warn('⚠️ No vehicles could be transformed')
+                console.warn('âš ï¸ No vehicles could be transformed')
               }
             } else {
-              console.log('🚛 No vehicles data or empty array')
-              console.log('🚛 VehiclesArray:', vehiclesArray)
+              console.log('ðŸš› No vehicles data or empty array')
+              console.log('ðŸš› VehiclesArray:', vehiclesArray)
             }
           } else {
-            console.log('🚛 API call failed or no data')
+            console.log('ðŸš› API call failed or no data')
           }
         } catch (error) {
-          console.error('❌ Error processing vehicles data:', error)
+          console.error('âŒ Error processing vehicles data:', error)
           showToast('Transport vositalarini yuklashda xatolik', 'error')
         }
         
         // Load alerts
         const alertsResult = await ApiService.getAlerts()
-        console.log('🚨 Alerts Result:', alertsResult)
+        console.log('ðŸš¨ Alerts Result:', alertsResult)
         
         try {
           if (alertsResult.success && alertsResult.data) {
@@ -472,45 +495,45 @@ export const AppProvider = ({ children }) => {
             // Agar data object bo'lsa va data property'si bo'lsa
             if (typeof alertsResult.data === 'object' && !Array.isArray(alertsResult.data) && alertsResult.data.data) {
               alertsArray = alertsResult.data.data
-              console.log('🚨 Using nested data array:', alertsArray)
+              console.log('ðŸš¨ Using nested data array:', alertsArray)
             }
             
             if (Array.isArray(alertsArray) && alertsArray.length > 0) {
-              console.log('🚨 Processing alerts array:', alertsArray.length, 'items')
+              console.log('ðŸš¨ Processing alerts array:', alertsArray.length, 'items')
               
               const transformedAlerts = alertsArray.map((alert, index) => {
                 try {
-                  console.log(`🚨 Transforming alert ${index + 1}:`, alert)
+                  console.log(`ðŸš¨ Transforming alert ${index + 1}:`, alert)
                   return ApiService.transformAlertData(alert)
                 } catch (error) {
-                  console.error(`❌ Error transforming alert ${index + 1}:`, error)
-                  console.error('❌ Alert data:', alert)
+                  console.error(`âŒ Error transforming alert ${index + 1}:`, error)
+                  console.error('âŒ Alert data:', alert)
                   return null
                 }
               }).filter(alert => alert !== null) // Remove failed transformations
               
-              console.log('🚨 Transformed Alerts:', transformedAlerts)
+              console.log('ðŸš¨ Transformed Alerts:', transformedAlerts)
               
               if (transformedAlerts.length > 0) {
                 setAlertsData(transformedAlerts)
               } else {
-                console.warn('⚠️ No alerts could be transformed')
+                console.warn('âš ï¸ No alerts could be transformed')
               }
             } else {
-              console.log('🚨 No alerts data or empty array')
-              console.log('🚨 AlertsArray:', alertsArray)
+              console.log('ðŸš¨ No alerts data or empty array')
+              console.log('ðŸš¨ AlertsArray:', alertsArray)
             }
           } else {
-            console.log('🚨 API call failed or no data')
+            console.log('ðŸš¨ API call failed or no data')
           }
         } catch (error) {
-          console.error('❌ Error processing alerts data:', error)
+          console.error('âŒ Error processing alerts data:', error)
           showToast('Ogohlantirishlarni yuklashda xatolik', 'error')
         }
         
         // Load activities
         const activitiesResult = await ApiService.getActivities(50)
-        console.log('📋 Activities Result:', activitiesResult)
+        console.log('ðŸ“‹ Activities Result:', activitiesResult)
         
         try {
           if (activitiesResult.success && activitiesResult.data) {
@@ -519,37 +542,37 @@ export const AppProvider = ({ children }) => {
             // Agar data object bo'lsa va data property'si bo'lsa
             if (typeof activitiesResult.data === 'object' && !Array.isArray(activitiesResult.data) && activitiesResult.data.data) {
               activitiesArray = activitiesResult.data.data
-              console.log('📋 Using nested data array:', activitiesArray)
+              console.log('ðŸ“‹ Using nested data array:', activitiesArray)
             }
             
             if (Array.isArray(activitiesArray) && activitiesArray.length > 0) {
-              console.log('📋 Processing activities array:', activitiesArray.length, 'items')
+              console.log('ðŸ“‹ Processing activities array:', activitiesArray.length, 'items')
               setActivityData(activitiesArray)
-              console.log('✅ Activities loaded successfully')
+              console.log('âœ… Activities loaded successfully')
             } else {
-              console.log('📋 No activities data or empty array')
+              console.log('ðŸ“‹ No activities data or empty array')
             }
           } else {
-            console.log('📋 API call failed or no data')
+            console.log('ðŸ“‹ API call failed or no data')
           }
         } catch (error) {
-          console.error('❌ Error processing activities data:', error)
+          console.error('âŒ Error processing activities data:', error)
           showToast('Faoliyatlarni yuklashda xatolik', 'error')
         }
         
         showToast('Ma\'lumotlar muvaffaqiyatli yuklandi', 'success')
       } else {
         setApiConnected(false)
-        console.warn('⚠️ API ga ulanib bo\'lmadi')
+        console.warn('âš ï¸ API ga ulanib bo\'lmadi')
         showToast('API ga ulanib bo\'lmadi. Iltimos, backend ishga tushganini tekshiring.', 'warning')
       }
     } catch (error) {
-      console.error('❌ API yuklash xatosi:', error)
+      console.error('âŒ API yuklash xatosi:', error)
       setApiConnected(false)
       showToast('Ma\'lumotlarni yuklashda xatolik. Backend ishlamayapti.', 'error')
     } finally {
       setLoading(false)
-      console.log('🏁 Data loading completed')
+      console.log('ðŸ Data loading completed')
     }
   }
 
@@ -566,11 +589,11 @@ export const AppProvider = ({ children }) => {
       // Agar biror quti FULL bo'lsa, refresh qilmaymiz
       const hasFullBin = binsData.some(bin => bin.status >= 90)
       if (hasFullBin) {
-        console.log('⏸️ Auto-refresh paused: Quti FULL holatida')
+        console.log('â¸ï¸ Auto-refresh paused: Quti FULL holatida')
         return
       }
       
-      console.log('🔄 Auto-refreshing data...')
+      console.log('ðŸ”„ Auto-refreshing data...')
       loadDataFromAPI()
     }, 30000)
 
@@ -579,7 +602,7 @@ export const AppProvider = ({ children }) => {
 
   // WebSocket - Real-time ESP32 ma'lumot olish (Global - barcha sahifalarda ishlaydi)
   useEffect(() => {
-    console.log('🔧 AppContext: WebSocket initializing...')
+    console.log('ðŸ”§ AppContext: WebSocket initializing...')
     
     // WebSocket ulanish
     const socket = io('https://tozahudud-production-d73f.up.railway.app', {
@@ -590,11 +613,11 @@ export const AppProvider = ({ children }) => {
     })
 
     socket.on('connect', () => {
-      console.log('✅ AppContext WebSocket connected:', socket.id)
+      console.log('âœ… AppContext WebSocket connected:', socket.id)
     })
 
     socket.on('disconnect', () => {
-      console.log('❌ AppContext WebSocket disconnected')
+      console.log('âŒ AppContext WebSocket disconnected')
     })
 
     // ESP32 dan yangi ma'lumot kelganda
@@ -609,9 +632,9 @@ export const AppProvider = ({ children }) => {
         console.log(`sensorData ignored: distance=${distance} (>20 cm)`)
         return
       }
-      console.log(`📡 AppContext: REAL-TIME ESP32 SIGNAL:`, data)
-      console.log(`📡 Distance: ${data.distance} sm`)
-      console.log(`📡 BinId: ${data.binId}`)
+      console.log(`ðŸ“¡ AppContext: REAL-TIME ESP32 SIGNAL:`, data)
+      console.log(`ðŸ“¡ Distance: ${data.distance} sm`)
+      console.log(`ðŸ“¡ BinId: ${data.binId}`)
       
       // Qutini FULL holatiga o'tkazish
       setBinStatus('FULL')
@@ -627,7 +650,7 @@ export const AppProvider = ({ children }) => {
           } : bin
         )
         
-        // ✨ YANGI: Eng yaqin mashinani topish va yuborish
+        // âœ¨ YANGI: Eng yaqin mashinani topish va yuborish
         const fullBin = updatedBins.find(b => b.id === data.binId || b.sensorId === data.binId)
         if (fullBin) {
           const activeLock = getActiveAssignmentLock(fullBin.id)
@@ -635,30 +658,30 @@ export const AppProvider = ({ children }) => {
             console.log(`sensorData skipped: ${fullBin.id} already assigned to ${activeLock.vehicleId}`)
             return updatedBins
           }
-          console.log('🚛 ESP32 signal: Eng yaqin mashinani topish...')
+          console.log('ðŸš› ESP32 signal: Eng yaqin mashinani topish...')
           
           // setVehiclesData callback ishlatib real-time vehiclesData olish
           setVehiclesData(currentVehicles => {
             if (currentVehicles.length === 0) {
-              console.log('⚠️ No vehicles available')
+              console.log('âš ï¸ No vehicles available')
               return currentVehicles
             }
             
-            console.log('🔍 Checking vehicles:', currentVehicles.length)
+            console.log('ðŸ” Checking vehicles:', currentVehicles.length)
             
             // Har bir mashina uchun masofa hisoblash
             const distances = currentVehicles.map(vehicle => {
               const hasActiveRoute = Array.isArray(vehicle.routePath) && vehicle.routePath.length > 0
               if (!vehicle.isPatrolling || hasActiveRoute) {
-                console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasActiveRoute=${hasActiveRoute}`)
+                console.log(`â­ï¸ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasActiveRoute=${hasActiveRoute}`)
                 return { vehicle, distance: Infinity }
               }
               
-              console.log(`📍 ${vehicle.id} position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+              console.log(`ðŸ“ ${vehicle.id} position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
               
               const distance = calculateDistanceKm(vehicle.position, fullBin.location)
               
-              console.log(`📏 ${vehicle.id} distance: ${distance.toFixed(2)} km`)
+              console.log(`ðŸ“ ${vehicle.id} distance: ${distance.toFixed(2)} km`)
               
               return { vehicle, distance }
             })
@@ -669,22 +692,32 @@ export const AppProvider = ({ children }) => {
             )
             
             if (closest.distance !== Infinity) {
-              console.log(`✅ ESP32: Eng yaqin mashina: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-              console.log(`📍 Starting route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+              console.log(`âœ… ESP32: Eng yaqin mashina: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+              console.log(`ðŸ“ Starting route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
               
               // Faqat eng yaqin mashinani yuborish
               setAssignmentLock(fullBin.id, closest.vehicle.id)
               createRoute(closest.vehicle, fullBin)
-              setBinsData(prevBins => prevBins.map(bin =>
-                (bin.id === fullBin.id || bin.sensorId === fullBin.sensorId) ? {
-                  ...bin,
-                  assignedVehicleId: closest.vehicle.id,
-                  assignmentStatus: 'ASSIGNED',
-                  assignmentUpdatedAt: new Date().toISOString()
-                } : bin
-              ))
+                .then(success => {
+                  if (!success) {
+                    clearAssignmentLock(fullBin.id)
+                    return
+                  }
+
+                  setBinsData(prevBins => prevBins.map(bin =>
+                    (bin.id === fullBin.id || bin.sensorId === fullBin.sensorId) ? {
+                      ...bin,
+                      assignedVehicleId: closest.vehicle.id,
+                      assignmentStatus: 'ASSIGNED',
+                      assignmentUpdatedAt: new Date().toISOString()
+                    } : bin
+                  ))
+                })
+                .catch(() => {
+                  clearAssignmentLock(fullBin.id)
+                })
             } else {
-              console.log('❌ No available vehicles (all busy or cleaned)')
+              console.log('âŒ No available vehicles (all busy)')
             }
             
             return currentVehicles
@@ -694,14 +727,14 @@ export const AppProvider = ({ children }) => {
         return updatedBins
       })
       
-      console.log('🔴 AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
+      console.log('ðŸ”´ AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
       showToast(`Quti ${data.binId} to'ldi! Eng yaqin mashina yuborilmoqda...`, 'warning')
     })
 
-    // ❌ O'CHIRILDI: Quti holati o'zgarganda - sensorData handler'da amalga oshiriladi
+    // âŒ O'CHIRILDI: Quti holati o'zgarganda - sensorData handler'da amalga oshiriladi
     // Bu handler kerak emas, chunki ESP32 signal sensorData orqali keladi
     // socket.on('binStatus', ({ binId, status }) => {
-    //   console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
+    //   console.log(`ðŸ—‘ï¸ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
     //   
     //   setBinStatus(status)
     //   
@@ -709,7 +742,7 @@ export const AppProvider = ({ children }) => {
     //     setBinsData(prev => prev.map(bin =>
     //       bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
     //     ))
-    //     console.log('🔴 AppContext: Bin marked as FULL')
+    //     console.log('ðŸ”´ AppContext: Bin marked as FULL')
     //     
     //     // Eng yaqin mashinani topish va marshrut yaratish
     //     const fullBin = binsData.find(b => b.id === binId)
@@ -718,16 +751,16 @@ export const AppProvider = ({ children }) => {
     //       setVehiclesData(currentVehicles => {
     //         if (currentVehicles.length === 0) return currentVehicles
     //         
-    //         console.log('🔍 Current vehicles count:', currentVehicles.length)
+    //         console.log('ðŸ” Current vehicles count:', currentVehicles.length)
     //         
     //         // Har bir mashina uchun masofa hisoblash
     //         const distances = currentVehicles.map(vehicle => {
     //           if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) {
-    //             console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasCleanedOnce=${vehicle.hasCleanedOnce}`)
+    //             console.log(`â­ï¸ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasCleanedOnce=${vehicle.hasCleanedOnce}`)
     //             return { vehicle, distance: Infinity }
     //           }
     //           
-    //           console.log(`📍 ${vehicle.id} current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+    //           console.log(`ðŸ“ ${vehicle.id} current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
     //           
     //           const lat1 = vehicle.position[0]
     //           const lon1 = vehicle.position[1]
@@ -752,11 +785,11 @@ export const AppProvider = ({ children }) => {
     //         )
     //         
     //         if (closest.distance !== Infinity) {
-    //           console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-    //           console.log(`📍 Will start route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+    //           console.log(`âœ… Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+    //           console.log(`ðŸ“ Will start route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
     //           createRoute(closest.vehicle, fullBin)
     //         } else {
-    //           console.log('❌ No available vehicles')
+    //           console.log('âŒ No available vehicles')
     //         }
     //         
     //         return currentVehicles // State'ni o'zgartirmaslik
@@ -766,13 +799,13 @@ export const AppProvider = ({ children }) => {
     //     setBinsData(prev => prev.map(bin =>
     //       bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
     //     ))
-    //     console.log('🟢 AppContext: Bin marked as EMPTY')
+    //     console.log('ðŸŸ¢ AppContext: Bin marked as EMPTY')
     //   }
     // })
 
-    // ✨ Mashina pozitsiyasi real-time yangilanganda - O'CHIRILGAN (frontend o'zi animatsiya qiladi)
+    // âœ¨ Mashina pozitsiyasi real-time yangilanganda - O'CHIRILGAN (frontend o'zi animatsiya qiladi)
     // socket.on('vehiclePositionUpdate', (data) => {
-    //   console.log(`📥 Real-time position update: ${data.vehicleId} → [${data.latitude}, ${data.longitude}]`)
+    //   console.log(`ðŸ“¥ Real-time position update: ${data.vehicleId} â†’ [${data.latitude}, ${data.longitude}]`)
     //   
     //   setVehiclesData(prev => prev.map(vehicle =>
     //     vehicle.id === data.vehicleId ? {
@@ -782,9 +815,9 @@ export const AppProvider = ({ children }) => {
     //   ))
     // })
 
-    // ✨ YANGI: Mashina holati real-time yangilanganda
+    // âœ¨ YANGI: Mashina holati real-time yangilanganda
     socket.on('vehicleStateUpdate', (data) => {
-      console.log(`📥 Real-time state update: ${data.vehicleId}`, data)
+      console.log(`ðŸ“¥ Real-time state update: ${data.vehicleId}`, data)
       
       setVehiclesData(prev => prev.map(vehicle =>
         vehicle.id === data.vehicleId ? {
@@ -794,11 +827,12 @@ export const AppProvider = ({ children }) => {
           patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
           status: data.status || vehicle.status,
           patrolRoute: data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute,
-          routePath: data.currentRoute !== undefined ? data.currentRoute : vehicle.routePath
+          routePath: data.currentRoute !== undefined ? normalizeRoutePath(data.currentRoute) : vehicle.routePath
         } : vehicle
       ))
 
-      if (data.isPatrolling === true && data.currentRoute === null) {
+      const hasNoActiveRoute = data.currentRoute === null || (Array.isArray(data.currentRoute) && data.currentRoute.length === 0)
+      if (data.isPatrolling === true && hasNoActiveRoute) {
         clearVehicleAssignmentLocks(data.vehicleId)
         setBinsData(prevBins => prevBins.map(bin =>
           bin.assignedVehicleId === data.vehicleId ? {
@@ -813,7 +847,7 @@ export const AppProvider = ({ children }) => {
 
     // Cleanup
     return () => {
-      console.log('🔌 AppContext: WebSocket disconnecting...')
+      console.log('ðŸ”Œ AppContext: WebSocket disconnecting...')
       socket.disconnect()
     }
   }, [])
@@ -879,3 +913,4 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   )
 }
+

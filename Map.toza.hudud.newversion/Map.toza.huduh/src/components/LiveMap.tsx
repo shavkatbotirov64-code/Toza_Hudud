@@ -61,6 +61,10 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     return [constrainedLat, constrainedLon]
   }
 
+  const hasRoutePoints = (routePath?: [number, number][] | null): boolean => {
+    return Array.isArray(routePath) && routePath.length > 0
+  }
+
   // Helper: Calculate distance between two points
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371 // Earth radius in km
@@ -194,7 +198,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     const intervals: { [key: string]: ReturnType<typeof setInterval> } = {}
     
     vehiclesData.forEach(vehicle => {
-      if (vehicle.isPatrolling && vehicle.patrolRoute && vehicle.patrolRoute.length > 0 && !vehicle.routePath) {
+      if (vehicle.isPatrolling && vehicle.patrolRoute && vehicle.patrolRoute.length > 0 && !hasRoutePoints(vehicle.routePath)) {
         intervals[vehicle.id] = setInterval(() => {
           const nextIndex = (vehicle.patrolIndex || 0) + 1
           
@@ -286,7 +290,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     return () => {
       Object.values(intervals).forEach(interval => clearInterval(interval))
     }
-  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute?.length}-${v.routePath ? 'route' : 'no'}-${v.patrolIndex}`).join(',')])
+  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.patrolRoute?.length}-${hasRoutePoints(v.routePath) ? 'route' : 'no'}-${v.patrolIndex}`).join(',')])
 
   // DISPATCH LOGIC MOVED TO AppContext (WebSocket) - like admin panel
   // No need for useEffect here anymore
@@ -296,7 +300,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     const intervals: { [key: string]: ReturnType<typeof setInterval> } = {}
     
     vehiclesData.forEach(vehicle => {
-      if (!vehicle.isPatrolling && vehicle.routePath) {
+      if (!vehicle.isPatrolling && hasRoutePoints(vehicle.routePath)) {
         const startTime = Date.now()
         
         intervals[vehicle.id] = setInterval(() => {
@@ -469,7 +473,7 @@ const LiveMap = ({ compact = false }: LiveMapProps) => {
     return () => {
       Object.values(intervals).forEach(interval => clearInterval(interval))
     }
-  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${v.routePath ? 'route' : 'no'}-${v.currentPathIndex}`).join(',')])
+  }, [vehiclesData.map(v => `${v.id}-${v.isPatrolling}-${hasRoutePoints(v.routePath) ? 'route' : 'no'}-${v.currentPathIndex}`).join(',')])
 
   // Initialize map - wait for ref to be ready
   useEffect(() => {

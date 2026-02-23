@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
@@ -51,6 +51,17 @@ const LiveMapSimple = () => {
     status: 15,
     capacity: 120
   }
+
+  const getTargetBinForVehicle = (vehicle) => {
+    if (!vehicle) return binData
+    const targetId = vehicle.targetBinId
+    if (!targetId) return binData
+    return binsData.find(bin =>
+      bin.id === targetId || bin.sensorId === targetId || bin._backendId === targetId
+    ) || binData
+  }
+
+  const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
   
   // VehicleManager'ni yaratish
   useEffect(() => {
@@ -241,7 +252,7 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (!vehicleState) return // Mashina mavjud emas
     
-    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !vehicleState.routePath) {
+    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !hasRoutePoints(vehicleState.routePath)) {
       const patrolInterval = setInterval(() => {
         const nextIndex = vehicleState.patrolIndex + 1
         
@@ -332,7 +343,7 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (!vehicle2State) return // Mashina mavjud emas
     
-    if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !vehicle2State.routePath) {
+    if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !hasRoutePoints(vehicle2State.routePath)) {
       const patrolInterval = setInterval(() => {
         const nextIndex = vehicle2State.patrolIndex + 1
         
@@ -426,8 +437,9 @@ const LiveMapSimple = () => {
   // Mashina qutiga borish animatsiyasi (Mashina 1)
   useEffect(() => {
     if (!vehicleState) return
+    const targetBin = getTargetBinForVehicle(vehicleState)
 
-    if (!vehicleState.isPatrolling && vehicleState.routePath) {
+    if (!vehicleState.isPatrolling && hasRoutePoints(vehicleState.routePath)) {
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current)
       }
@@ -462,18 +474,18 @@ const LiveMapSimple = () => {
             const distanceTraveled = calculateDistance(
               vehicleState.routePath[0][0],
               vehicleState.routePath[0][1],
-              binData.location[0],
-              binData.location[1]
+              targetBin.location[0],
+              targetBin.location[1]
             )
             const averageSpeed = durationMinutes > 0 
               ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
               : 0
             
             const cleaningData = {
-              binId: binData.id,
+              binId: targetBin.id,
               vehicleId: vehicleState.id,
               driverName: vehicleState.driver,
-              binLocation: binData.address,
+              binLocation: targetBin.address,
               fillLevelBefore: 95,
               fillLevelAfter: 15,
               distanceTraveled: distanceTraveled,
@@ -509,7 +521,7 @@ const LiveMapSimple = () => {
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
+              (bin.id === targetBin.id || bin.sensorId === targetBin.sensorId || bin._backendId === targetBin._backendId) ? {
                 ...bin,
                 status: 15,
                 fillLevel: 15,
@@ -584,8 +596,9 @@ const LiveMapSimple = () => {
   // Mashina qutiga borish animatsiyasi (Mashina 2)
   useEffect(() => {
     if (!vehicle2State) return
+    const targetBin = getTargetBinForVehicle(vehicle2State)
 
-    if (!vehicle2State.isPatrolling && vehicle2State.routePath) {
+    if (!vehicle2State.isPatrolling && hasRoutePoints(vehicle2State.routePath)) {
       if (animation2IntervalRef.current) {
         clearInterval(animation2IntervalRef.current)
       }
@@ -620,18 +633,18 @@ const LiveMapSimple = () => {
             const distanceTraveled = calculateDistance(
               vehicle2State.routePath[0][0],
               vehicle2State.routePath[0][1],
-              binData.location[0],
-              binData.location[1]
+              targetBin.location[0],
+              targetBin.location[1]
             )
             const averageSpeed = durationMinutes > 0 
               ? Number((distanceTraveled / (durationMinutes / 60)).toFixed(2))
               : 0
             
             const cleaningData = {
-              binId: binData.id,
+              binId: targetBin.id,
               vehicleId: vehicle2State.id,
               driverName: vehicle2State.driver,
-              binLocation: binData.address,
+              binLocation: targetBin.address,
               fillLevelBefore: 95,
               fillLevelAfter: 15,
               distanceTraveled: distanceTraveled,
@@ -667,7 +680,7 @@ const LiveMapSimple = () => {
             setBinStatus('EMPTY')
             
             setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
+              (bin.id === targetBin.id || bin.sensorId === targetBin.sensorId || bin._backendId === targetBin._backendId) ? {
                 ...bin,
                 status: 15,
                 fillLevel: 15,

@@ -49,7 +49,8 @@ class VehicleManager {
       clearInterval(this.intervals[vehicle.id])
     }
 
-    if (!vehicle.isPatrolling || vehicle.patrolRoute.length === 0 || vehicle.routePath) {
+    const hasActiveRoute = Array.isArray(vehicle.routePath) && vehicle.routePath.length > 0
+    if (!vehicle.isPatrolling || vehicle.patrolRoute.length === 0 || hasActiveRoute) {
       return
     }
 
