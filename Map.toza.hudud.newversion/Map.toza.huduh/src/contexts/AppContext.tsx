@@ -487,7 +487,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
           status: data.status || vehicle.status,
           patrolRoute: data.patrolRoute || vehicle.patrolRoute,
-          routePath: data.currentRoute || vehicle.routePath
+          routePath: data.currentRoute !== undefined ? data.currentRoute : vehicle.routePath
         } : vehicle
       ))
     })

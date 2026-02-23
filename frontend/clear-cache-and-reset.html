@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cache va LocalStorage Tozalash</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn:hover {
+            background: #dc2626;
+        }
+        .btn-success {
+            background: #10b981;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .info {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+        .success {
+            background: #d1fae5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #10b981;
+            display: none;
+        }
+        .log {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Cache va LocalStorage Tozalash</h1>
+        
+        <div class="info">
+            <strong>⚠️ Diqqat!</strong><br>
+            Agar mashinalar teleportatsiya qilayotgan bo'lsa (uyoqdan buyoqqa sakrayotgan bo'lsa), 
+            bu eski cache va localStorage ma'lumotlari sabab bo'lishi mumkin.
+        </div>
+
+        <button class="btn" onclick="clearEverything()">
+            🗑️ Hammasini Tozalash va Qayta Yuklash
+        </button>
+
+        <button class="btn btn-success" onclick="checkStatus()">
+            🔍 Hozirgi Holatni Ko'rish
+        </button>
+
+        <div id="log" class="log" style="display: none;"></div>
+        <div id="success" class="success"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            logDiv.innerHTML += message + '<br>';
+            console.log(message);
+        }
+
+        function clearEverything() {
+            log('🧹 Tozalash boshlandi...');
+            
+            // 1. LocalStorage tozalash
+            log('📦 LocalStorage tozalanmoqda...');
+            const keys = Object.keys(localStorage);
+            log(`   Topildi: ${keys.length} ta kalit`);
+            keys.forEach(key => {
+                log(`   - O'chirilmoqda: ${key}`);
+            });
+            localStorage.clear();
+            log('✅ LocalStorage tozalandi!');
+            
+            // 2. SessionStorage tozalash
+            log('📦 SessionStorage tozalanmoqda...');
+            sessionStorage.clear();
+            log('✅ SessionStorage tozalandi!');
+            
+            // 3. Cache tozalash (agar mavjud bo'lsa)
+            if ('caches' in window) {
+                log('💾 Cache tozalanmoqda...');
+                caches.keys().then(names => {
+                    log(`   Topildi: ${names.length} ta cache`);
+                    names.forEach(name => {
+                        log(`   - O'chirilmoqda: ${name}`);
+                        caches.delete(name);
+                    });
+                    log('✅ Cache tozalandi!');
+                    
+                    // Muvaffaqiyat xabari
+                    showSuccess();
+                });
+            } else {
+                log('⚠️ Cache API mavjud emas');
+                showSuccess();
+            }
+        }
+
+        function showSuccess() {
+            const successDiv = document.getElementById('success');
+            successDiv.style.display = 'block';
+            successDiv.innerHTML = `
+                <strong>✅ Muvaffaqiyatli!</strong><br>
+                Barcha cache va localStorage tozalandi.<br>
+                <strong>3 soniyadan keyin sahifa qayta yuklanadi...</strong>
+            `;
+            
+            log('⏰ 3 soniya kutilmoqda...');
+            setTimeout(() => {
+                log('🔄 Sahifa qayta yuklanmoqda...');
+                window.location.reload(true); // Hard reload
+            }, 3000);
+        }
+
+        function checkStatus() {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            logDiv.innerHTML = '';
+            
+            log('🔍 Hozirgi holat tekshirilmoqda...');
+            log('');
+            
+            // LocalStorage
+            log('📦 LocalStorage:');
+            const keys = Object.keys(localStorage);
+            if (keys.length === 0) {
+                log('   ✅ Bo\'sh (Yaxshi!)');
+            } else {
+                log(`   ⚠️ ${keys.length} ta kalit topildi:`);
+                keys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    const size = new Blob([value]).size;
+                    log(`   - ${key}: ${(size / 1024).toFixed(2)} KB`);
+                });
+            }
+            log('');
+            
+            // SessionStorage
+            log('📦 SessionStorage:');
+            const sessionKeys = Object.keys(sessionStorage);
+            if (sessionKeys.length === 0) {
+                log('   ✅ Bo\'sh (Yaxshi!)');
+            } else {
+                log(`   ⚠️ ${sessionKeys.length} ta kalit topildi`);
+            }
+            log('');
+            
+            // Cache
+            if ('caches' in window) {
+                log('💾 Cache:');
+                caches.keys().then(names => {
+                    if (names.length === 0) {
+                        log('   ✅ Bo\'sh (Yaxshi!)');
+                    } else {
+                        log(`   ⚠️ ${names.length} ta cache topildi:`);
+                        names.forEach(name => log(`   - ${name}`));
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

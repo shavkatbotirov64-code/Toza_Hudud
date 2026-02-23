@@ -562,47 +562,31 @@ export const AppProvider = ({ children }) => {
       
       // Qutini FULL holatiga o'tkazish
       setBinStatus('FULL')
-      setBinsData(prev => prev.map(bin => 
-        bin.id === data.binId ? {
-          ...bin,
-          status: 95, // Qizil rang
-          fillLevel: 95,
-          distance: data.distance,
-          lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-          timestamp: data.timestamp
-        } : bin
-      ))
-      
-      // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-      setVehiclesData(prev => prev.map(vehicle => ({
-        ...vehicle,
-        hasCleanedOnce: false
-      })))
-      
-      console.log('🔴 AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
-      showToast(`Quti ${data.binId} to'ldi! Mashina yuborilmoqda...`, 'warning')
-    })
-
-    // Quti holati o'zgarganda
-    socket.on('binStatus', ({ binId, status }) => {
-      console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
-      
-      setBinStatus(status)
-      
-      if (status === 'FULL') {
-        setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
-        ))
-        console.log('🔴 AppContext: Bin marked as FULL')
+      setBinsData(prev => {
+        const updatedBins = prev.map(bin => 
+          bin.id === data.binId ? {
+            ...bin,
+            status: 95, // Qizil rang
+            fillLevel: 95,
+            distance: data.distance,
+            lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: data.timestamp
+          } : bin
+        )
         
-        // Eng yaqin mashinani topish va marshrut yaratish
-        const fullBin = binsData.find(b => b.id === binId)
+        // ✨ YANGI: Eng yaqin mashinani topish va yuborish
+        const fullBin = updatedBins.find(b => b.id === data.binId)
         if (fullBin) {
-          // MUHIM: setVehiclesData callback ishlatib real-time vehiclesData olish
+          console.log('🚛 ESP32 signal: Eng yaqin mashinani topish...')
+          
+          // setVehiclesData callback ishlatib real-time vehiclesData olish
           setVehiclesData(currentVehicles => {
-            if (currentVehicles.length === 0) return currentVehicles
+            if (currentVehicles.length === 0) {
+              console.log('⚠️ No vehicles available')
+              return currentVehicles
+            }
             
-            console.log('🔍 Current vehicles count:', currentVehicles.length)
+            console.log('🔍 Checking vehicles:', currentVehicles.length)
             
             // Har bir mashina uchun masofa hisoblash
             const distances = currentVehicles.map(vehicle => {
@@ -611,7 +595,7 @@ export const AppProvider = ({ children }) => {
                 return { vehicle, distance: Infinity }
               }
               
-              console.log(`📍 ${vehicle.id} current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+              console.log(`📍 ${vehicle.id} position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
               
               const lat1 = vehicle.position[0]
               const lon1 = vehicle.position[1]
@@ -627,6 +611,8 @@ export const AppProvider = ({ children }) => {
               const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
               const distance = R * c
               
+              console.log(`📏 ${vehicle.id} distance: ${distance.toFixed(2)} km`)
+              
               return { vehicle, distance }
             })
             
@@ -636,23 +622,101 @@ export const AppProvider = ({ children }) => {
             )
             
             if (closest.distance !== Infinity) {
-              console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-              console.log(`📍 Will start route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+              console.log(`✅ ESP32: Eng yaqin mashina: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+              console.log(`📍 Starting route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+              
+              // Faqat eng yaqin mashinani yuborish
               createRoute(closest.vehicle, fullBin)
             } else {
-              console.log('❌ No available vehicles')
+              console.log('❌ No available vehicles (all busy or cleaned)')
             }
             
-            return currentVehicles // State'ni o'zgartirmaslik
+            // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
+            return currentVehicles.map(vehicle => ({
+              ...vehicle,
+              hasCleanedOnce: false
+            }))
           })
         }
-      } else if (status === 'EMPTY') {
-        setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
-        ))
-        console.log('🟢 AppContext: Bin marked as EMPTY')
-      }
+        
+        return updatedBins
+      })
+      
+      console.log('🔴 AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
+      showToast(`Quti ${data.binId} to'ldi! Eng yaqin mashina yuborilmoqda...`, 'warning')
     })
+
+    // ❌ O'CHIRILDI: Quti holati o'zgarganda - sensorData handler'da amalga oshiriladi
+    // Bu handler kerak emas, chunki ESP32 signal sensorData orqali keladi
+    // socket.on('binStatus', ({ binId, status }) => {
+    //   console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
+    //   
+    //   setBinStatus(status)
+    //   
+    //   if (status === 'FULL') {
+    //     setBinsData(prev => prev.map(bin =>
+    //       bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
+    //     ))
+    //     console.log('🔴 AppContext: Bin marked as FULL')
+    //     
+    //     // Eng yaqin mashinani topish va marshrut yaratish
+    //     const fullBin = binsData.find(b => b.id === binId)
+    //     if (fullBin) {
+    //       // MUHIM: setVehiclesData callback ishlatib real-time vehiclesData olish
+    //       setVehiclesData(currentVehicles => {
+    //         if (currentVehicles.length === 0) return currentVehicles
+    //         
+    //         console.log('🔍 Current vehicles count:', currentVehicles.length)
+    //         
+    //         // Har bir mashina uchun masofa hisoblash
+    //         const distances = currentVehicles.map(vehicle => {
+    //           if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) {
+    //             console.log(`⏭️ Skipping ${vehicle.id}: isPatrolling=${vehicle.isPatrolling}, hasCleanedOnce=${vehicle.hasCleanedOnce}`)
+    //             return { vehicle, distance: Infinity }
+    //           }
+    //           
+    //           console.log(`📍 ${vehicle.id} current position: [${vehicle.position[0]}, ${vehicle.position[1]}]`)
+    //           
+    //           const lat1 = vehicle.position[0]
+    //           const lon1 = vehicle.position[1]
+    //           const lat2 = fullBin.location[0]
+    //           const lon2 = fullBin.location[1]
+    //           
+    //           const R = 6371 // Earth radius in km
+    //           const dLat = (lat2 - lat1) * Math.PI / 180
+    //           const dLon = (lon2 - lon1) * Math.PI / 180
+    //           const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    //                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    //                     Math.sin(dLon/2) * Math.sin(dLon/2)
+    //           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    //           const distance = R * c
+    //           
+    //           return { vehicle, distance }
+    //         })
+    //         
+    //         // Eng yaqin mashinani tanlash
+    //         const closest = distances.reduce((min, curr) => 
+    //           curr.distance < min.distance ? curr : min
+    //         )
+    //         
+    //         if (closest.distance !== Infinity) {
+    //           console.log(`✅ Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
+    //           console.log(`📍 Will start route from: [${closest.vehicle.position[0]}, ${closest.vehicle.position[1]}]`)
+    //           createRoute(closest.vehicle, fullBin)
+    //         } else {
+    //           console.log('❌ No available vehicles')
+    //         }
+    //         
+    //         return currentVehicles // State'ni o'zgartirmaslik
+    //       })
+    //     }
+    //   } else if (status === 'EMPTY') {
+    //     setBinsData(prev => prev.map(bin =>
+    //       bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
+    //     ))
+    //     console.log('🟢 AppContext: Bin marked as EMPTY')
+    //   }
+    // })
 
     // ✨ Mashina pozitsiyasi real-time yangilanganda - O'CHIRILGAN (frontend o'zi animatsiya qiladi)
     // socket.on('vehiclePositionUpdate', (data) => {
@@ -678,7 +742,7 @@ export const AppProvider = ({ children }) => {
           patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
           status: data.status || vehicle.status,
           patrolRoute: data.patrolRoute || vehicle.patrolRoute,
-          routePath: data.currentRoute || vehicle.routePath
+          routePath: data.currentRoute !== undefined ? data.currentRoute : vehicle.routePath
         } : vehicle
       ))
     })
@@ -751,4 +815,3 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   )
 }
-
