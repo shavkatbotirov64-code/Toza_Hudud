@@ -1,16 +1,16 @@
-declare module './OpenStreetMap.jsx' {
-  interface OpenStreetMapProps {
-    center?: [number, number]
-    zoom?: number
-    style?: string
-    bins?: any[]
-    vehicles?: any[]
-    onBinClick?: (bin: any) => void
-    onVehicleClick?: (vehicle: any) => void
-    showControls?: boolean
-    height?: string
-  }
+import type { FC } from 'react'
 
-  const OpenStreetMap: React.FC<OpenStreetMapProps>
-  export default OpenStreetMap
+export interface OpenStreetMapProps {
+  center?: [number, number]
+  zoom?: number
+  style?: string
+  bins?: any[]
+  vehicles?: any[]
+  onBinClick?: (bin: any) => void
+  onVehicleClick?: (vehicle: any) => void
+  showControls?: boolean
+  height?: string
 }
+
+declare const OpenStreetMap: FC<OpenStreetMapProps>
+export default OpenStreetMap

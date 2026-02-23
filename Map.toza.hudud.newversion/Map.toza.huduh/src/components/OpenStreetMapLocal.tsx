@@ -1,3 +1,3 @@
-import OpenStreetMap from '../../../../shared/components/OpenStreetMap.jsx'
+import OpenStreetMap from './OpenStreetMap'
 
 export default OpenStreetMap

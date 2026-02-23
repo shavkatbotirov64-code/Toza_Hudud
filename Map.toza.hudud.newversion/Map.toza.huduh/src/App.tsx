@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { 
   FiUser, 
   FiSettings,
@@ -60,7 +60,7 @@ function App() {
   }
 
   // Filter containers - harita komponentidan olinadi
-  const [bins, setBins] = useState([])
+  const [bins, setBins] = useState<any[]>([])
   
   let filteredContainers = bins
   if (mapFilter === 'full') {
@@ -364,7 +364,7 @@ function App() {
 
         {/* Yandex Map */}
         <div style={{ flex: 1, position: 'relative' }}>
-          <LiveMap compact={false} />
+          <LiveMap compact={false} onBinsChange={setBins} />
         </div>
       </div>
     </div>

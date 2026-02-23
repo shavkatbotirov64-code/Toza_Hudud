@@ -1,7 +1,12 @@
 // API Service - Backend bilan bog'lanish
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3002/api'
-  : 'https://tozahudud-production-00e5.up.railway.app/api'
+const DEFAULT_BACKEND_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3002'
+    : 'https://tozahudud-production-d73f.up.railway.app'
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL || DEFAULT_BACKEND_URL
+).replace(/\/+$/, '')
 
 export interface Bin {
   id: string
