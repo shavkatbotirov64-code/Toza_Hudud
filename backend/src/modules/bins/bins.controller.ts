@@ -26,7 +26,7 @@ import { Bin } from './entities/bin.entity';
 import { ApiSuccessResponse, ApiPaginatedResponse } from '../../common/decorators/api-response.decorator';
 
 @ApiTags('Bins')
-@Controller('bins')
+@Controller('admin/bins')
 export class BinsController {
   private readonly logger = new Logger(BinsController.name);
 

@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+﻿import React, { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import api from '../services/api'
-import { calculateDistance } from '../utils/vehicleHelpers'
 import VehicleManager from '../utils/VehicleManager'
 import 'leaflet/dist/leaflet.css'
 
@@ -18,16 +17,9 @@ const LiveMapSimple = () => {
   const vehicleManagerRef = useRef(null) // VehicleManager instance
   const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
-  const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
+  const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
-  // Birinchi quti (ESP32-IBN-SINO)
-  const binData = binsData[0] || {
-    id: 'ESP32-IBN-SINO',
-    location: [39.6742637, 66.9737814],
-    address: 'Ibn Sino ko\'chasi 17A, Samarqand',
-    status: 15,
-    capacity: 120
-  }
+  const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
   
   // VehicleManager'ni yaratish
   useEffect(() => {
@@ -79,9 +71,9 @@ const LiveMapSimple = () => {
       // continue_straight=true - to'g'ri yo'lni afzal ko'rish
       const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&continue_straight=true`
       
-      console.log(`🗺️ OSRM API: Marshrut hisoblanmoqda (asosiy ko'chalar)...`)
-      console.log(`📍 Start: [${startLat}, ${startLon}]`)
-      console.log(`📍 End: [${endLat}, ${endLon}]`)
+      console.log(`ðŸ—ºï¸ OSRM API: Marshrut hisoblanmoqda (asosiy ko'chalar)...`)
+      console.log(`ðŸ“ Start: [${startLat}, ${startLon}]`)
+      console.log(`ðŸ“ End: [${endLat}, ${endLon}]`)
       
       const response = await fetch(url)
       const data = await response.json()
@@ -105,11 +97,11 @@ const LiveMapSimple = () => {
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
         
-        console.log(`✅ Marshrut topildi (asosiy ko'chalar)!`)
-        console.log(`📏 Masofa: ${distanceKm} km`)
-        console.log(`⏱️ Vaqt: ${durationMin} daqiqa`)
-        console.log(`📊 Original nuqtalar: ${leafletCoordinates.length}`)
-        console.log(`📊 Simplified nuqtalar: ${simplifiedCoordinates.length}`)
+        console.log(`âœ… Marshrut topildi (asosiy ko'chalar)!`)
+        console.log(`ðŸ“ Masofa: ${distanceKm} km`)
+        console.log(`â±ï¸ Vaqt: ${durationMin} daqiqa`)
+        console.log(`ðŸ“Š Original nuqtalar: ${leafletCoordinates.length}`)
+        console.log(`ðŸ“Š Simplified nuqtalar: ${simplifiedCoordinates.length}`)
         
         return {
           success: true,
@@ -118,11 +110,11 @@ const LiveMapSimple = () => {
           duration: durationMin
         }
       } else {
-        console.warn('⚠️ OSRM: Marshrut topilmadi, backup ishlatiladi')
+        console.warn('âš ï¸ OSRM: Marshrut topilmadi, backup ishlatiladi')
         return { success: false }
       }
     } catch (error) {
-      console.error('❌ OSRM API xatolik:', error)
+      console.error('âŒ OSRM API xatolik:', error)
       return { success: false }
     }
   }
@@ -132,7 +124,7 @@ const LiveMapSimple = () => {
     if (!vehicleState) return // Mashina mavjud emas
     
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
+      console.log('ðŸ—ºï¸ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
       
       const buildPatrolRoute = async () => {
         const waypoints = vehicleState.patrolWaypoints
@@ -151,7 +143,7 @@ const LiveMapSimple = () => {
           }
         }
         
-        console.log(`✅ VEH-001 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        console.log(`âœ… VEH-001 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
         updateVehicleState('VEH-001', {
           patrolRoute: fullRoute,
@@ -168,7 +160,7 @@ const LiveMapSimple = () => {
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
-      console.log('🗺️ VEH-002 Patrol marshruti yaratilmoqda (OSRM API)...')
+      console.log('ðŸ—ºï¸ VEH-002 Patrol marshruti yaratilmoqda (OSRM API)...')
       
       const buildPatrolRoute = async () => {
         const waypoints = vehicle2State.patrolWaypoints
@@ -187,7 +179,7 @@ const LiveMapSimple = () => {
           }
         }
         
-        console.log(`✅ VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        console.log(`âœ… VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
         
         updateVehicleState('VEH-002', {
           patrolRoute: fullRoute,
@@ -203,17 +195,17 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (!vehicleState) return // Mashina mavjud emas
     
-    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !vehicleState.routePath) {
+    if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !hasRoutePoints(vehicleState.routePath)) {
       const patrolInterval = setInterval(() => {
         const nextIndex = vehicleState.patrolIndex + 1
         
         // Agar marshrut oxiriga yetsa, yangi random marshrut qo'shish (cheksiz davom etish)
         if (nextIndex >= vehicleState.patrolRoute.length) {
-          console.log('🔄 VEH-001: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
+          console.log('ðŸ”„ VEH-001: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
+          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // Â±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
           const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
           
           // Yangi marshrut yaratish va qo'shish
@@ -224,7 +216,7 @@ const LiveMapSimple = () => {
             )
             
             if (result.success && result.path.length > 1) {
-              console.log(`✅ VEH-001: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
+              console.log(`âœ… VEH-001: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
               // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicleState.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-001', {
@@ -243,10 +235,12 @@ const LiveMapSimple = () => {
           extendRoute()
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
+          const nextPosition = vehicleState.patrolRoute[nextIndex]
           updateVehicleState('VEH-001', {
-            position: vehicleState.patrolRoute[nextIndex],
+            position: nextPosition,
             patrolIndex: nextIndex
           })
+          api.updateVehicleLocation('VEH-001', nextPosition[0], nextPosition[1]).catch(() => {})
         }
       }, 2500) // 2.5 soniya - sekin va silliq harakat
 
@@ -258,17 +252,17 @@ const LiveMapSimple = () => {
   useEffect(() => {
     if (!vehicle2State) return // Mashina mavjud emas
     
-    if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !vehicle2State.routePath) {
+    if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !hasRoutePoints(vehicle2State.routePath)) {
       const patrolInterval = setInterval(() => {
         const nextIndex = vehicle2State.patrolIndex + 1
         
         // Agar marshrut oxiriga yetsa, yangi random marshrut qo'shish (cheksiz davom etish)
         if (nextIndex >= vehicle2State.patrolRoute.length) {
-          console.log('🔄 VEH-002: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
+          console.log('ðŸ”„ VEH-002: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
           
           // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
           const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // ±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
+          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // Â±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
           const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
           
           // Yangi marshrut yaratish va qo'shish
@@ -279,7 +273,7 @@ const LiveMapSimple = () => {
             )
             
             if (result.success && result.path.length > 1) {
-              console.log(`✅ VEH-002: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
+              console.log(`âœ… VEH-002: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
               // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
               const extendedRoute = [...vehicle2State.patrolRoute, ...result.path.slice(1)]
               updateVehicleState('VEH-002', {
@@ -298,10 +292,12 @@ const LiveMapSimple = () => {
           extendRoute()
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
+          const nextPosition = vehicle2State.patrolRoute[nextIndex]
           updateVehicleState('VEH-002', {
-            position: vehicle2State.patrolRoute[nextIndex],
+            position: nextPosition,
             patrolIndex: nextIndex
           })
+          api.updateVehicleLocation('VEH-002', nextPosition[0], nextPosition[1]).catch(() => {})
         }
       }, 2500) // 2.5 soniya - sekin va silliq harakat
 
@@ -309,129 +305,22 @@ const LiveMapSimple = () => {
     }
   }, [vehicle2State?.isPatrolling, vehicle2State?.patrolRoute?.length, vehicle2State?.routePath, vehicle2State?.patrolIndex])
 
-  // Quti FULL bo'lganda - qaysi mashina yaqin bo'lsa o'sha borsin
-  useEffect(() => {
-    if (binStatus === 'FULL' && !vehicleState.hasCleanedOnce && !vehicle2State.hasCleanedOnce) {
-      console.log('🚛 Quti to\'ldi! Eng yaqin mashinani topish...')
-      
-      // Har ikkala mashina masofasini hisoblash
-      const distance1 = calculateDistance(
-        vehicleState.position[0], 
-        vehicleState.position[1],
-        binData.location[0],
-        binData.location[1]
-      )
-      
-      const distance2 = calculateDistance(
-        vehicle2State.position[0], 
-        vehicle2State.position[1],
-        binData.location[0],
-        binData.location[1]
-      )
-      
-      console.log(`📏 VEH-001 masofa: ${distance1.toFixed(2)} km`)
-      console.log(`📏 VEH-002 masofa: ${distance2.toFixed(2)} km`)
-      
-      // Eng yaqin mashinani tanlash
-      const closerVehicle = distance1 <= distance2 ? 'VEH-001' : 'VEH-002'
-      console.log(`✅ Eng yaqin mashina: ${closerVehicle}`)
-      
-      if (closerVehicle === 'VEH-001' && vehicleState.isPatrolling) {
-        console.log('🚛 VEH-001 qutiga yo\'nalmoqda!')
-        
-        const getRoute = async () => {
-          const result = await fetchRouteFromOSRM(
-            vehicleState.position[0],
-            vehicleState.position[1],
-            binData.location[0],
-            binData.location[1]
-          )
-          
-          let route = result.success ? result.path : [vehicleState.position, binData.location]
-          
-          updateVehicleState('VEH-001', {
-            isPatrolling: false,
-            routePath: route,
-            currentPathIndex: 0
-          })
-          
-          // Yangi marshrut yaratish
-          const newRoute = {
-            id: `ROUTE-${Date.now()}`,
-            name: `${vehicleState.driver} → ${binData.address}`,
-            vehicle: 'VEH-001',
-            bins: [binData.id],
-            progress: 0,
-            distance: result.success ? `${result.distance} km` : 'Noma\'lum',
-            estimatedTime: result.success ? `${result.duration} daqiqa` : 'Noma\'lum',
-            isActive: true,
-            path: route
-          }
-          
-          // Marshrutni qo'shish
-          setRoutesData(prev => [...prev, newRoute])
-        }
-        
-        getRoute()
-      } else if (closerVehicle === 'VEH-002' && vehicle2State.isPatrolling) {
-        console.log('🚛 VEH-002 qutiga yo\'nalmoqda!')
-        
-        const getRoute = async () => {
-          const result = await fetchRouteFromOSRM(
-            vehicle2State.position[0],
-            vehicle2State.position[1],
-            binData.location[0],
-            binData.location[1]
-          )
-          
-          let route = result.success ? result.path : [vehicle2State.position, binData.location]
-          
-          updateVehicleState('VEH-002', {
-            isPatrolling: false,
-            routePath: route,
-            currentPathIndex: 0
-          })
-          
-          // Yangi marshrut yaratish
-          const newRoute = {
-            id: `ROUTE-${Date.now()}`,
-            name: `${vehicle2State.driver} → ${binData.address}`,
-            vehicle: 'VEH-002',
-            bins: [binData.id],
-            progress: 0,
-            distance: result.success ? `${result.distance} km` : 'Noma\'lum',
-            estimatedTime: result.success ? `${result.duration} daqiqa` : 'Noma\'lum',
-            isActive: true,
-            path: route
-          }
-          
-          // Marshrutni qo'shish
-          setRoutesData(prev => [...prev, newRoute])
-        }
-        
-        getRoute()
-      }
-    }
-  }, [binStatus, vehicleState.isPatrolling, vehicle2State.isPatrolling, vehicleState.hasCleanedOnce, vehicle2State.hasCleanedOnce])
-
+  // Quti FULL bo'lganda dispatch AppContext'da bajariladi (dublikat dispatch oldini olish)
   // Mashina qutiga borish animatsiyasi (Mashina 1)
   useEffect(() => {
-    if (!vehicleState.isPatrolling && vehicleState.routePath) {
+    if (!vehicleState) return
+
+    if (!vehicleState.isPatrolling && hasRoutePoints(vehicleState.routePath)) {
       if (animationIntervalRef.current) {
         clearInterval(animationIntervalRef.current)
       }
-
-      const startTime = Date.now()
 
       animationIntervalRef.current = setInterval(() => {
         const nextIndex = vehicleState.currentPathIndex + 1
         
         if (nextIndex >= vehicleState.routePath.length) {
-          const endTime = Date.now()
-          const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
-          
-          console.log('✅ VEH-001 qutiga yetdi!')
-          console.log('⏸️ Mashina qutida to\'xtadi - 3 soniya kutilmoqda...')
+          console.log('âœ… VEH-001 qutiga yetdi!')
+          console.log('â¸ï¸ Mashina qutida to\'xtadi - backend yakunlash chaqirilmoqda...')
           
           // Animatsiyani to'xtatish
           clearInterval(animationIntervalRef.current)
@@ -442,83 +331,25 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress: 100 })
           }
           
-          // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
-            console.log('🧹 Tozalash boshlandi!')
-            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
-            
-            const cleaningData = {
-              binId: binData.id,
-              vehicleId: vehicleState.id,
-              driverName: vehicleState.driver,
-              binLocation: binData.address,
-              fillLevelBefore: 95,
-              fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                vehicleState.routePath[0][0],
-                vehicleState.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
-              durationMinutes: durationMinutes,
-              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-001',
-              status: 'completed'
-            }
-            
-            api.createCleaning(cleaningData)
+            api.completeVehicleCleaning('VEH-001')
               .then(result => {
-                if (result.success) {
-                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-                } else {
-                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                if (!result.success) {
+                  console.error('âŒ VEH-001 complete-cleaning failed:', result.error)
                 }
               })
               .catch(error => {
-                console.error('❌ API xatolik:', error)
+                console.error('âŒ VEH-001 complete-cleaning API error:', error)
               })
-            
-            // Qutini yashil qilish
-            console.log('🟢 QUTI YASHIL QILINYAPTI - VEH-001 tomonidan')
-            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
-            setBinStatus('EMPTY')
-            
-            setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
-                ...bin,
-                status: 15,
-                fillLevel: 15,
-                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-              } : bin
-            ))
-            
-            console.log('✅ BIN STATUS: EMPTY (Yashil) - Tugallandi')
-            console.log('🚛 VEH-001 patrolga qaytmoqda...')
-            
-            // Mashina patrolga qaytadi
-            updateVehicleState('VEH-001', {
-              isPatrolling: true,
-              routePath: null,
-              hasCleanedOnce: true,
-              currentPathIndex: 0,
-              patrolRoute: [],
-              patrolIndex: 0,
-              cleaned: (vehicleState.cleaned || 0) + 1, // Tozalashlar sonini oshirish
-              status: 'moving'
-            })
-            
-            // Marshrutni o'chirish
-            const activeRoute = routesData.find(r => r.vehicle === 'VEH-001' && r.isActive)
-            if (activeRoute) {
-              setRoutesData(prev => prev.filter(r => r.id !== activeRoute.id))
-            }
-          }, 3000) // 3 soniya tozalash
+          }, 1000)
         } else {
           // Keyingi nuqtaga o'tish
+          const nextPosition = vehicleState.routePath[nextIndex]
           updateVehicleState('VEH-001', {
-            position: vehicleState.routePath[nextIndex],
+            position: nextPosition,
             currentPathIndex: nextIndex
           })
+          api.updateVehicleLocation('VEH-001', nextPosition[0], nextPosition[1]).catch(() => {})
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicleState.routePath.length) * 100)
@@ -535,26 +366,23 @@ const LiveMapSimple = () => {
         clearInterval(animationIntervalRef.current)
       }
     }
-  }, [vehicleState.isPatrolling, vehicleState.routePath, vehicleState.currentPathIndex])
+  }, [vehicleState?.id, vehicleState?.isPatrolling, vehicleState?.routePath, vehicleState?.currentPathIndex])
 
   // Mashina qutiga borish animatsiyasi (Mashina 2)
   useEffect(() => {
-    if (!vehicle2State.isPatrolling && vehicle2State.routePath) {
+    if (!vehicle2State) return
+
+    if (!vehicle2State.isPatrolling && hasRoutePoints(vehicle2State.routePath)) {
       if (animation2IntervalRef.current) {
         clearInterval(animation2IntervalRef.current)
       }
-
-      const startTime = Date.now()
 
       animation2IntervalRef.current = setInterval(() => {
         const nextIndex = vehicle2State.currentPathIndex + 1
         
         if (nextIndex >= vehicle2State.routePath.length) {
-          const endTime = Date.now()
-          const durationMinutes = Math.round((endTime - startTime) / 1000 / 60) || 1
-          
-          console.log('✅ VEH-002 qutiga yetdi!')
-          console.log('⏸️ Mashina qutida to\'xtadi - 3 soniya kutilmoqda...')
+          console.log('âœ… VEH-002 qutiga yetdi!')
+          console.log('â¸ï¸ Mashina qutida to\'xtadi - backend yakunlash chaqirilmoqda...')
           
           // Animatsiyani to'xtatish
           clearInterval(animation2IntervalRef.current)
@@ -565,83 +393,25 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress: 100 })
           }
           
-          // 3 soniya kutish - mashina qutida turadi
           setTimeout(() => {
-            console.log('🧹 Tozalash boshlandi!')
-            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
-            
-            const cleaningData = {
-              binId: binData.id,
-              vehicleId: vehicle2State.id,
-              driverName: vehicle2State.driver,
-              binLocation: binData.address,
-              fillLevelBefore: 95,
-              fillLevelAfter: 15,
-              distanceTraveled: calculateDistance(
-                vehicle2State.routePath[0][0],
-                vehicle2State.routePath[0][1],
-                binData.location[0],
-                binData.location[1]
-              ),
-              durationMinutes: durationMinutes,
-              notes: 'Avtomatik tozalash (ESP32 signali) - VEH-002',
-              status: 'completed'
-            }
-            
-            api.createCleaning(cleaningData)
+            api.completeVehicleCleaning('VEH-002')
               .then(result => {
-                if (result.success) {
-                  console.log('✅ Tozalash yozuvi yaratildi:', result.data)
-                } else {
-                  console.error('❌ Tozalash yozuvi yaratishda xatolik:', result.error)
+                if (!result.success) {
+                  console.error('âŒ VEH-002 complete-cleaning failed:', result.error)
                 }
               })
               .catch(error => {
-                console.error('❌ API xatolik:', error)
+                console.error('âŒ VEH-002 complete-cleaning API error:', error)
               })
-            
-            // Qutini yashil qilish
-            console.log('🟢 QUTI YASHIL QILINYAPTI - VEH-002 tomonidan')
-            console.log('⏰ Vaqt:', new Date().toLocaleTimeString())
-            setBinStatus('EMPTY')
-            
-            setBinsData(prevBins => prevBins.map(bin =>
-              bin.id === binData.id ? {
-                ...bin,
-                status: 15,
-                fillLevel: 15,
-                lastCleaned: new Date().toLocaleDateString('uz-UZ') + ' ' + new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-                lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
-              } : bin
-            ))
-            
-            console.log('✅ BIN STATUS: EMPTY (Yashil) - Tugallandi')
-            console.log('🚛 VEH-002 patrolga qaytmoqda...')
-            
-            // Mashina patrolga qaytadi
-            updateVehicleState('VEH-002', {
-              isPatrolling: true,
-              routePath: null,
-              hasCleanedOnce: true,
-              currentPathIndex: 0,
-              patrolRoute: [],
-              patrolIndex: 0,
-              cleaned: (vehicle2State.cleaned || 0) + 1, // Tozalashlar sonini oshirish
-              status: 'moving'
-            })
-            
-            // Marshrutni o'chirish
-            const activeRoute = routesData.find(r => r.vehicle === 'VEH-002' && r.isActive)
-            if (activeRoute) {
-              setRoutesData(prev => prev.filter(r => r.id !== activeRoute.id))
-            }
-          }, 3000) // 3 soniya tozalash
+          }, 1000)
         } else {
           // Keyingi nuqtaga o'tish
+          const nextPosition = vehicle2State.routePath[nextIndex]
           updateVehicleState('VEH-002', {
-            position: vehicle2State.routePath[nextIndex],
+            position: nextPosition,
             currentPathIndex: nextIndex
           })
+          api.updateVehicleLocation('VEH-002', nextPosition[0], nextPosition[1]).catch(() => {})
           
           // Marshrut progress'ini yangilash
           const progress = Math.round((nextIndex / vehicle2State.routePath.length) * 100)
@@ -658,7 +428,7 @@ const LiveMapSimple = () => {
         clearInterval(animation2IntervalRef.current)
       }
     }
-  }, [vehicle2State.isPatrolling, vehicle2State.routePath, vehicle2State.currentPathIndex])
+  }, [vehicle2State?.id, vehicle2State?.isPatrolling, vehicle2State?.routePath, vehicle2State?.currentPathIndex])
 
   // Xaritani yaratish
   useEffect(() => {
@@ -668,7 +438,7 @@ const LiveMapSimple = () => {
     mapInstanceRef.current = map
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: 'Â© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(map)
 
@@ -796,7 +566,7 @@ const LiveMapSimple = () => {
           </div>
           <div className="legend-item">
             <div style={{ width: '16px', height: '16px', background: '#ef4444', borderRadius: '4px' }}></div>
-            <span>To'la (≥90%)</span>
+            <span>To'la (â‰¥90%)</span>
           </div>
           <div style={{ marginTop: '12px', marginBottom: '8px', fontWeight: '600', color: '#555' }}>Mashinalar:</div>
           <div className="legend-item">

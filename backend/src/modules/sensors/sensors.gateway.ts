@@ -1,15 +1,15 @@
 import {
-  WebSocketGateway,
-  WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // Production'da frontend URL qo'ying
+    origin: '*',
     credentials: true,
   },
 })
@@ -20,28 +20,51 @@ export class SensorsGateway implements OnGatewayConnection, OnGatewayDisconnect 
   private readonly logger = new Logger(SensorsGateway.name);
 
   handleConnection(client: Socket) {
-    this.logger.log(`🔌 Client connected: ${client.id}`);
+    this.logger.log(`Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`🔌 Client disconnected: ${client.id}`);
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  // ESP32 dan yangi ma'lumot kelganda chaqiriladi
-  emitNewSensorData(data: any) {
-    this.logger.log(`📡 Broadcasting sensor data to all clients`);
+  emitSensorData(data: any) {
+    this.logger.log('Broadcasting sensorData event');
     this.server.emit('sensorData', data);
   }
 
-  // Quti holati o'zgarganda
   emitBinStatusChange(binId: string, status: 'FULL' | 'EMPTY') {
-    this.logger.log(`🗑️ Broadcasting bin status: ${binId} = ${status}`);
+    this.logger.log(`Broadcasting binStatus: ${binId} -> ${status}`);
     this.server.emit('binStatus', { binId, status });
   }
 
-  // Mashina holati o'zgarganda
+  emitBinUpdate(payload: any) {
+    this.logger.log(`Broadcasting binUpdate: ${payload?.binId || payload?.id || 'unknown-bin'}`);
+    this.server.emit('binUpdate', payload);
+  }
+
+  emitVehicleStateUpdate(payload: any) {
+    this.logger.log(`Broadcasting vehicleStateUpdate: ${payload?.vehicleId || 'unknown-vehicle'}`);
+    this.server.emit('vehicleStateUpdate', payload);
+  }
+
+  emitVehiclePositionUpdate(payload: any) {
+    this.logger.log(`Broadcasting vehiclePositionUpdate: ${payload?.vehicleId || 'unknown-vehicle'}`);
+    this.server.emit('vehiclePositionUpdate', payload);
+  }
+
+  emitDispatchAssigned(payload: any) {
+    this.logger.log(
+      `Broadcasting dispatchAssigned: ${payload?.vehicleId || 'unknown-vehicle'} -> ${payload?.binId || 'unknown-bin'}`,
+    );
+    this.server.emit('dispatchAssigned', payload);
+  }
+
+  // Backward compatibility
+  emitNewSensorData(data: any) {
+    this.emitSensorData(data);
+  }
+
   emitVehicleUpdate(vehicleId: string, data: any) {
-    this.logger.log(`🚛 Broadcasting vehicle update: ${vehicleId}`);
-    this.server.emit('vehicleUpdate', { vehicleId, ...data });
+    this.emitVehicleStateUpdate({ vehicleId, ...data });
   }
 }

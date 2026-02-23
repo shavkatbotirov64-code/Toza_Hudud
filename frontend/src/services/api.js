@@ -39,7 +39,7 @@ class ApiService {
 
   async createBin(binData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/bins`, {
+      const response = await fetch(`${API_BASE_URL}/admin/bins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ class ApiService {
 
   async updateBin(id, binData) {
     try {
-      const response = await fetch(`${API_BASE_URL}/bins/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/bins/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ class ApiService {
 
   async deleteBin(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/bins/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/bins/${id}`, {
         method: 'DELETE',
       });
 
@@ -97,7 +97,7 @@ class ApiService {
 
   async cleanBin(id) {
     try {
-      const response = await fetch(`${API_BASE_URL}/bins/${id}/clean`, {
+      const response = await fetch(`${API_BASE_URL}/admin/bins/${id}/clean`, {
         method: 'PATCH',
       });
 
@@ -539,9 +539,11 @@ class ApiService {
           parseFloat(backendVehicle.longitude || 66.9600),
         ],
         isMoving: backendVehicle.isMoving || false,
-        isPatrolling: !backendVehicle.isMoving && backendVehicle.status === 'idle',
+        isPatrolling: backendVehicle.isPatrolling !== undefined
+          ? backendVehicle.isPatrolling
+          : (!backendVehicle.isMoving && backendVehicle.status === 'idle'),
         hasCleanedOnce: false,
-        routePath: null,
+        routePath: Array.isArray(backendVehicle.currentRoute) ? backendVehicle.currentRoute : null,
         currentPathIndex: 0,
         patrolRoute: [],
         patrolIndex: 0,
@@ -553,6 +555,7 @@ class ApiService {
         ],
         currentWaypointIndex: 0,
         targetBinId: backendVehicle.targetBinId || null,
+        routeId: backendVehicle.routeId || null,
         lastCleaned: backendVehicle.lastCleaningTime 
           ? new Date(backendVehicle.lastCleaningTime).toLocaleDateString('uz-UZ')
           : "Hech qachon",

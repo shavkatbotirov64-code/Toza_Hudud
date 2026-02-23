@@ -1,8 +1,7 @@
-import { Controller, Post, Get, Delete, Body, Query, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Logger, Post, Query } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { DispatchService } from './dispatch.service';
 import { SensorsService } from './sensors.service';
-import { SensorsGateway } from './sensors.gateway';
-import { BinsService } from './bins.service';
 
 export interface SensorData {
   distance: number;
@@ -18,125 +17,77 @@ export class SensorsController {
 
   constructor(
     private readonly sensorsService: SensorsService,
-    private readonly sensorsGateway: SensorsGateway,
-    private readonly binsService: BinsService,
+    private readonly dispatchService: DispatchService,
   ) {}
 
-  // ESP32 uchun root level endpoint (prefiksiz)
   @Post('distance')
-  @ApiOperation({ summary: 'ESP32 dan masofa ma\'lumotini qabul qilish' })
-  @ApiResponse({ status: 200, description: 'Ma\'lumot muvaffaqiyatli saqlandi' })
+  @ApiOperation({ summary: "ESP32 dan masofa ma'lumotini qabul qilish" })
+  @ApiResponse({ status: 200, description: "Ma'lumot muvaffaqiyatli saqlandi" })
   async receiveDistance(@Body() data: SensorData) {
     try {
-      this.logger.log(`📡 ESP32 dan ma'lumot keldi: ${JSON.stringify(data)}`);
-      this.logger.log(`📡 Distance: ${data.distance} sm`);
-      this.logger.log(`📡 BinId: ${data.binId || 'ESP32-IBN-SINO'}`);
-      
-      // Ma'lumotni saqlash
-      const savedData = await this.sensorsService.saveSensorData(data);
-      this.logger.log(`💾 Database ga saqlandi: ${JSON.stringify(savedData)}`);
-      
-      // 🔥 WebSocket orqali barcha clientlarga yuborish
-      this.logger.log(`📤 WebSocket emit qilinmoqda: sensorData`);
-      this.sensorsGateway.emitNewSensorData(savedData);
-      this.logger.log(`✅ WebSocket: Ma'lumot barcha clientlarga yuborildi`);
-      
-      // Agar 20 sm dan kam bo'lsa, alert yaratish va qutini FULL qilish
-      if (data.distance <= 20) {
-        this.logger.warn(`🚨 ALERT: Chiqindi quti to'la! Masofa: ${data.distance} sm`);
-        await this.sensorsService.createAlert(data);
-        
-        // 🔥 Qutini FULL holatiga o'tkazish
-        const binId = data.binId || 'ESP32-IBN-SINO';
-        try {
-          await this.binsService.markBinAsFull(binId, data.distance);
-          this.logger.log(`🗑️ Bin marked as FULL in database: ${binId}`);
-        } catch (binError) {
-          // Agar quti topilmasa, yaratish
-          this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
-          await this.binsService.upsertBin({
-            binId: binId,
-            location: data.location || 'Samarqand',
-            latitude: 39.6542,
-            longitude: 66.9597,
-            capacity: 120,
-          });
-          await this.binsService.markBinAsFull(binId, data.distance);
-        }
-        
-        // 🔥 Quti FULL holatini yuborish
-        this.logger.log(`📤 WebSocket emit qilinmoqda: binStatus (${binId} = FULL)`);
-        this.sensorsGateway.emitBinStatusChange(binId, 'FULL');
-        this.logger.log(`✅ WebSocket: binStatus yuborildi`);
-      }
-
-      return {
-        success: true,
-        message: 'Ma\'lumot saqlandi',
-        data: savedData
-      };
+      this.logger.log(`Sensor distance payload: ${JSON.stringify(data)}`);
+      return await this.dispatchService.handleSensorDistance(data);
     } catch (error) {
-      this.logger.error(`❌ Sensor ma'lumotini saqlashda xatolik: ${error.message}`);
-      this.logger.error(`❌ Stack trace: ${error.stack}`);
+      this.logger.error(`Sensor distance processing failed: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
   @Get('latest')
-  @ApiOperation({ summary: 'Oxirgi sensor ma\'lumotlarini olish' })
-  @ApiResponse({ status: 200, description: 'Oxirgi ma\'lumotlar' })
+  @ApiOperation({ summary: "Oxirgi sensor ma'lumotlarini olish" })
+  @ApiResponse({ status: 200, description: "Oxirgi ma'lumotlar" })
   async getLatestData(@Query('limit') limit: string = '10') {
     try {
-      const data = await this.sensorsService.getLatestData(parseInt(limit));
+      const data = await this.sensorsService.getLatestData(parseInt(limit, 10));
       return {
         success: true,
-        data
+        data,
       };
     } catch (error) {
-      this.logger.error(`❌ Sensor ma'lumotlarini olishda xatolik: ${error.message}`);
+      this.logger.error(`Latest sensor data fetch failed: ${error.message}`);
       return {
         success: false,
         error: error.message,
-        data: []
+        data: [],
       };
     }
   }
 
   @Get('alerts')
   @ApiOperation({ summary: 'Sensor alertlarini olish' })
-  @ApiResponse({ status: 200, description: 'Alert ma\'lumotlari' })
+  @ApiResponse({ status: 200, description: "Alert ma'lumotlari" })
   async getAlerts(@Query('limit') limit: string = '20') {
     try {
-      const alerts = await this.sensorsService.getAlerts(parseInt(limit));
+      const alerts = await this.sensorsService.getAlerts(parseInt(limit, 10));
       return {
         success: true,
-        data: alerts
+        data: alerts,
       };
     } catch (error) {
-      this.logger.error(`❌ Alertlarni olishda xatolik: ${error.message}`);
+      this.logger.error(`Alerts fetch failed: ${error.message}`);
       return {
         success: false,
         error: error.message,
-        data: []
+        data: [],
       };
     }
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Sensor statistikalari' })
-  @ApiResponse({ status: 200, description: 'Statistika ma\'lumotlari' })
+  @ApiResponse({ status: 200, description: "Statistika ma'lumotlari" })
   async getStats() {
     try {
       const stats = await this.sensorsService.getStats();
       return {
         success: true,
-        data: stats
+        data: stats,
       };
     } catch (error) {
-      this.logger.error(`❌ Statistikani olishda xatolik: ${error.message}`);
+      this.logger.error(`Sensor stats fetch failed: ${error.message}`);
       return {
         success: false,
         error: error.message,
@@ -144,28 +95,28 @@ export class SensorsController {
           totalReadings: 0,
           totalAlerts: 0,
           averageDistance: 0,
-          lastReading: null
-        }
+          lastReading: null,
+          activeAlerts: 0,
+        },
       };
     }
   }
 
   @Delete('clear')
-  @ApiOperation({ summary: 'Barcha sensor ma\'lumotlarini tozalash' })
-  @ApiResponse({ status: 200, description: 'Ma\'lumotlar tozalandi' })
+  @ApiOperation({ summary: "Barcha sensor ma'lumotlarini tozalash" })
+  @ApiResponse({ status: 200, description: "Ma'lumotlar tozalandi" })
   async clearAllData() {
     try {
       await this.sensorsService.clearAllData();
-      this.logger.log('🗑️ Barcha sensor ma\'lumotlari tozalandi');
       return {
         success: true,
-        message: 'Barcha sensor ma\'lumotlari tozalandi'
+        message: "Barcha sensor ma'lumotlari tozalandi",
       };
     } catch (error) {
-      this.logger.error(`❌ Ma'lumotlarni tozalashda xatolik: ${error.message}`);
+      this.logger.error(`Sensor clear failed: ${error.message}`);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }

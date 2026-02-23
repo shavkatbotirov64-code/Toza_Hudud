@@ -1,9 +1,6 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiExcludeController } from '@nestjs/swagger';
-import { SensorsService } from './modules/sensors/sensors.service';
-import { SensorsGateway } from './modules/sensors/sensors.gateway';
-import { BinsService } from './modules/sensors/bins.service';
-import { ActivitiesService } from './modules/activities/activities.service';
+import { Body, Controller, Logger, Post } from '@nestjs/common';
+import { ApiExcludeController, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { DispatchService } from './modules/sensors/dispatch.service';
 
 export interface SensorData {
   distance: number;
@@ -17,107 +14,35 @@ export interface SensorData {
 export class ESP32Controller {
   private readonly logger = new Logger(ESP32Controller.name);
 
-  constructor(
-    private readonly sensorsService: SensorsService,
-    private readonly sensorsGateway: SensorsGateway,
-    private readonly binsService: BinsService,
-    private readonly activitiesService: ActivitiesService,
-  ) { }
+  constructor(private readonly dispatchService: DispatchService) {}
 
-  @Post('sensors/distance')
-  @ApiOperation({ summary: 'ESP32 dan masofa ma\'lumotini qabul qilish' })
-  @ApiResponse({ status: 200, description: 'Ma\'lumot muvaffaqiyatli qabul qilindi' })
+  // Dedicated ESP32 endpoint; /sensors/distance remains available in SensorsController.
+  @Post('esp32/distance')
+  @ApiOperation({ summary: "ESP32 dan masofa ma'lumotini qabul qilish" })
+  @ApiResponse({ status: 200, description: "Ma'lumot muvaffaqiyatli qabul qilindi" })
   async receiveDistance(@Body() data: SensorData) {
     try {
-      this.logger.log(`📡 ESP32 dan ma'lumot keldi: ${JSON.stringify(data)}`);
-      this.logger.log(`📊 Masofa: ${data.distance} sm | Quti: ${data.binId || 'unknown'} | Joylashuv: ${data.location || 'unknown'}`);
-
-      // Ma'lumotni saqlash
-      const savedData = await this.sensorsService.saveSensorData(data);
-      this.logger.log(`💾 Database ga saqlandi: ${JSON.stringify(savedData)}`);
-
-      // 🔥 WebSocket orqali barcha clientlarga yuborish
-      this.logger.log(`📤 WebSocket emit qilinmoqda: sensorData`);
-      this.sensorsGateway.emitNewSensorData(savedData);
-      this.logger.log(`✅ WebSocket: Ma'lumot barcha clientlarga yuborildi`);
-
-      // Agar 20 sm dan kam bo'lsa, alert yaratish va qutini FULL qilish
-      if (data.distance <= 20) {
-        this.logger.warn(`🚨 ALERT: Chiqindi quti to'la! Masofa: ${data.distance} sm`);
-        await this.sensorsService.createAlert(data);
-        
-        // 🔥 Qutini FULL holatiga o'tkazish
-        const binId = data.binId || 'ESP32-IBN-SINO';
-        const location = data.location || 'Ibn Sino ko\'chasi 17A, Samarqand';
-        
-        try {
-          await this.binsService.markBinAsFull(binId, data.distance);
-          this.logger.log(`🗑️ Bin marked as FULL in database: ${binId}`);
-        } catch (binError) {
-          // Agar quti topilmasa, yaratish
-          this.logger.warn(`⚠️ Bin not found, creating: ${binId}`);
-          await this.binsService.upsertBin({
-            binId: binId,
-            location: location,
-            latitude: 39.6742637,
-            longitude: 66.9737814,
-            capacity: 120,
-          });
-          await this.binsService.markBinAsFull(binId, data.distance);
-        }
-        
-        // 📋 Faoliyat yaratish: Quti to'ldi
-        try {
-          await this.activitiesService.logBinFull(binId, location);
-          this.logger.log(`📋 Activity logged: Bin ${binId} full`);
-        } catch (activityError) {
-          this.logger.error(`❌ Error logging activity: ${activityError.message}`);
-        }
-        
-        // 🔥 Quti FULL holatini yuborish
-        this.logger.log(`📤 WebSocket emit qilinmoqda: binStatus (${binId} = FULL)`);
-        this.sensorsGateway.emitBinStatusChange(binId, 'FULL');
-        this.logger.log(`✅ WebSocket: binStatus yuborildi`);
-      }
-
-      return {
-        success: true,
-        message: 'Ma\'lumot muvaffaqiyatli qabul qilindi va saqlandi',
-        data: {
-          ...savedData,
-          status: data.distance <= 20 ? 'FULL' : 'OK'
-        }
-      };
+      this.logger.log(`ESP32 data received: ${JSON.stringify(data)}`);
+      return await this.dispatchService.handleSensorDistance(data);
     } catch (error) {
-      this.logger.error(`❌ ESP32 ma'lumotini qabul qilishda xatolik: ${error.message}`);
-      this.logger.error(`❌ Stack trace: ${error.stack}`);
+      this.logger.error(`ESP32 distance processing failed: ${error.message}`);
       return {
         success: false,
         error: error.message,
-        message: 'Ma\'lumot qabul qilishda xatolik yuz berdi'
       };
     }
   }
 
   @Post('data')
-  @ApiOperation({ summary: 'ESP32 dan har qanday ma\'lumot qabul qilish' })
-  @ApiResponse({ status: 200, description: 'Ma\'lumot qabul qilindi' })
+  @ApiOperation({ summary: "ESP32 dan ixtiyoriy ma'lumot qabul qilish" })
+  @ApiResponse({ status: 200, description: "Ma'lumot qabul qilindi" })
   async receiveData(@Body() data: any) {
-    try {
-      this.logger.log(`📡 ESP32 dan raw ma'lumot: ${JSON.stringify(data)}`);
-
-      return {
-        success: true,
-        message: 'Raw ma\'lumot qabul qilindi',
-        receivedData: data,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      this.logger.error(`❌ Raw ma'lumot qabul qilishda xatolik: ${error.message}`);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    this.logger.log(`ESP32 raw payload: ${JSON.stringify(data)}`);
+    return {
+      success: true,
+      message: 'Raw data accepted',
+      receivedData: data,
+      timestamp: new Date().toISOString(),
+    };
   }
 }

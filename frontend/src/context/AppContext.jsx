@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { mockBins, mockVehicles, mockActivities, mockAlerts } from '../data/mockData'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import ApiService from '../services/api'
 import { io } from 'socket.io-client'
 
@@ -14,6 +13,12 @@ export const useAppContext = () => {
 }
 
 export const AppProvider = ({ children }) => {
+
+  const normalizeRoutePath = (routePath) => {
+    if (Array.isArray(routePath) && routePath.length === 0) return null
+    return routePath
+  }
+
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light'
   })
@@ -51,21 +56,7 @@ export const AppProvider = ({ children }) => {
       batteryLevel: 100,
     }
   ])
-  const [vehiclesData, setVehiclesData] = useState(() => {
-    // localStorage'dan mashinalar holatini yuklash
-    try {
-      const savedVehicles = localStorage.getItem('vehiclesData')
-      if (savedVehicles) {
-        const parsed = JSON.parse(savedVehicles)
-        console.log('🚛 localStorage dan mashinalar yuklandi:', parsed.length)
-        return parsed
-      }
-    } catch (error) {
-      console.error('❌ localStorage dan yuklashda xatolik:', error)
-    }
-    // Default bo'sh array
-    return []
-  })
+  const [vehiclesData, setVehiclesData] = useState([])
   
   // Marshrutlar holati - "Marshrutlar" bo'limida ham, xaritada ham ko'rinadi
   // Faqat real-time faol marshrutlar ko'rsatiladi
@@ -88,57 +79,6 @@ export const AppProvider = ({ children }) => {
     ))
   }
   
-  // Marshrut yaratish helper function
-  const createRoute = async (vehicle, bin) => {
-    console.log(`🛣️ Creating route for ${vehicle.id} to ${bin.id}`)
-    
-    // OSRM API dan marshrut olish
-    try {
-      const url = `https://router.project-osrm.org/route/v1/driving/${vehicle.position[1]},${vehicle.position[0]};${bin.location[1]},${bin.location[0]}?overview=full&geometries=geojson`
-      const response = await fetch(url)
-      const data = await response.json()
-      
-      let route = [vehicle.position, bin.location]
-      let distance = 'Noma\'lum'
-      let duration = 'Noma\'lum'
-      
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const routeData = data.routes[0]
-        const coordinates = routeData.geometry.coordinates
-        route = coordinates.map(coord => [coord[1], coord[0]])
-        distance = `${(routeData.distance / 1000).toFixed(2)} km`
-        duration = `${(routeData.duration / 60).toFixed(0)} daqiqa`
-      }
-      
-      // Yangi marshrut yaratish
-      const newRoute = {
-        id: `ROUTE-${Date.now()}`,
-        name: `${vehicle.driver} → ${bin.address}`,
-        vehicle: vehicle.id,
-        bins: [bin.id],
-        progress: 0,
-        distance: distance,
-        estimatedTime: duration,
-        isActive: true,
-        path: route
-      }
-      
-      // Mashina holatini yangilash
-      updateVehicleState(vehicle.id, {
-        isPatrolling: false,
-        routePath: route,
-        currentPathIndex: 0
-      })
-      
-      // Marshrutni qo'shish
-      setRoutesData(prev => [...prev, newRoute])
-      
-      console.log(`✅ Route created: ${newRoute.id}`)
-    } catch (error) {
-      console.error('❌ Error creating route:', error)
-    }
-  }
-  
   const [activityData, setActivityData] = useState([]) // Bo'sh array - API dan yuklanadi
   const [alertsData, setAlertsData] = useState([])
   const [toasts, setToasts] = useState([])
@@ -156,18 +96,6 @@ export const AppProvider = ({ children }) => {
     document.documentElement.setAttribute('lang', language)
     localStorage.setItem('language', language)
   }, [language])
-
-  // Mashinalar holatini localStorage'ga saqlash
-  useEffect(() => {
-    if (vehiclesData.length > 0) {
-      try {
-        localStorage.setItem('vehiclesData', JSON.stringify(vehiclesData))
-        console.log('💾 Mashinalar holati saqlandi:', vehiclesData.length)
-      } catch (error) {
-        console.error('❌ localStorage ga saqlashda xatolik:', error)
-      }
-    }
-  }, [vehiclesData])
 
   // Load data from API
   const loadDataFromAPI = async () => {
@@ -290,30 +218,12 @@ export const AppProvider = ({ children }) => {
                 try {
                   console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
                   const transformed = ApiService.transformVehicleData(vehicle)
-                  
-                  // localStorage'dan saqlangan holatni olish
-                  const savedVehicles = JSON.parse(localStorage.getItem('vehiclesData') || '[]')
-                  const savedVehicle = savedVehicles.find(v => v.id === transformed.id)
-                  
-                  if (savedVehicle) {
-                    // Agar localStorage'da mavjud bo'lsa, holatni qayta tiklash
-                    console.log(`♻️ Vehicle ${transformed.id} holati qayta tiklanmoqda...`)
-                    transformed.position = savedVehicle.position || transformed.position
-                    transformed.patrolRoute = savedVehicle.patrolRoute || []
-                    transformed.patrolIndex = savedVehicle.patrolIndex || 0
-                    transformed.isPatrolling = savedVehicle.isPatrolling !== undefined ? savedVehicle.isPatrolling : true
-                    transformed.routePath = savedVehicle.routePath || null
-                    transformed.currentPathIndex = savedVehicle.currentPathIndex || 0
-                    transformed.cleaned = savedVehicle.cleaned || 0
-                    console.log(`✅ Vehicle ${transformed.id} holati qayta tiklandi`)
-                  } else {
-                    // Yangi mashina - default patrol marshrut berish
-                    const patrolIndex = index % patrolRoutes.length
-                    transformed.patrolWaypoints = patrolRoutes[patrolIndex]
-                    transformed.isPatrolling = true
-                    transformed.currentWaypointIndex = 0
-                    console.log(`✅ Vehicle ${index + 1} assigned patrol route ${patrolIndex + 1}`)
-                  }
+
+                  // Backend source-of-truth: default patrol waypoints faqat patrul uchun
+                  const patrolIndex = index % patrolRoutes.length
+                  transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                  transformed.currentWaypointIndex = transformed.currentWaypointIndex || 0
+                  transformed.routePath = normalizeRoutePath(transformed.routePath)
                   
                   return transformed
                 } catch (error) {
@@ -478,36 +388,83 @@ export const AppProvider = ({ children }) => {
       console.log('❌ AppContext WebSocket disconnected')
     })
 
-    // ESP32 dan yangi ma'lumot kelganda
-    socket.on('sensorData', (data) => {
-      console.log(`📡 AppContext: REAL-TIME ESP32 SIGNAL:`, data)
-      console.log(`📡 Distance: ${data.distance} sm`)
-      console.log(`📡 BinId: ${data.binId}`)
-      
-      // Qutini FULL holatiga o'tkazish
-      setBinStatus('FULL')
-      setBinsData(prev => prev.map(bin => 
-        bin.id === data.binId ? {
-          ...bin,
-          status: 95, // Qizil rang
-          fillLevel: 95,
-          distance: data.distance,
+    const applyBinUpdate = (payload) => {
+      const binKey = payload?.binId || payload?.code || payload?.sensorId || payload?.id
+      if (!binKey) return
+
+      const statusText = payload?.status
+      const fillFromPayload = Number(payload?.fillLevel)
+      const numericStatus = Number(payload?.status)
+      const fillLevel = Number.isFinite(fillFromPayload)
+        ? fillFromPayload
+        : Number.isFinite(numericStatus)
+          ? numericStatus
+          : statusText === 'FULL'
+            ? 95
+            : 15
+
+      const lat = Number(payload?.latitude ?? payload?.location?.[0] ?? 39.6742637)
+      const lon = Number(payload?.longitude ?? payload?.location?.[1] ?? 66.9737814)
+      const location = [lat, lon]
+      const resolvedStatus = fillLevel >= 90 ? 'FULL' : 'EMPTY'
+
+      setBinStatus(resolvedStatus)
+
+      setBinsData(prevBins => {
+        const nextBins = [...prevBins]
+        const index = nextBins.findIndex(bin =>
+          bin.id === binKey ||
+          bin.sensorId === binKey ||
+          (payload?.id && bin._backendId === payload.id)
+        )
+
+        const previous = index >= 0 ? nextBins[index] : null
+        const merged = {
+          ...(previous || {}),
+          id: previous?.id || payload?.code || payload?.binId || binKey,
+          _backendId: payload?.id || previous?._backendId || null,
+          address: payload?.address || payload?.locationName || previous?.address || 'Noma\'lum',
+          district: payload?.district || previous?.district || 'Samarqand',
+          location: Array.isArray(payload?.location) ? payload.location : location,
+          status: fillLevel,
+          fillLevel,
+          sensorId: payload?.sensorId || payload?.binId || previous?.sensorId || binKey,
+          batteryLevel: payload?.batteryLevel ?? previous?.batteryLevel ?? 100,
+          online: payload?.isOnline ?? previous?.online ?? true,
           lastUpdate: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
-          timestamp: data.timestamp
-        } : bin
-      ))
-      
-      // hasCleanedOnce ni reset qilish - yangi FULL signal uchun
-      setVehiclesData(prev => prev.map(vehicle => ({
-        ...vehicle,
-        hasCleanedOnce: false
-      })))
-      
-      console.log('🔴 AppContext: BIN STATUS: FULL (Qizil) - Real-time!')
-      showToast(`Quti ${data.binId} to'ldi! Mashina yuborilmoqda...`, 'warning')
+          assignedVehicleId: payload?.assignedVehicleId ?? previous?.assignedVehicleId ?? null,
+          assignmentStatus: payload?.assignmentStatus ?? previous?.assignmentStatus ?? null,
+          assignmentRouteId: payload?.assignmentRouteId ?? previous?.assignmentRouteId ?? null,
+          assignmentUpdatedAt: payload?.assignmentUpdatedAt ?? previous?.assignmentUpdatedAt ?? null
+        }
+
+        if (index >= 0) {
+          nextBins[index] = merged
+        } else {
+          nextBins.push(merged)
+        }
+        return nextBins
+      })
+    }
+
+    // ESP32 signal event (source event)
+    socket.on('sensorData', (data) => {
+      const distance = Number(data?.distance)
+      if (!Number.isFinite(distance)) return
+
+      if (distance <= 20) {
+        setBinStatus('FULL')
+        showToast(`Quti ${data?.binId || 'ESP32'} to'ldi`, 'warning')
+      }
     })
 
-    // Quti holati o'zgarganda
+    // Backend authoritative bin state
+    socket.on('binUpdate', (payload) => {
+      console.log('📥 Real-time binUpdate:', payload)
+      applyBinUpdate(payload)
+    })
+
+    // Quti holati o'zgarganda (legacy fallback)
     socket.on('binStatus', ({ binId, status }) => {
       console.log(`🗑️ AppContext: REAL-TIME BIN STATUS: ${binId} = ${status}`)
       
@@ -515,49 +472,100 @@ export const AppProvider = ({ children }) => {
       
       if (status === 'FULL') {
         setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 95, fillLevel: 95 } : bin
+          (bin.id === binId || bin.sensorId === binId) ? { ...bin, status: 95, fillLevel: 95 } : bin
         ))
         console.log('🔴 AppContext: Bin marked as FULL')
-        
-        // Eng yaqin mashinani topish va marshrut yaratish
-        const fullBin = binsData.find(b => b.id === binId)
-        if (fullBin && vehiclesData.length > 0) {
-          // Har bir mashina uchun masofa hisoblash
-          const distances = vehiclesData.map(vehicle => {
-            if (!vehicle.isPatrolling || vehicle.hasCleanedOnce) return { vehicle, distance: Infinity }
-            
-            const lat1 = vehicle.position[0]
-            const lon1 = vehicle.position[1]
-            const lat2 = fullBin.location[0]
-            const lon2 = fullBin.location[1]
-            
-            const R = 6371 // Earth radius in km
-            const dLat = (lat2 - lat1) * Math.PI / 180
-            const dLon = (lon2 - lon1) * Math.PI / 180
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2)
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-            const distance = R * c
-            
-            return { vehicle, distance }
-          })
-          
-          // Eng yaqin mashinani tanlash
-          const closest = distances.reduce((min, curr) => 
-            curr.distance < min.distance ? curr : min
-          )
-          
-          if (closest.distance !== Infinity) {
-            console.log(`🚛 Closest vehicle: ${closest.vehicle.id} (${closest.distance.toFixed(2)} km)`)
-            createRoute(closest.vehicle, fullBin)
-          }
-        }
       } else if (status === 'EMPTY') {
         setBinsData(prev => prev.map(bin =>
-          bin.id === binId ? { ...bin, status: 15, fillLevel: 15 } : bin
+          (bin.id === binId || bin.sensorId === binId) ? { ...bin, status: 15, fillLevel: 15 } : bin
         ))
         console.log('🟢 AppContext: Bin marked as EMPTY')
+      }
+    })
+
+    socket.on('dispatchAssigned', (data) => {
+      console.log('📥 Real-time dispatchAssigned:', data)
+      const routePath = normalizeRoutePath(data?.routePath)
+
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          isPatrolling: false,
+          status: 'moving',
+          targetBinId: data.binId || vehicle.targetBinId,
+          routePath: routePath || vehicle.routePath,
+          currentPathIndex: 0,
+          routeId: data.routeId || data.assignmentId || vehicle.routeId
+        } : vehicle
+      ))
+
+      setBinsData(prevBins => prevBins.map(bin =>
+        (bin.id === data.binId || bin.sensorId === data.binId) ? {
+          ...bin,
+          assignedVehicleId: data.vehicleId,
+          assignmentStatus: 'ASSIGNED',
+          assignmentRouteId: data.routeId || data.assignmentId || null,
+          assignmentUpdatedAt: new Date().toISOString()
+        } : bin
+      ))
+
+      setRoutesData(prev => [
+        ...prev.filter(route => route.vehicle !== data.vehicleId),
+        {
+          id: data.routeId || data.assignmentId || `ROUTE-${Date.now()}`,
+          name: `${data.vehicleId} -> ${data.binId}`,
+          vehicle: data.vehicleId,
+          bins: data.binId ? [data.binId] : [],
+          progress: 0,
+          distance: Number.isFinite(Number(data.distanceKm)) ? `${Number(data.distanceKm).toFixed(2)} km` : 'Noma\'lum',
+          estimatedTime: Number.isFinite(Number(data.estimatedDurationMin)) ? `${Math.round(Number(data.estimatedDurationMin))} daqiqa` : 'Noma\'lum',
+          isActive: true,
+          path: routePath || []
+        }
+      ])
+    })
+
+    socket.on('vehiclePositionUpdate', (data) => {
+      const lat = Number(data?.latitude ?? data?.position?.[0])
+      const lon = Number(data?.longitude ?? data?.position?.[1])
+      if (!Number.isFinite(lat) || !Number.isFinite(lon) || !data?.vehicleId) return
+
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId
+          ? { ...vehicle, position: [lat, lon] }
+          : vehicle
+      ))
+    })
+
+    // Mashina holati real-time yangilanganda
+    socket.on('vehicleStateUpdate', (data) => {
+      console.log(`📥 Real-time state update: ${data.vehicleId}`, data)
+
+      setVehiclesData(prev => prev.map(vehicle =>
+        vehicle.id === data.vehicleId ? {
+          ...vehicle,
+          isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : vehicle.isPatrolling,
+          hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
+          patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
+          status: data.status || vehicle.status,
+          patrolRoute: data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute,
+          routePath: data.currentRoute !== undefined ? normalizeRoutePath(data.currentRoute) : vehicle.routePath,
+          targetBinId: data.targetBinId !== undefined ? data.targetBinId : vehicle.targetBinId,
+          routeId: data.routeId !== undefined ? data.routeId : vehicle.routeId
+        } : vehicle
+      ))
+
+      const hasNoActiveRoute = data.currentRoute === null || (Array.isArray(data.currentRoute) && data.currentRoute.length === 0)
+      if (data.isPatrolling === true && hasNoActiveRoute) {
+        setRoutesData(prevRoutes => prevRoutes.filter(route => route.vehicle !== data.vehicleId))
+        setBinsData(prevBins => prevBins.map(bin =>
+          bin.assignedVehicleId === data.vehicleId ? {
+            ...bin,
+            assignedVehicleId: null,
+            assignmentStatus: 'UNASSIGNED',
+            assignmentUpdatedAt: new Date().toISOString()
+          } : bin
+        ))
       }
     })
 
@@ -629,4 +637,5 @@ export const AppProvider = ({ children }) => {
     </AppContext.Provider>
   )
 }
+
 

@@ -6,9 +6,10 @@ import { GpsController } from './gps.controller';
 import { GpsService } from './gps.service';
 import { Vehicle } from './entities/vehicle.entity';
 import { GpsLocation } from './entities/gps-location.entity';
+import { SensorsModule } from '../sensors/sensors.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vehicle, GpsLocation])],
+  imports: [TypeOrmModule.forFeature([Vehicle, GpsLocation]), SensorsModule],
   controllers: [VehiclesController, GpsController],
   providers: [VehiclesService, GpsService],
   exports: [VehiclesService, GpsService],
