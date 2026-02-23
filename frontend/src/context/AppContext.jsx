@@ -188,40 +188,19 @@ export const AppProvider = ({ children }) => {
             if (Array.isArray(vehiclesArray) && vehiclesArray.length > 0) {
               console.log('🚛 Processing vehicles array:', vehiclesArray.length, 'items')
               
-              // Har xil patrol marshrutlari
-              const patrolRoutes = [
-                // Marshrut 1 - Shimoliy hudud
-                [
-                  [39.6650, 66.9600], [39.6700, 66.9650], [39.6750, 66.9700],
-                  [39.6720, 66.9750], [39.6680, 66.9720], [39.6650, 66.9680],
-                  [39.6650, 66.9600]
-                ],
-                // Marshrut 2 - Janubiy hudud
-                [
-                  [39.6780, 66.9850], [39.6730, 66.9800], [39.6680, 66.9750],
-                  [39.6720, 66.9700], [39.6760, 66.9650], [39.6800, 66.9700],
-                  [39.6780, 66.9850]
-                ],
-                // Marshrut 3 - Sharqiy hudud
-                [
-                  [39.6600, 66.9900], [39.6650, 66.9950], [39.6700, 67.0000],
-                  [39.6650, 66.9950], [39.6600, 66.9900]
-                ],
-                // Marshrut 4 - G'arbiy hudud
-                [
-                  [39.6800, 66.9500], [39.6750, 66.9550], [39.6700, 66.9600],
-                  [39.6750, 66.9550], [39.6800, 66.9500]
-                ]
-              ]
-              
               const transformedVehicles = vehiclesArray.map((vehicle, index) => {
                 try {
                   console.log(`🚛 Transforming vehicle ${index + 1}:`, vehicle)
                   const transformed = ApiService.transformVehicleData(vehicle)
 
-                  // Backend source-of-truth: default patrol waypoints faqat patrul uchun
-                  const patrolIndex = index % patrolRoutes.length
-                  transformed.patrolWaypoints = patrolRoutes[patrolIndex]
+                  // Statik patrul siklini o'chiramiz:
+                  // backend waypoints bo'lsa ishlatamiz, bo'lmasa random patrul current positiondan boshlanadi.
+                  const backendWaypoints = Array.isArray(vehicle?.patrolWaypoints)
+                    ? vehicle.patrolWaypoints.filter(point => Array.isArray(point) && point.length >= 2)
+                    : []
+                  transformed.patrolWaypoints = backendWaypoints.length >= 2
+                    ? backendWaypoints
+                    : [transformed.position]
                   transformed.currentWaypointIndex = transformed.currentWaypointIndex || 0
                   transformed.routePath = normalizeRoutePath(transformed.routePath)
                   
@@ -541,21 +520,35 @@ export const AppProvider = ({ children }) => {
     socket.on('vehicleStateUpdate', (data) => {
       console.log(`📥 Real-time state update: ${data.vehicleId}`, data)
 
+      const hasNoActiveRoute = data.currentRoute === null || (Array.isArray(data.currentRoute) && data.currentRoute.length === 0)
       setVehiclesData(prev => prev.map(vehicle =>
-        vehicle.id === data.vehicleId ? {
-          ...vehicle,
-          isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : vehicle.isPatrolling,
-          hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
-          patrolIndex: data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex,
-          status: data.status || vehicle.status,
-          patrolRoute: data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute,
-          routePath: data.currentRoute !== undefined ? normalizeRoutePath(data.currentRoute) : vehicle.routePath,
-          targetBinId: data.targetBinId !== undefined ? data.targetBinId : vehicle.targetBinId,
-          routeId: data.routeId !== undefined ? data.routeId : vehicle.routeId
-        } : vehicle
+        vehicle.id === data.vehicleId ? (() => {
+          const nextRoutePath = data.currentRoute !== undefined
+            ? normalizeRoutePath(data.currentRoute)
+            : vehicle.routePath
+          const shouldRestartPatrolFromCurrentPosition = data.isPatrolling === true && hasNoActiveRoute
+
+          return {
+            ...vehicle,
+            isPatrolling: data.isPatrolling !== undefined ? data.isPatrolling : vehicle.isPatrolling,
+            hasCleanedOnce: data.hasCleanedOnce !== undefined ? data.hasCleanedOnce : vehicle.hasCleanedOnce,
+            patrolIndex: shouldRestartPatrolFromCurrentPosition
+              ? 0
+              : (data.patrolIndex !== undefined ? data.patrolIndex : vehicle.patrolIndex),
+            status: data.status || vehicle.status,
+            patrolRoute: shouldRestartPatrolFromCurrentPosition
+              ? []
+              : (data.patrolRoute !== undefined ? data.patrolRoute : vehicle.patrolRoute),
+            routePath: shouldRestartPatrolFromCurrentPosition ? null : nextRoutePath,
+            currentPathIndex: shouldRestartPatrolFromCurrentPosition ? 0 : vehicle.currentPathIndex,
+            targetBinId: shouldRestartPatrolFromCurrentPosition
+              ? null
+              : (data.targetBinId !== undefined ? data.targetBinId : vehicle.targetBinId),
+            routeId: data.routeId !== undefined ? data.routeId : vehicle.routeId
+          }
+        })() : vehicle
       ))
 
-      const hasNoActiveRoute = data.currentRoute === null || (Array.isArray(data.currentRoute) && data.currentRoute.length === 0)
       if (data.isPatrolling === true && hasNoActiveRoute) {
         setRoutesData(prevRoutes => prevRoutes.filter(route => route.vehicle !== data.vehicleId))
         setBinsData(prevBins => prevBins.map(bin =>

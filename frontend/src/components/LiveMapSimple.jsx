@@ -19,9 +19,21 @@ const LiveMapSimple = () => {
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
   const patrolExtendLockRef = useRef({}) // Bir mashina uchun parallel route extend'ni bloklash
   const lastPatrolTargetRef = useRef({}) // Bir xil random target qayta-qayta tushmasligi uchun
+  const lastPatrolAngleRef = useRef({}) // Bir xil yo'nalish takrorlanishini kamaytirish uchun
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
+  const normalizeAngle = (angle) => {
+    const twoPi = Math.PI * 2
+    let normalized = angle % twoPi
+    if (normalized < 0) normalized += twoPi
+    return normalized
+  }
+  const angleDiff = (a, b) => {
+    const twoPi = Math.PI * 2
+    const diff = Math.abs(normalizeAngle(a) - normalizeAngle(b)) % twoPi
+    return diff > Math.PI ? twoPi - diff : diff
+  }
 
   const getPatrolAreaCenter = () => {
     const firstBinWithLocation = binsData.find(bin => Array.isArray(bin?.location) && bin.location.length >= 2)
@@ -46,8 +58,9 @@ const LiveMapSimple = () => {
     const areaCenter = getPatrolAreaCenter()
     const [lat, lon] = currentPos
     const previousTarget = lastPatrolTargetRef.current[vehicleId]
+    const previousAngle = lastPatrolAngleRef.current[vehicleId]
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       const angle = Math.random() * Math.PI * 2
       const distanceDeg = 0.006 + Math.random() * 0.014 // ~0.6km - 2.2km
       const candidate = clampToPatrolArea(
@@ -64,7 +77,11 @@ const LiveMapSimple = () => {
           Math.abs(candidate[1] - previousTarget[1]) < 0.0008
         : false
 
-      if (!isTooCloseToCurrent && !isAlmostSameAsPreviousTarget) {
+      const isRepeatingDirection = previousAngle !== undefined
+        ? angleDiff(angle, previousAngle) < 0.55
+        : false
+
+      if (!isTooCloseToCurrent && !isAlmostSameAsPreviousTarget && !isRepeatingDirection) {
         return candidate
       }
     }
@@ -97,7 +114,9 @@ const LiveMapSimple = () => {
 
       if (result.success && Array.isArray(result.path) && result.path.length > 1) {
         console.log(`✅ ${vehicleId}: Yangi random segment tayyor (${result.path.length} nuqta)`)
-        lastPatrolTargetRef.current[vehicleId] = result.path[result.path.length - 1]
+        const endPoint = result.path[result.path.length - 1]
+        lastPatrolTargetRef.current[vehicleId] = endPoint
+        lastPatrolAngleRef.current[vehicleId] = Math.atan2(endPoint[1] - currentPos[1], endPoint[0] - currentPos[0])
 
         // Route'ni append qilmaymiz; yangi segment bilan almashtiramiz.
         // Bu cheksiz patrulda route'ning cheksiz kattalashib ketishini oldini oladi.
@@ -109,6 +128,7 @@ const LiveMapSimple = () => {
       } else {
         console.warn(`⚠️ ${vehicleId}: OSRM random segment topmadi, fallback ishlatildi`)
         lastPatrolTargetRef.current[vehicleId] = randomTarget
+        lastPatrolAngleRef.current[vehicleId] = Math.atan2(randomTarget[1] - currentPos[1], randomTarget[0] - currentPos[0])
         updateVehicleState(vehicleId, {
           patrolRoute: [currentPos, randomTarget],
           patrolIndex: 0,
