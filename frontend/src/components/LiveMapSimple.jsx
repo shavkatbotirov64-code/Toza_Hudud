@@ -17,9 +17,108 @@ const LiveMapSimple = () => {
   const vehicleManagerRef = useRef(null) // VehicleManager instance
   const animationIntervalRef = useRef(null) // VEH-001 animatsiya interval
   const animation2IntervalRef = useRef(null) // VEH-002 animatsiya interval
+  const patrolExtendLockRef = useRef({}) // Bir mashina uchun parallel route extend'ni bloklash
+  const lastPatrolTargetRef = useRef({}) // Bir xil random target qayta-qayta tushmasligi uchun
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
   
   const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
+
+  const getPatrolAreaCenter = () => {
+    const firstBinWithLocation = binsData.find(bin => Array.isArray(bin?.location) && bin.location.length >= 2)
+    if (firstBinWithLocation) return firstBinWithLocation.location
+    return [39.6742637, 66.9737814]
+  }
+
+  const clampToPatrolArea = (point, center, maxOffsetDeg = 0.03) => {
+    const [lat, lon] = point
+    const [centerLat, centerLon] = center
+    const minLat = centerLat - maxOffsetDeg
+    const maxLat = centerLat + maxOffsetDeg
+    const minLon = centerLon - maxOffsetDeg
+    const maxLon = centerLon + maxOffsetDeg
+    return [
+      Math.min(Math.max(lat, minLat), maxLat),
+      Math.min(Math.max(lon, minLon), maxLon)
+    ]
+  }
+
+  const generateRandomPatrolTarget = (currentPos, vehicleId) => {
+    const areaCenter = getPatrolAreaCenter()
+    const [lat, lon] = currentPos
+    const previousTarget = lastPatrolTargetRef.current[vehicleId]
+
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2
+      const distanceDeg = 0.006 + Math.random() * 0.014 // ~0.6km - 2.2km
+      const candidate = clampToPatrolArea(
+        [lat + Math.cos(angle) * distanceDeg, lon + Math.sin(angle) * distanceDeg],
+        areaCenter
+      )
+
+      const fromCurrentLat = Math.abs(candidate[0] - lat)
+      const fromCurrentLon = Math.abs(candidate[1] - lon)
+      const isTooCloseToCurrent = fromCurrentLat < 0.0012 && fromCurrentLon < 0.0012
+
+      const isAlmostSameAsPreviousTarget = previousTarget
+        ? Math.abs(candidate[0] - previousTarget[0]) < 0.0008 &&
+          Math.abs(candidate[1] - previousTarget[1]) < 0.0008
+        : false
+
+      if (!isTooCloseToCurrent && !isAlmostSameAsPreviousTarget) {
+        return candidate
+      }
+    }
+
+    return clampToPatrolArea([lat + 0.008, lon + 0.008], areaCenter)
+  }
+
+  const extendPatrolRoute = async (vehicleId, vehicleSnapshot) => {
+    if (patrolExtendLockRef.current[vehicleId]) return
+
+    patrolExtendLockRef.current[vehicleId] = true
+
+    try {
+      const currentPos =
+        vehicleSnapshot?.position ||
+        vehicleSnapshot?.patrolRoute?.[vehicleSnapshot.patrolRoute.length - 1]
+
+      if (!Array.isArray(currentPos) || currentPos.length < 2) {
+        return
+      }
+
+      const randomTarget = generateRandomPatrolTarget(currentPos, vehicleId)
+
+      console.log(`🔄 ${vehicleId}: Marshrut oxiriga yetdi, yangi random segment yaratilmoqda...`)
+
+      const result = await fetchRouteFromOSRM(
+        currentPos[0], currentPos[1],
+        randomTarget[0], randomTarget[1]
+      )
+
+      if (result.success && Array.isArray(result.path) && result.path.length > 1) {
+        console.log(`✅ ${vehicleId}: Yangi random segment tayyor (${result.path.length} nuqta)`)
+        lastPatrolTargetRef.current[vehicleId] = result.path[result.path.length - 1]
+
+        // Route'ni append qilmaymiz; yangi segment bilan almashtiramiz.
+        // Bu cheksiz patrulda route'ning cheksiz kattalashib ketishini oldini oladi.
+        updateVehicleState(vehicleId, {
+          patrolRoute: result.path,
+          patrolIndex: 0,
+          position: result.path[0] || currentPos
+        })
+      } else {
+        console.warn(`⚠️ ${vehicleId}: OSRM random segment topmadi, fallback ishlatildi`)
+        lastPatrolTargetRef.current[vehicleId] = randomTarget
+        updateVehicleState(vehicleId, {
+          patrolRoute: [currentPos, randomTarget],
+          patrolIndex: 0,
+          position: currentPos
+        })
+      }
+    } finally {
+      patrolExtendLockRef.current[vehicleId] = false
+    }
+  }
   
   // VehicleManager'ni yaratish
   useEffect(() => {
@@ -127,7 +226,13 @@ const LiveMapSimple = () => {
       console.log('ðŸ—ºï¸ VEH-001 Patrol marshruti yaratilmoqda (OSRM API)...')
       
       const buildPatrolRoute = async () => {
-        const waypoints = vehicleState.patrolWaypoints
+        const waypoints = Array.isArray(vehicleState.patrolWaypoints) ? vehicleState.patrolWaypoints : []
+
+        if (waypoints.length < 2) {
+          await extendPatrolRoute('VEH-001', vehicleState)
+          return
+        }
+
         let fullRoute = []
         
         for (let i = 0; i < waypoints.length - 1; i++) {
@@ -163,7 +268,13 @@ const LiveMapSimple = () => {
       console.log('ðŸ—ºï¸ VEH-002 Patrol marshruti yaratilmoqda (OSRM API)...')
       
       const buildPatrolRoute = async () => {
-        const waypoints = vehicle2State.patrolWaypoints
+        const waypoints = Array.isArray(vehicle2State.patrolWaypoints) ? vehicle2State.patrolWaypoints : []
+
+        if (waypoints.length < 2) {
+          await extendPatrolRoute('VEH-002', vehicle2State)
+          return
+        }
+
         let fullRoute = []
         
         for (let i = 0; i < waypoints.length - 1; i++) {
@@ -201,38 +312,7 @@ const LiveMapSimple = () => {
         
         // Agar marshrut oxiriga yetsa, yangi random marshrut qo'shish (cheksiz davom etish)
         if (nextIndex >= vehicleState.patrolRoute.length) {
-          console.log('ðŸ”„ VEH-001: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
-          
-          // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
-          const currentPos = vehicleState.patrolRoute[vehicleState.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // Â±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
-          
-          // Yangi marshrut yaratish va qo'shish
-          const extendRoute = async () => {
-            const result = await fetchRouteFromOSRM(
-              currentPos[0], currentPos[1],
-              randomLat, randomLon
-            )
-            
-            if (result.success && result.path.length > 1) {
-              console.log(`âœ… VEH-001: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
-              // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
-              const extendedRoute = [...vehicleState.patrolRoute, ...result.path.slice(1)]
-              updateVehicleState('VEH-001', {
-                patrolRoute: extendedRoute
-                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
-              })
-            } else {
-              // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
-              const extendedRoute = [...vehicleState.patrolRoute, [randomLat, randomLon]]
-              updateVehicleState('VEH-001', {
-                patrolRoute: extendedRoute
-              })
-            }
-          }
-          
-          extendRoute()
+          extendPatrolRoute('VEH-001', vehicleState)
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
           const nextPosition = vehicleState.patrolRoute[nextIndex]
@@ -258,38 +338,7 @@ const LiveMapSimple = () => {
         
         // Agar marshrut oxiriga yetsa, yangi random marshrut qo'shish (cheksiz davom etish)
         if (nextIndex >= vehicle2State.patrolRoute.length) {
-          console.log('ðŸ”„ VEH-002: Marshrut oxiriga yetdi, yangi random yo\'nalish qo\'shilmoqda...')
-          
-          // Hozirgi oxirgi nuqtadan yangi random nuqtaga marshrut yaratish
-          const currentPos = vehicle2State.patrolRoute[vehicle2State.patrolRoute.length - 1]
-          const randomLat = currentPos[0] + (Math.random() - 0.5) * 0.025 // Â±1.25km atrofida (kattaroq radius - asosiy ko'chalar)
-          const randomLon = currentPos[1] + (Math.random() - 0.5) * 0.025
-          
-          // Yangi marshrut yaratish va qo'shish
-          const extendRoute = async () => {
-            const result = await fetchRouteFromOSRM(
-              currentPos[0], currentPos[1],
-              randomLat, randomLon
-            )
-            
-            if (result.success && result.path.length > 1) {
-              console.log(`âœ… VEH-002: Yangi yo'nalish qo'shildi (${result.path.length} nuqta)`)
-              // Eski marshrut + yangi marshrut (birinchi nuqtani o'tkazib yuborish, chunki u oxirgi nuqta)
-              const extendedRoute = [...vehicle2State.patrolRoute, ...result.path.slice(1)]
-              updateVehicleState('VEH-002', {
-                patrolRoute: extendedRoute
-                // position va patrolIndex o'zgarmaydi - hozirgi joyda qoladi
-              })
-            } else {
-              // Agar OSRM ishlamasa, oddiy random nuqta qo'shamiz
-              const extendedRoute = [...vehicle2State.patrolRoute, [randomLat, randomLon]]
-              updateVehicleState('VEH-002', {
-                patrolRoute: extendedRoute
-              })
-            }
-          }
-          
-          extendRoute()
+          extendPatrolRoute('VEH-002', vehicle2State)
         } else {
           // Oddiy harakat - keyingi nuqtaga o'tish
           const nextPosition = vehicle2State.patrolRoute[nextIndex]
