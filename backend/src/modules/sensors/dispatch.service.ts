@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Brackets, DataSource, Repository } from 'typeorm';
 import { SensorReading } from './entities/sensor-reading.entity';
 import { SensorAlert } from './entities/sensor-alert.entity';
 import { Bin } from './entities/bin.entity';
@@ -165,9 +165,13 @@ export class DispatchService implements OnModuleDestroy {
         .createQueryBuilder('vehicle')
         .setLock('pessimistic_read')
         .where('vehicle.targetBinId = :binId', { binId })
-        .andWhere('vehicle.isMoving = true OR vehicle.status IN (:...statuses)', {
-          statuses: ['moving', 'cleaning'],
-        })
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where('vehicle.isMoving = true').orWhere('vehicle.status IN (:...statuses)', {
+              statuses: ['moving', 'cleaning'],
+            });
+          }),
+        )
         .orderBy('vehicle.updatedAt', 'DESC')
         .getOne();
 
@@ -184,9 +188,15 @@ export class DispatchService implements OnModuleDestroy {
       const candidateQb = vehicleRepo
         .createQueryBuilder('vehicle')
         .setLock('pessimistic_read')
-        .where('vehicle.status = :status', { status: 'idle' })
-        .andWhere('vehicle.isMoving = false')
-        .andWhere('vehicle.targetBinId IS NULL');
+        .where('vehicle.isMoving = false')
+        .andWhere('vehicle.targetBinId IS NULL')
+        .andWhere(
+          new Brackets((qb) => {
+            qb.where('vehicle.status IS NULL').orWhere('vehicle.status NOT IN (:...blockedStatuses)', {
+              blockedStatuses: ['cleaning', 'stopped'],
+            });
+          }),
+        );
 
       if (options.excludeVehicleIds && options.excludeVehicleIds.length > 0) {
         candidateQb.andWhere('vehicle.vehicleId NOT IN (:...excludeIds)', {
