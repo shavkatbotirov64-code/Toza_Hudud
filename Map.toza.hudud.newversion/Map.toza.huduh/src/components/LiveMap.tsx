@@ -30,6 +30,7 @@ interface DriverVehicle {
   speed: number
   targetBinId?: string | null
   routeId?: string | null
+  routePath?: [number, number][] | null
 }
 
 const DEFAULT_CENTER: [number, number] = [39.6742637, 66.9737814]
@@ -63,6 +64,16 @@ const toFillLevel = (rawStatus: unknown, rawFillLevel: unknown): number => {
   if (numericStatus !== null) return Math.max(0, Math.min(100, numericStatus))
 
   return 15
+}
+
+const normalizeRoutePath = (rawRoute: unknown): [number, number][] | null => {
+  if (!Array.isArray(rawRoute) || rawRoute.length === 0) return null
+
+  const points = rawRoute
+    .filter((point) => Array.isArray(point) && point.length >= 2)
+    .map((point) => toCoordinates(point[0], point[1], DEFAULT_CENTER))
+
+  return points.length >= 2 ? points : null
 }
 
 const normalizeBin = (bin: any): DriverBin => {
@@ -118,6 +129,7 @@ const normalizeVehicle = (vehicle: any): DriverVehicle => {
 
   const movingStatus = String(vehicle?.status || '').toLowerCase()
   const isMoving = vehicle?.isMoving === true || movingStatus === 'moving' || movingStatus === 'cleaning'
+  const routePath = normalizeRoutePath(vehicle?.routePath ?? vehicle?.currentRoute)
   const resolvedId = String(
     vehicle?.vehicleId || vehicle?.id || vehicle?.code || vehicle?.licensePlate || 'UNKNOWN-VEH',
   )
@@ -130,6 +142,7 @@ const normalizeVehicle = (vehicle: any): DriverVehicle => {
     speed: Number(vehicle?.speed || 0),
     targetBinId: vehicle?.targetBinId || null,
     routeId: vehicle?.routeId || null,
+    routePath,
   }
 }
 
@@ -227,6 +240,7 @@ const LiveMap = ({ compact = false, onBinsChange }: LiveMapProps) => {
       realtimeService.onDispatchAssigned((payload: any) => {
         const vehicleId = payload?.vehicleId ? String(payload.vehicleId) : ''
         if (!vehicleId) return
+        const routePath = normalizeRoutePath(payload?.routePath)
 
         setVehicles((prevVehicles) =>
           prevVehicles.map((vehicle) =>
@@ -236,6 +250,7 @@ const LiveMap = ({ compact = false, onBinsChange }: LiveMapProps) => {
                   status: 'moving',
                   targetBinId: payload?.binId || vehicle.targetBinId || null,
                   routeId: payload?.routeId || payload?.assignmentId || vehicle.routeId || null,
+                  routePath: routePath || vehicle.routePath || null,
                 }
               : vehicle,
           ),
@@ -253,9 +268,15 @@ const LiveMap = ({ compact = false, onBinsChange }: LiveMapProps) => {
             if (vehicle.id !== vehicleId) return vehicle
 
             const normalized = normalizeVehicle({ ...vehicle, ...payload })
+            const hasCurrentRouteField = Object.prototype.hasOwnProperty.call(payload || {}, 'currentRoute')
+            const nextRoutePath = hasCurrentRouteField
+              ? normalizeRoutePath(payload?.currentRoute)
+              : normalized.routePath
+
             return {
               ...vehicle,
               ...normalized,
+              routePath: payload?.isPatrolling === true ? null : nextRoutePath,
               status:
                 payload?.isPatrolling === true
                   ? 'idle'

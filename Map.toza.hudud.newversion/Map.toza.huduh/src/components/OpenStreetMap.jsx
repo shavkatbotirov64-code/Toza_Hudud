@@ -72,6 +72,7 @@ const OpenStreetMap = ({
   const mapInstanceRef = useRef(null)
   const baseLayerRef = useRef(null)
   const markersRef = useRef([])
+  const routeLayersRef = useRef([])
 
   // Initialize map
   useEffect(() => {
@@ -135,6 +136,8 @@ const OpenStreetMap = ({
     // Clear old markers
     markersRef.current.forEach(marker => map.removeLayer(marker))
     markersRef.current = []
+    routeLayersRef.current.forEach(layer => map.removeLayer(layer))
+    routeLayersRef.current = []
 
     // Add bin markers
     bins.forEach(bin => {
@@ -204,6 +207,19 @@ const OpenStreetMap = ({
         .on('click', () => onVehicleClick(vehicle))
 
       markersRef.current.push(marker)
+
+      // Draw active route path for vehicle (if available from backend)
+      if (Array.isArray(vehicle.routePath) && vehicle.routePath.length > 1) {
+        const routeLine = L.polyline(vehicle.routePath, {
+          color,
+          weight: 4,
+          opacity: 0.85,
+          smoothFactor: 1,
+          dashArray: vehicle.status === 'moving' ? null : '8, 6'
+        }).addTo(map)
+
+        routeLayersRef.current.push(routeLine)
+      }
     })
   }, [bins, vehicles])
 
