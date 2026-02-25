@@ -6,7 +6,7 @@ import api from '../services/api'
 import VehicleManager from '../utils/VehicleManager'
 import 'leaflet/dist/leaflet.css'
 
-const LiveMapSimple = () => {
+const LiveMapSimple = ({ expanded = false }) => {
   const { t } = useTranslation()
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
@@ -685,8 +685,20 @@ const LiveMapSimple = () => {
     }
   }
 
+  const mapHeight = expanded ? 'clamp(520px, 70vh, 900px)' : '400px'
+
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+
+    const resizeTimer = setTimeout(() => {
+      mapInstanceRef.current.invalidateSize()
+    }, 120)
+
+    return () => clearTimeout(resizeTimer)
+  }, [expanded])
+
   return (
-    <div className="content-card map-card">
+    <div className={`content-card map-card ${expanded ? 'map-card-expanded' : ''}`}>
       <div className="card-header">
         <h3><i className="fas fa-map-marked-alt"></i> {t('liveMap.title')}</h3>
         <div className="card-actions">
@@ -696,7 +708,7 @@ const LiveMapSimple = () => {
         </div>
       </div>
       <div className="card-body">
-        <div ref={mapRef} className="live-map" style={{ height: '400px' }}></div>
+        <div ref={mapRef} className="live-map" style={{ height: mapHeight }}></div>
         <div className="map-legend">
           <div style={{ marginBottom: '8px', fontWeight: '600', color: '#555' }}>Qutilar:</div>
           <div className="legend-item">

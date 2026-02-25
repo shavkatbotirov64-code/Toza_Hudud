@@ -190,7 +190,7 @@ function AppContent() {
       case 'vehicles':
         return <Vehicles />
       case 'liveMap':
-        return <LiveMapSimple />
+        return <LiveMapSimple expanded />
       case 'routes':
         return <Routes />
       case 'reports':
