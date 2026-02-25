@@ -108,7 +108,7 @@ const Sensors = () => {
     <div className="content-card">
       <div className="card-header">
         <div>
-          <h3><i className="fas fa-microchip"></i> ESP32 Sensor Monitoring</h3>
+          <h3><i className="fas fa-microchip"></i> Esp32 Xabarlari</h3>
           <p className="card-subtitle">Real-time chiqindi quti monitoring tizimi</p>
         </div>
         <div className="card-actions">

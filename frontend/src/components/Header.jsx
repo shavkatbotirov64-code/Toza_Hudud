@@ -67,7 +67,7 @@ const Header = ({ currentTab, onLogout }) => {
     routes: t('nav.routes'),
     reports: t('nav.reports'),
     alerts: t('nav.alerts'),
-    sensors: 'Esp32 Paneli',
+    sensors: 'Esp32 Xabarlari',
     telegram: t('nav.telegram'),
     settings: t('nav.settings')
   }

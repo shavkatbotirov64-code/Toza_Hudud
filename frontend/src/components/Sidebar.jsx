@@ -12,7 +12,7 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
     { id: 'routes', icon: 'fa-route', text: t('nav.routes') },
     { id: 'reports', icon: 'fa-chart-bar', text: t('nav.reports') },
     { id: 'alerts', icon: 'fa-bell', text: t('nav.alerts') },
-    { id: 'sensors', icon: 'fa-microchip', text: 'ESP32 Sensors' },
+    { id: 'sensors', icon: 'fa-microchip', text: 'Esp32 Xabarlari' },
     { id: 'telegram', icon: 'fa-paper-plane', text: t('nav.telegram') },
     { id: 'settings', icon: 'fa-cog', text: t('nav.settings') }
   ], [t])
