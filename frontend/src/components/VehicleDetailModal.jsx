@@ -7,6 +7,20 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
   
   if (!vehicle) return null
 
+  const safeVehicle = {
+    id: vehicle.id || '---',
+    driver: vehicle.driver || "Noma'lum",
+    phone: vehicle.phone || "Noma'lum",
+    licensePlate: vehicle.licensePlate || "Noma'lum",
+    route: vehicle.route || "Noma'lum",
+    status: vehicle.status || 'inactive',
+    cleaned: Number.isFinite(Number(vehicle.cleaned)) ? Number(vehicle.cleaned) : 0,
+    capacity: Number.isFinite(Number(vehicle.capacity)) ? Number(vehicle.capacity) : 0,
+    lastService: vehicle.lastService || "Ma'lumot yo'q",
+    location: vehicle.location || "Noma'lum",
+    currentBins: Array.isArray(vehicle.currentBins) ? vehicle.currentBins : []
+  }
+  
   const getStatusText = (status) => {
     if (status === 'moving') return t('status.moving')
     if (status === 'active') return t('status.active')
@@ -20,7 +34,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${t('vehicleDetail.vehicleTitle')} #${vehicle.id}`} size="large">
+    <Modal isOpen={isOpen} onClose={onClose} title={`${t('vehicleDetail.vehicleTitle')} #${safeVehicle.id}`} size="large">
       <div className="modal-grid">
         <div className="modal-section">
           <h3><i className="fas fa-info-circle"></i> {t('vehicleDetail.basicInfo')}</h3>
@@ -31,7 +45,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
               </div>
               <div>
                 <p className="info-label">{t('vehicleDetail.driver')}</p>
-                <p className="info-value">{vehicle.driver}</p>
+                <p className="info-value">{safeVehicle.driver}</p>
               </div>
             </div>
             <div className="info-card">
@@ -40,7 +54,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
               </div>
               <div>
                 <p className="info-label">{t('vehicleDetail.phone')}</p>
-                <p className="info-value">{vehicle.phone}</p>
+                <p className="info-value">{safeVehicle.phone}</p>
               </div>
             </div>
             <div className="info-card">
@@ -49,7 +63,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
               </div>
               <div>
                 <p className="info-label">{t('vehicleDetail.licensePlate')}</p>
-                <p className="info-value">{vehicle.licensePlate}</p>
+                <p className="info-value">{safeVehicle.licensePlate}</p>
               </div>
             </div>
             <div className="info-card">
@@ -58,7 +72,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
               </div>
               <div>
                 <p className="info-label">{t('vehicleDetail.route')}</p>
-                <p className="info-value">{vehicle.route}</p>
+                <p className="info-value">{safeVehicle.route}</p>
               </div>
             </div>
           </div>
@@ -69,14 +83,14 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
           <div className="status-card">
             <div className="status-header">
               <span>{t('vehicleDetail.status')}</span>
-              <span className="status-percent" style={{ color: getStatusColor(vehicle.status) }}>
-                {getStatusText(vehicle.status)}
+              <span className="status-percent" style={{ color: getStatusColor(safeVehicle.status) }}>
+                {getStatusText(safeVehicle.status)}
               </span>
             </div>
             <div className="status-details">
               <div className="status-item">
                 <span>{t('vehicleDetail.todayCleaned')}:</span>
-                <strong>{vehicle.cleaned} {t('vehicleDetail.pieces')}</strong>
+                <strong>{safeVehicle.cleaned} {t('vehicleDetail.pieces')}</strong>
               </div>
             </div>
           </div>
@@ -87,24 +101,24 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
           <div className="info-list">
             <div className="info-row">
               <span className="info-label">{t('vehicleDetail.capacity')}:</span>
-              <span className="info-value">{vehicle.capacity.toLocaleString()}L</span>
+              <span className="info-value">{safeVehicle.capacity.toLocaleString()}L</span>
             </div>
             <div className="info-row">
               <span className="info-label">{t('vehicleDetail.lastService')}:</span>
-              <span className="info-value">{vehicle.lastService}</span>
+              <span className="info-value">{safeVehicle.lastService}</span>
             </div>
             <div className="info-row">
               <span className="info-label">{t('vehicleDetail.location')}:</span>
-              <span className="info-value">{vehicle.location}</span>
+              <span className="info-value">{safeVehicle.location}</span>
             </div>
           </div>
         </div>
 
-        {vehicle.currentBins && vehicle.currentBins.length > 0 && (
+        {safeVehicle.currentBins.length > 0 && (
           <div className="modal-section">
             <h3><i className="fas fa-trash"></i> {t('vehicleDetail.currentBins')}</h3>
             <div className="route-bins">
-              {vehicle.currentBins.map(binId => (
+              {safeVehicle.currentBins.map(binId => (
                 <span key={binId} className="bin-tag">
                   {binId}
                 </span>
@@ -125,8 +139,8 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
           <i className="fas fa-map"></i> {t('vehicleDetail.showOnMap')}
         </button>
         <button className="btn btn-primary" onClick={() => {
-          // Call driver
-          window.open(`tel:${vehicle.phone}`)
+          if (!safeVehicle.phone || safeVehicle.phone === "Noma'lum") return
+          window.open(`tel:${safeVehicle.phone}`)
         }}>
           <i className="fas fa-phone"></i> {t('vehicleDetail.makeCall')}
         </button>
@@ -136,4 +150,3 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
 }
 
 export default VehicleDetailModal
-

@@ -531,9 +531,17 @@ class ApiService {
         _backendId: backendVehicle.id, // Backend UUID
         driver: backendVehicle.driver || "Noma'lum",
         phone: backendVehicle.phone || "+998 00 000 00 00",
+        licensePlate: backendVehicle.licensePlate || backendVehicle.plateNumber || "Noma'lum",
         status: backendVehicle.isMoving ? 'moving' : 'active',
+        route: backendVehicle.route || backendVehicle.routeName || "Noma'lum",
         location: `${parseFloat(backendVehicle.latitude || 0).toFixed(4)}, ${parseFloat(backendVehicle.longitude || 0).toFixed(4)}`,
         cleaned: backendVehicle.totalCleanings || 0,
+        capacity: Number.isFinite(Number(backendVehicle.capacity))
+          ? Number(backendVehicle.capacity)
+          : 5000,
+        lastService: backendVehicle.lastService
+          ? new Date(backendVehicle.lastService).toLocaleDateString('uz-UZ')
+          : "Ma'lumot yo'q",
         position: [
           parseFloat(backendVehicle.latitude || 39.6650),
           parseFloat(backendVehicle.longitude || 66.9600),
