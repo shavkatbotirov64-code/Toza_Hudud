@@ -16,12 +16,28 @@ import ToastContainer from './components/ToastContainer'
 import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
+const TAB_SEQUENCE = [
+  'dashboard',
+  'bins',
+  'vehicles',
+  'liveMap',
+  'routes',
+  'reports',
+  'alerts',
+  'sensors',
+  'telegram',
+  'settings'
+]
+
 function AppContent() {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true'
   })
   const [currentTab, setCurrentTab] = useState('dashboard')
+  const [displayTab, setDisplayTab] = useState('dashboard')
+  const [tabTransitionPhase, setTabTransitionPhase] = useState('idle')
+  const [tabTransitionDirection, setTabTransitionDirection] = useState('forward')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
@@ -30,6 +46,31 @@ function AppContent() {
       setLoading(false)
     }, 1500)
   }, [])
+
+  useEffect(() => {
+    if (currentTab === displayTab) return
+
+    const currentIndex = TAB_SEQUENCE.indexOf(displayTab)
+    const nextIndex = TAB_SEQUENCE.indexOf(currentTab)
+    const isForward = nextIndex === -1 || currentIndex === -1 || nextIndex >= currentIndex
+
+    setTabTransitionDirection(isForward ? 'forward' : 'backward')
+    setTabTransitionPhase('exit')
+
+    const swapTimer = setTimeout(() => {
+      setDisplayTab(currentTab)
+      setTabTransitionPhase('enter')
+    }, 130)
+
+    const settleTimer = setTimeout(() => {
+      setTabTransitionPhase('idle')
+    }, 320)
+
+    return () => {
+      clearTimeout(swapTimer)
+      clearTimeout(settleTimer)
+    }
+  }, [currentTab, displayTab])
 
   const handleLogin = (username, password) => {
     // Simple authentication - just check if username is "admin"
@@ -181,8 +222,8 @@ function AppContent() {
     )
   }
 
-  const renderTabContent = () => {
-    switch (currentTab) {
+  const renderTabContent = (tab = currentTab) => {
+    switch (tab) {
       case 'dashboard':
         return <Dashboard />
       case 'bins':
@@ -225,7 +266,11 @@ function AppContent() {
           <Header currentTab={currentTab} onLogout={handleLogout} />
           <main className="content">
             <ErrorBoundary>
-              {renderTabContent()}
+              <div
+                className={`tab-transition tab-transition--${tabTransitionPhase} tab-transition--${tabTransitionDirection}`}
+              >
+                {renderTabContent(displayTab)}
+              </div>
             </ErrorBoundary>
           </main>
         </div>

@@ -540,3 +540,126 @@ input:checked + .slider:before {
     transform: translateY(-5px);
   }
 }
+
+/* Section transition animations */
+.tab-transition {
+  position: relative;
+  will-change: opacity, transform, filter;
+  transform-origin: 50% 20%;
+}
+
+.tab-transition::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 18px;
+  opacity: 0;
+  background: radial-gradient(
+    circle at 10% 15%,
+    rgba(59, 130, 246, 0.16) 0%,
+    rgba(59, 130, 246, 0) 55%
+  );
+}
+
+.tab-transition--exit {
+  pointer-events: none;
+}
+
+.tab-transition--exit.tab-transition--forward {
+  animation: tabExitForward 130ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.tab-transition--exit.tab-transition--backward {
+  animation: tabExitBackward 130ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.tab-transition--enter {
+  pointer-events: none;
+}
+
+.tab-transition--enter.tab-transition--forward {
+  animation: tabEnterForward 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.tab-transition--enter.tab-transition--backward {
+  animation: tabEnterBackward 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.tab-transition--enter::after {
+  animation: tabHighlight 380ms ease-out forwards;
+}
+
+@keyframes tabExitForward {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(-24px, 0, 0) scale(0.985);
+    filter: blur(1px);
+  }
+}
+
+@keyframes tabExitBackward {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(0.985);
+    filter: blur(1px);
+  }
+}
+
+@keyframes tabEnterForward {
+  from {
+    opacity: 0;
+    transform: translate3d(34px, 8px, 0) scale(0.985);
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes tabEnterBackward {
+  from {
+    opacity: 0;
+    transform: translate3d(-34px, 8px, 0) scale(0.985);
+    filter: blur(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes tabHighlight {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-transition,
+  .tab-transition::after,
+  .tab-transition--exit,
+  .tab-transition--enter {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
