@@ -215,7 +215,41 @@ export const AppProvider = ({ children }) => {
               console.log('🚛 Transformed Vehicles:', transformedVehicles)
               
               if (transformedVehicles.length > 0) {
-                setVehiclesData(transformedVehicles)
+                setVehiclesData((prevVehicles) =>
+                  transformedVehicles.map((vehicle) => {
+                    const existing = prevVehicles.find((prev) => prev.id === vehicle.id)
+                    if (!existing) return vehicle
+
+                    const hasExistingPosition =
+                      Array.isArray(existing.position) && existing.position.length >= 2
+                    const keepRuntimePosition = hasExistingPosition && (existing.isMoving || existing.isPatrolling)
+
+                    return {
+                      ...vehicle,
+                      position: keepRuntimePosition ? existing.position : vehicle.position,
+                      routePath:
+                        Array.isArray(existing.routePath) && existing.routePath.length > 0
+                          ? existing.routePath
+                          : vehicle.routePath,
+                      currentPathIndex: existing.currentPathIndex ?? vehicle.currentPathIndex,
+                      patrolRoute:
+                        Array.isArray(existing.patrolRoute) && existing.patrolRoute.length > 0
+                          ? existing.patrolRoute
+                          : vehicle.patrolRoute,
+                      patrolIndex: existing.patrolIndex ?? vehicle.patrolIndex,
+                      isPatrolling:
+                        existing.isPatrolling !== undefined ? existing.isPatrolling : vehicle.isPatrolling,
+                      targetBinId: existing.targetBinId ?? vehicle.targetBinId,
+                      routeId: existing.routeId ?? vehicle.routeId,
+                      hasCleanedOnce:
+                        existing.hasCleanedOnce !== undefined ? existing.hasCleanedOnce : vehicle.hasCleanedOnce,
+                      patrolWaypoints:
+                        Array.isArray(existing.patrolWaypoints) && existing.patrolWaypoints.length > 0
+                          ? existing.patrolWaypoints
+                          : vehicle.patrolWaypoints,
+                    }
+                  }),
+                )
               } else {
                 console.warn('⚠️ No vehicles could be transformed')
               }
@@ -426,12 +460,28 @@ export const AppProvider = ({ children }) => {
       })
     }
 
+    const alignRouteWithCurrentPosition = (currentPosition, incomingRoute) => {
+      if (!Array.isArray(incomingRoute) || incomingRoute.length === 0) return incomingRoute
+      if (!Array.isArray(currentPosition) || currentPosition.length < 2) return incomingRoute
+
+      const firstPoint = incomingRoute[0]
+      if (!Array.isArray(firstPoint) || firstPoint.length < 2) return incomingRoute
+
+      const latGap = Math.abs(Number(currentPosition[0]) - Number(firstPoint[0]))
+      const lonGap = Math.abs(Number(currentPosition[1]) - Number(firstPoint[1]))
+      const isFarFromCurrent = latGap > 0.0008 || lonGap > 0.0008
+
+      if (!isFarFromCurrent) return incomingRoute
+
+      return [currentPosition, ...incomingRoute]
+    }
+
     // ESP32 signal event (source event)
     socket.on('sensorData', (data) => {
       const distance = Number(data?.distance)
       if (!Number.isFinite(distance)) return
 
-      if (distance <= 20) {
+      if (distance <= 30) {
         setBinStatus('FULL')
         showToast(`Quti ${data?.binId || 'ESP32'} to'ldi`, 'warning')
       }
@@ -467,15 +517,21 @@ export const AppProvider = ({ children }) => {
       const routePath = normalizeRoutePath(data?.routePath)
 
       setVehiclesData(prev => prev.map(vehicle =>
-        vehicle.id === data.vehicleId ? {
-          ...vehicle,
-          isPatrolling: false,
-          status: 'moving',
-          targetBinId: data.binId || vehicle.targetBinId,
-          routePath: routePath || vehicle.routePath,
-          currentPathIndex: 0,
-          routeId: data.routeId || data.assignmentId || vehicle.routeId
-        } : vehicle
+        vehicle.id === data.vehicleId ? (() => {
+          const safeRoutePath = routePath
+            ? alignRouteWithCurrentPosition(vehicle.position, routePath)
+            : vehicle.routePath
+
+          return {
+            ...vehicle,
+            isPatrolling: false,
+            status: 'moving',
+            targetBinId: data.binId || vehicle.targetBinId,
+            routePath: safeRoutePath,
+            currentPathIndex: 0,
+            routeId: data.routeId || data.assignmentId || vehicle.routeId
+          }
+        })() : vehicle
       ))
 
       setBinsData(prevBins => prevBins.map(bin =>

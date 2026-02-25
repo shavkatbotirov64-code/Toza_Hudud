@@ -268,11 +268,22 @@ const LiveMapSimple = () => {
           }
         }
         
-        console.log(`âœ… VEH-001 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        const currentPosition = Array.isArray(vehicleState.position) ? vehicleState.position : null
+        let alignedRoute = fullRoute
+        if (currentPosition && fullRoute.length > 0) {
+          const firstPoint = fullRoute[0]
+          const latGap = Math.abs(Number(currentPosition[0]) - Number(firstPoint[0]))
+          const lonGap = Math.abs(Number(currentPosition[1]) - Number(firstPoint[1]))
+          if (latGap > 0.0008 || lonGap > 0.0008) {
+            alignedRoute = [currentPosition, ...fullRoute]
+          }
+        }
+
+        console.log(`âœ… VEH-001 Patrol marshruti tayyor: ${alignedRoute.length} nuqta`)
         
         updateVehicleState('VEH-001', {
-          patrolRoute: fullRoute,
-          position: fullRoute[0] || vehicleState.position
+          patrolRoute: alignedRoute,
+          position: currentPosition || alignedRoute[0] || vehicleState.position
         })
       }
       
@@ -310,11 +321,22 @@ const LiveMapSimple = () => {
           }
         }
         
-        console.log(`âœ… VEH-002 Patrol marshruti tayyor: ${fullRoute.length} nuqta`)
+        const currentPosition = Array.isArray(vehicle2State.position) ? vehicle2State.position : null
+        let alignedRoute = fullRoute
+        if (currentPosition && fullRoute.length > 0) {
+          const firstPoint = fullRoute[0]
+          const latGap = Math.abs(Number(currentPosition[0]) - Number(firstPoint[0]))
+          const lonGap = Math.abs(Number(currentPosition[1]) - Number(firstPoint[1]))
+          if (latGap > 0.0008 || lonGap > 0.0008) {
+            alignedRoute = [currentPosition, ...fullRoute]
+          }
+        }
+
+        console.log(`âœ… VEH-002 Patrol marshruti tayyor: ${alignedRoute.length} nuqta`)
         
         updateVehicleState('VEH-002', {
-          patrolRoute: fullRoute,
-          position: fullRoute[0] || vehicle2State.position
+          patrolRoute: alignedRoute,
+          position: currentPosition || alignedRoute[0] || vehicle2State.position
         })
       }
       

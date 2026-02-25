@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { SensorReading } from './entities/sensor-reading.entity';
 import { SensorAlert } from './entities/sensor-alert.entity';
 
 @Injectable()
 export class SensorsService {
   private readonly logger = new Logger(SensorsService.name);
+  private readonly MAX_FUTURE_READING_DRIFT_MS = 5 * 60 * 1000;
 
   constructor(
     @InjectRepository(SensorReading)
@@ -58,7 +59,9 @@ export class SensorsService {
 
   async getLatestData(limit: number = 10): Promise<any[]> {
     try {
+      const maxAllowedTimestamp = new Date(Date.now() + this.MAX_FUTURE_READING_DRIFT_MS);
       const readings = await this.sensorReadingRepository.find({
+        where: { timestamp: LessThanOrEqual(maxAllowedTimestamp) },
         order: { timestamp: 'DESC' },
         take: limit,
       });
@@ -99,7 +102,9 @@ export class SensorsService {
         .getRawOne();
       
       // Fix: Use find with limit 1 instead of findOne
+      const maxAllowedTimestamp = new Date(Date.now() + this.MAX_FUTURE_READING_DRIFT_MS);
       const lastReadingArray = await this.sensorReadingRepository.find({
+        where: { timestamp: LessThanOrEqual(maxAllowedTimestamp) },
         order: { timestamp: 'DESC' },
         take: 1,
       });

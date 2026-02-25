@@ -36,6 +36,8 @@ export class DispatchService implements OnModuleDestroy {
   private readonly EMPTY_FILL_LEVEL = 15;
   private readonly ASSIGNMENT_TIMEOUT_MS = 10 * 60 * 1000;
   private readonly ARRIVAL_DISTANCE_KM = 0.03;
+  private readonly MIN_SENSOR_TIMESTAMP_MS = Date.UTC(2020, 0, 1);
+  private readonly MAX_FUTURE_SENSOR_DRIFT_MS = 24 * 60 * 60 * 1000;
 
   private readonly assignmentTimeouts = new Map<string, NodeJS.Timeout>();
 
@@ -794,19 +796,29 @@ export class DispatchService implements OnModuleDestroy {
       if (Number.isFinite(numeric)) {
         const asMillis = rawTimestamp.length <= 10 ? numeric * 1000 : numeric;
         const parsedNumeric = new Date(asMillis);
-        if (!Number.isNaN(parsedNumeric.getTime())) {
+        if (!Number.isNaN(parsedNumeric.getTime()) && this.isTimestampPlausible(parsedNumeric)) {
           return parsedNumeric;
         }
       }
     }
 
     const parsed = new Date(rawTimestamp);
-    if (!Number.isNaN(parsed.getTime())) {
+    if (!Number.isNaN(parsed.getTime()) && this.isTimestampPlausible(parsed)) {
       return parsed;
     }
 
     this.logger.warn(`Invalid sensor timestamp "${rawTimestamp}", falling back to server time`);
     return new Date();
+  }
+
+  private isTimestampPlausible(value: Date) {
+    const time = value.getTime();
+    if (!Number.isFinite(time)) {
+      return false;
+    }
+
+    const now = Date.now();
+    return time >= this.MIN_SENSOR_TIMESTAMP_MS && time <= now + this.MAX_FUTURE_SENSOR_DRIFT_MS;
   }
 
   private async safeLogActivity(

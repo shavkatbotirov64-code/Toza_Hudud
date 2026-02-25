@@ -86,16 +86,16 @@ const Sensors = () => {
   // Masofa rangini aniqlash
   const getDistanceColor = (distance) => {
     if (distance <= 10) return '#dc3545' // Qizil - juda to'la
-    if (distance <= 20) return '#ffc107' // Sariq - to'la
-    if (distance <= 40) return '#fd7e14' // Orange - yarim
+    if (distance <= 30) return '#ffc107' // Sariq - to'la
+    if (distance <= 50) return '#fd7e14' // Orange - yarim
     return '#28a745' // Yashil - bo'sh
   }
 
   // Masofa holatini aniqlash
   const getDistanceStatus = (distance) => {
     if (distance <= 10) return 'Juda to\'la'
-    if (distance <= 20) return 'To\'la'
-    if (distance <= 40) return 'Yarim to\'la'
+    if (distance <= 30) return 'To\'la'
+    if (distance <= 50) return 'Yarim to\'la'
     return 'Bo\'sh'
   }
 
