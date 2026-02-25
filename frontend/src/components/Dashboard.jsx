@@ -4,7 +4,6 @@ import { useTranslation } from '../hooks/useTranslation'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
 import LiveMapSimple from './LiveMapSimple'
-import ActivityFeed from './ActivityFeed'
 import SensorDataPanel from './SensorDataPanel'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
@@ -210,10 +209,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Map and Analytics Row */}
-      <div className="content-row">
+      {/* Map Row - full width map */}
+      <div className="content-row map-row">
         <LiveMapSimple />
-        <ActivityFeed />
       </div>
 
       {/* ESP32 Sensor Data Panel */}

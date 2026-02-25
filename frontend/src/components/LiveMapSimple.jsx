@@ -24,6 +24,7 @@ const LiveMapSimple = () => {
 
   const MOVEMENT_STEP_METERS = 8
   const MOVEMENT_INTERVAL_MS = 1000
+  const ENABLE_FAKE_PATROL = false
 
   const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
   const toRadians = (value) => (value * Math.PI) / 180
@@ -281,6 +282,7 @@ const LiveMapSimple = () => {
 
   // Patrol marshruti yaratish - OSRM API orqali (Mashina 1)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicleState) return // Mashina mavjud emas
     
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length === 0) {
@@ -334,6 +336,7 @@ const LiveMapSimple = () => {
 
   // Patrol marshruti yaratish - OSRM API orqali (Mashina 2)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length === 0) {
@@ -387,6 +390,7 @@ const LiveMapSimple = () => {
 
   // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat (Mashina 1)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicleState) return // Mashina mavjud emas
     
     if (vehicleState.isPatrolling && vehicleState.patrolRoute.length > 0 && !hasRoutePoints(vehicleState.routePath)) {
@@ -413,6 +417,7 @@ const LiveMapSimple = () => {
 
   // Mashina patrol animatsiyasi - OSRM yo'llari bo'ylab harakat (Mashina 2)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicle2State) return // Mashina mavjud emas
     
     if (vehicle2State.isPatrolling && vehicle2State.patrolRoute.length > 0 && !hasRoutePoints(vehicle2State.routePath)) {
@@ -440,6 +445,7 @@ const LiveMapSimple = () => {
   // Quti FULL bo'lganda dispatch AppContext'da bajariladi (dublikat dispatch oldini olish)
   // Mashina qutiga borish animatsiyasi (Mashina 1)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicleState) return
 
     if (!vehicleState.isPatrolling && hasRoutePoints(vehicleState.routePath)) {
@@ -502,6 +508,7 @@ const LiveMapSimple = () => {
 
   // Mashina qutiga borish animatsiyasi (Mashina 2)
   useEffect(() => {
+    if (!ENABLE_FAKE_PATROL) return
     if (!vehicle2State) return
 
     if (!vehicle2State.isPatrolling && hasRoutePoints(vehicle2State.routePath)) {

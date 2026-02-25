@@ -3,7 +3,6 @@ import { useAppContext } from '../context/AppContextSimple'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'react-chartjs-2'
 import LiveMap from './LiveMap'
-import ActivityFeed from './ActivityFeed'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -220,10 +219,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Map and Analytics Row */}
-      <div className="content-row">
+      {/* Map Row - full width map */}
+      <div className="content-row map-row">
         <LiveMap />
-        <ActivityFeed />
       </div>
 
       {/* Quick Stats and Charts */}

@@ -890,6 +890,11 @@ body {
     margin-bottom: var(--space-lg);
 }
 
+/* Full-width map row on dashboard (map next to 'So'ngi Faoliyat' removed) */
+.content-row.map-row {
+    grid-template-columns: 1fr;
+}
+
 @media (max-width: 1200px) {
     .content-row {
         grid-template-columns: 1fr;

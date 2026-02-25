@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TozaHudud Phone Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 22px;
+    }
+
+    p {
+      margin: 0 0 12px 0;
+      color: #4b5563;
+      line-height: 1.4;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #374151;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      font-size: 14px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+
+    .btn-start {
+      background: #16a34a;
+      color: white;
+    }
+
+    .btn-stop {
+      background: #dc2626;
+      color: white;
+    }
+
+    .status {
+      margin-top: 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    .ok { color: #166534; }
+    .err { color: #991b1b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Phone GPS -> TozaHudud Backend</h1>
+    <p>
+      Bu sahifani telefoningizda oching. GPS doimiy yangilanib backendga yuboriladi va xaritada
+      alohida transport sifatida ko'rinadi.
+    </p>
+
+    <label for="backendUrl">Backend URL</label>
+    <input id="backendUrl" value="https://tozahudud-production-d73f.up.railway.app" />
+
+    <div class="row">
+      <div>
+        <label for="vehicleId">Vehicle ID</label>
+        <input id="vehicleId" value="PHONE-001" />
+      </div>
+      <div>
+        <label for="driver">Driver nomi</label>
+        <input id="driver" value="Mening Telefonim" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="sendEverySec">Yuborish oralig'i (sekund)</label>
+        <input id="sendEverySec" type="number" min="1" max="30" value="3" />
+      </div>
+      <div>
+        <label for="statusHint">Holat</label>
+        <input id="statusHint" value="idle" />
+      </div>
+    </div>
+
+    <button id="startBtn" class="btn-start">Boshlash</button>
+    <button id="stopBtn" class="btn-stop">To'xtatish</button>
+
+    <div id="status" class="status">Kutilmoqda...</div>
+  </div>
+
+  <script>
+    let watchId = null;
+    let lastSentAt = 0;
+    let running = false;
+
+    const statusEl = document.getElementById('status');
+    const backendUrlEl = document.getElementById('backendUrl');
+    const vehicleIdEl = document.getElementById('vehicleId');
+    const driverEl = document.getElementById('driver');
+    const sendEverySecEl = document.getElementById('sendEverySec');
+    const statusHintEl = document.getElementById('statusHint');
+
+    function setStatus(text, kind) {
+      statusEl.className = 'status ' + (kind || '');
+      statusEl.textContent = text;
+    }
+
+    function getBaseUrl() {
+      return backendUrlEl.value.trim().replace(/\/+$/, '');
+    }
+
+    function getVehicleId() {
+      return vehicleIdEl.value.trim() || 'PHONE-001';
+    }
+
+    function getDriver() {
+      return driverEl.value.trim() || 'Mening Telefonim';
+    }
+
+    function nowIso() {
+      return new Date().toISOString();
+    }
+
+    async function ensureVehicle(baseUrl, vehicleId, driver, lat, lon, statusHint) {
+      const payload = {
+        vehicleId,
+        driver,
+        latitude: lat,
+        longitude: lon,
+        status: statusHint || 'idle'
+      };
+
+      const r = await fetch(baseUrl + '/vehicles/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!r.ok) {
+        throw new Error('vehicles/status xatolik: HTTP ' + r.status);
+      }
+      return r.json();
+    }
+
+    async function sendLocation(baseUrl, vehicleId, lat, lon) {
+      const r = await fetch(baseUrl + '/vehicles/' + encodeURIComponent(vehicleId) + '/location', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude: lat, longitude: lon })
+      });
+
+      if (!r.ok) {
+        throw new Error('vehicles/:id/location xatolik: HTTP ' + r.status);
+      }
+      return r.json();
+    }
+
+    function startTracking() {
+      if (running) return;
+      if (!navigator.geolocation) {
+        setStatus('Bu brauzer geolocation ni qo\'llab-quvvatlamaydi', 'err');
+        return;
+      }
+
+      running = true;
+      setStatus('GPS ruxsatini bering... (' + nowIso() + ')');
+
+      watchId = navigator.geolocation.watchPosition(
+        async (pos) => {
+          try {
+            const sec = Math.max(1, Number(sendEverySecEl.value || 3));
+            const minGapMs = sec * 1000;
+            const now = Date.now();
+            if (now - lastSentAt < minGapMs) return;
+            lastSentAt = now;
+
+            const lat = Number(pos.coords.latitude);
+            const lon = Number(pos.coords.longitude);
+            const acc = Number(pos.coords.accuracy || 0);
+            const baseUrl = getBaseUrl();
+            const vehicleId = getVehicleId();
+            const driver = getDriver();
+            const statusHint = statusHintEl.value.trim();
+
+            await ensureVehicle(baseUrl, vehicleId, driver, lat, lon, statusHint);
+            await sendLocation(baseUrl, vehicleId, lat, lon);
+
+            setStatus(
+              [
+                'Yuborildi: ' + nowIso(),
+                'vehicleId: ' + vehicleId,
+                'lat: ' + lat.toFixed(6),
+                'lon: ' + lon.toFixed(6),
+                'accuracy: ' + acc.toFixed(1) + ' m',
+                'backend: ' + baseUrl
+              ].join('\n'),
+              'ok'
+            );
+          } catch (e) {
+            setStatus('Yuborishda xatolik: ' + (e?.message || e), 'err');
+          }
+        },
+        (err) => {
+          setStatus('GPS xatolik: ' + err.message, 'err');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 2000
+        }
+      );
+    }
+
+    function stopTracking() {
+      running = false;
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      setStatus('To\'xtatildi: ' + nowIso());
+    }
+
+    document.getElementById('startBtn').addEventListener('click', startTracking);
+    document.getElementById('stopBtn').addEventListener('click', stopTracking);
+  </script>
+</body>
+</html>
