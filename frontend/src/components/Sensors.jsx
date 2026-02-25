@@ -112,7 +112,7 @@ const Sensors = () => {
             disabled={loading}
           >
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
-            {loading ? 'Yuklanmoqda...' : 'Yangilash'}
+            Yangilash
           </button>
         </div>
       </div>
@@ -194,7 +194,6 @@ const Sensors = () => {
           {loading && (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#007bff' }}></i>
-              <p>Ma'lumotlar yuklanmoqda...</p>
             </div>
           )}
 
