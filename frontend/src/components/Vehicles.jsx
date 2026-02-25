@@ -157,7 +157,6 @@ const Vehicles = () => {
               <button 
                 className="btn btn-danger" 
                 onClick={() => setDeleteConfirm(vehicle)}
-                style={{ marginLeft: 'auto' }}
               >
                 <i className="fas fa-trash"></i> O'chirish
               </button>
