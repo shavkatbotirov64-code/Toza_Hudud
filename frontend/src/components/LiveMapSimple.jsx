@@ -21,8 +21,56 @@ const LiveMapSimple = () => {
   const lastPatrolTargetRef = useRef({}) // Bir xil random target qayta-qayta tushmasligi uchun
   const lastPatrolAngleRef = useRef({}) // Bir xil yo'nalish takrorlanishini kamaytirish uchun
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
-  
+
+  const MOVEMENT_STEP_METERS = 8
+  const MOVEMENT_INTERVAL_MS = 1000
+
   const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
+  const toRadians = (value) => (value * Math.PI) / 180
+  const distanceMeters = (a, b) => {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length < 2 || b.length < 2) return 0
+    const lat1 = Number(a[0])
+    const lon1 = Number(a[1])
+    const lat2 = Number(b[0])
+    const lon2 = Number(b[1])
+    if (![lat1, lon1, lat2, lon2].every(Number.isFinite)) return 0
+
+    const R = 6371000
+    const dLat = toRadians(lat2 - lat1)
+    const dLon = toRadians(lon2 - lon1)
+    const x =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2)
+    const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+    return R * c
+  }
+
+  const densifyRoutePath = (routePath, maxStepMeters = MOVEMENT_STEP_METERS) => {
+    if (!Array.isArray(routePath) || routePath.length < 2) return routePath
+
+    const dense = [routePath[0]]
+    for (let i = 1; i < routePath.length; i++) {
+      const start = routePath[i - 1]
+      const end = routePath[i]
+      if (!Array.isArray(start) || !Array.isArray(end) || start.length < 2 || end.length < 2) {
+        continue
+      }
+
+      const segmentMeters = distanceMeters(start, end)
+      const steps = Math.max(1, Math.ceil(segmentMeters / maxStepMeters))
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps
+        const lat = Number(start[0]) + (Number(end[0]) - Number(start[0])) * t
+        const lon = Number(start[1]) + (Number(end[1]) - Number(start[1])) * t
+        dense.push([lat, lon])
+      }
+    }
+
+    return dense
+  }
   const normalizeAngle = (angle) => {
     const twoPi = Math.PI * 2
     let normalized = angle % twoPi
@@ -41,7 +89,7 @@ const LiveMapSimple = () => {
     return [39.6742637, 66.9737814]
   }
 
-  const clampToPatrolArea = (point, center, maxOffsetDeg = 0.03) => {
+  const clampToPatrolArea = (point, center, maxOffsetDeg = 0.015) => {
     const [lat, lon] = point
     const [centerLat, centerLon] = center
     const minLat = centerLat - maxOffsetDeg
@@ -62,7 +110,7 @@ const LiveMapSimple = () => {
 
     for (let i = 0; i < 12; i++) {
       const angle = Math.random() * Math.PI * 2
-      const distanceDeg = 0.006 + Math.random() * 0.014 // ~0.6km - 2.2km
+      const distanceDeg = 0.003 + Math.random() * 0.005 // ~0.3km - 0.9km
       const candidate = clampToPatrolArea(
         [lat + Math.cos(angle) * distanceDeg, lon + Math.sin(angle) * distanceDeg],
         areaCenter
@@ -86,7 +134,7 @@ const LiveMapSimple = () => {
       }
     }
 
-    return clampToPatrolArea([lat + 0.008, lon + 0.008], areaCenter)
+    return clampToPatrolArea([lat + 0.004, lon + 0.004], areaCenter)
   }
 
   const extendPatrolRoute = async (vehicleId, vehicleSnapshot) => {
@@ -129,10 +177,11 @@ const LiveMapSimple = () => {
         console.warn(`⚠️ ${vehicleId}: OSRM random segment topmadi, fallback ishlatildi`)
         lastPatrolTargetRef.current[vehicleId] = randomTarget
         lastPatrolAngleRef.current[vehicleId] = Math.atan2(randomTarget[1] - currentPos[1], randomTarget[0] - currentPos[0])
+        const fallbackPath = densifyRoutePath([currentPos, randomTarget])
         updateVehicleState(vehicleId, {
-          patrolRoute: [currentPos, randomTarget],
+          patrolRoute: fallbackPath,
           patrolIndex: 0,
-          position: currentPos
+          position: fallbackPath?.[0] || currentPos
         })
       }
     } finally {
@@ -203,15 +252,7 @@ const LiveMapSimple = () => {
         
         // GeoJSON format [lon, lat] dan Leaflet format [lat, lon] ga o'zgartirish
         const leafletCoordinates = coordinates.map(coord => [coord[1], coord[0]])
-        
-        // Nuqtalarni simplify qilish - har 3-nuqtadan bittasini olish (aniqroq)
-        // Bu mashinani ko'chalar bo'ylab aniqroq harakatlantiradi
-        const simplifiedCoordinates = leafletCoordinates.filter((coord, index) => {
-          // Birinchi va oxirgi nuqtalarni doim qoldirish
-          if (index === 0 || index === leafletCoordinates.length - 1) return true
-          // Har 3-nuqtadan bittasini olish (5 o'rniga 3 - aniqroq)
-          return index % 3 === 0
-        })
+        const movementReadyPath = densifyRoutePath(leafletCoordinates)
         
         const distanceKm = (route.distance / 1000).toFixed(2)
         const durationMin = (route.duration / 60).toFixed(1)
@@ -220,11 +261,11 @@ const LiveMapSimple = () => {
         console.log(`ðŸ“ Masofa: ${distanceKm} km`)
         console.log(`â±ï¸ Vaqt: ${durationMin} daqiqa`)
         console.log(`ðŸ“Š Original nuqtalar: ${leafletCoordinates.length}`)
-        console.log(`ðŸ“Š Simplified nuqtalar: ${simplifiedCoordinates.length}`)
+        console.log(`ðŸ“Š Movement nuqtalar: ${movementReadyPath.length}`)
         
         return {
           success: true,
-          path: simplifiedCoordinates,
+          path: movementReadyPath,
           distance: distanceKm,
           duration: durationMin
         }
@@ -364,7 +405,7 @@ const LiveMapSimple = () => {
           })
           api.updateVehicleLocation('VEH-001', nextPosition[0], nextPosition[1]).catch(() => {})
         }
-      }, 2500) // 2.5 soniya - sekin va silliq harakat
+      }, MOVEMENT_INTERVAL_MS) // Har soniyada kichik qadam - silliq va realistik harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -390,7 +431,7 @@ const LiveMapSimple = () => {
           })
           api.updateVehicleLocation('VEH-002', nextPosition[0], nextPosition[1]).catch(() => {})
         }
-      }, 2500) // 2.5 soniya - sekin va silliq harakat
+      }, MOVEMENT_INTERVAL_MS) // Har soniyada kichik qadam - silliq va realistik harakat
 
       return () => clearInterval(patrolInterval)
     }
@@ -449,7 +490,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 2000) // 2 soniya - qutiga borishda sekin va aniq
+      }, MOVEMENT_INTERVAL_MS) // Har soniyada kichik qadam - silliq va realistik harakat
     }
 
     return () => {
@@ -511,7 +552,7 @@ const LiveMapSimple = () => {
             updateRoute(activeRoute.id, { progress })
           }
         }
-      }, 2000) // 2 soniya - qutiga borishda sekin va aniq
+      }, MOVEMENT_INTERVAL_MS) // Har soniyada kichik qadam - silliq va realistik harakat
     }
 
     return () => {

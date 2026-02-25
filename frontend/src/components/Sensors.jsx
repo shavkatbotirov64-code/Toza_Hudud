@@ -35,19 +35,18 @@ const Sensors = () => {
         setSensorData(dataResult.data)
       }
       
-      // Alertlar - asosiy alerts API'sidan olish
-      const alertsResponse = await fetch(`${API_BASE_URL}/alerts?limit=15`)
+      // Sensor alertlar - sensor oqimidan olingan real alertlar
+      const alertsResponse = await fetch(`${API_BASE_URL}/sensors/alerts?limit=15`)
       const alertsResult = await alertsResponse.json()
       if (alertsResult.success) {
-        // Backend alertlarini sensor format'iga o'tkazish
         const formattedAlerts = alertsResult.data.map(alert => ({
           id: alert.id,
           message: alert.message,
           binId: alert.binId || 'N/A',
           location: alert.location,
-          timestamp: alert.createdAt,
-          status: alert.status,
-          distance: null // Backend alertlarida distance yo'q
+          timestamp: alert.timestamp || alert.createdAt,
+          status: alert.status || 'active',
+          distance: alert.distance ?? null
         }))
         setAlerts(formattedAlerts)
       }

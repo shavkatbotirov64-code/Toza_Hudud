@@ -401,6 +401,52 @@ export const AppProvider = ({ children }) => {
       console.log('❌ AppContext WebSocket disconnected')
     })
 
+    const toRadians = (value) => (value * Math.PI) / 180
+    const distanceMeters = (a, b) => {
+      if (!Array.isArray(a) || !Array.isArray(b) || a.length < 2 || b.length < 2) return 0
+      const lat1 = Number(a[0])
+      const lon1 = Number(a[1])
+      const lat2 = Number(b[0])
+      const lon2 = Number(b[1])
+      if (![lat1, lon1, lat2, lon2].every(Number.isFinite)) return 0
+
+      const R = 6371000
+      const dLat = toRadians(lat2 - lat1)
+      const dLon = toRadians(lon2 - lon1)
+      const x =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRadians(lat1)) *
+          Math.cos(toRadians(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2)
+      const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))
+      return R * c
+    }
+
+    const densifyRoutePath = (routePath, maxStepMeters = 8) => {
+      if (!Array.isArray(routePath) || routePath.length < 2) return routePath
+
+      const dense = [routePath[0]]
+      for (let i = 1; i < routePath.length; i++) {
+        const start = routePath[i - 1]
+        const end = routePath[i]
+        if (!Array.isArray(start) || !Array.isArray(end) || start.length < 2 || end.length < 2) {
+          continue
+        }
+
+        const segmentMeters = distanceMeters(start, end)
+        const steps = Math.max(1, Math.ceil(segmentMeters / maxStepMeters))
+        for (let s = 1; s <= steps; s++) {
+          const t = s / steps
+          const lat = Number(start[0]) + (Number(end[0]) - Number(start[0])) * t
+          const lon = Number(start[1]) + (Number(end[1]) - Number(start[1])) * t
+          dense.push([lat, lon])
+        }
+      }
+
+      return dense
+    }
+
     const applyBinUpdate = (payload) => {
       const binKey = payload?.binId || payload?.code || payload?.sensorId || payload?.id
       if (!binKey) return
@@ -519,7 +565,7 @@ export const AppProvider = ({ children }) => {
       setVehiclesData(prev => prev.map(vehicle =>
         vehicle.id === data.vehicleId ? (() => {
           const safeRoutePath = routePath
-            ? alignRouteWithCurrentPosition(vehicle.position, routePath)
+            ? densifyRoutePath(alignRouteWithCurrentPosition(vehicle.position, routePath))
             : vehicle.routePath
 
           return {
@@ -580,7 +626,7 @@ export const AppProvider = ({ children }) => {
       setVehiclesData(prev => prev.map(vehicle =>
         vehicle.id === data.vehicleId ? (() => {
           const nextRoutePath = data.currentRoute !== undefined
-            ? normalizeRoutePath(data.currentRoute)
+            ? densifyRoutePath(normalizeRoutePath(data.currentRoute))
             : vehicle.routePath
           const shouldRestartPatrolFromCurrentPosition = data.isPatrolling === true && hasNoActiveRoute
 
