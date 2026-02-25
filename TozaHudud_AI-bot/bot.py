@@ -12,7 +12,20 @@ from telegram.ext import (
     ConversationHandler,
     ContextTypes,
 )
-import database
+
+# Load env early so database backend selection can use DATABASE_URL.
+load_dotenv()
+
+DB_BACKEND = "sqlite"
+if os.getenv("DATABASE_URL"):
+    try:
+        import database_pg as database
+        DB_BACKEND = "postgres"
+    except Exception:
+        import database
+        DB_BACKEND = "sqlite-fallback"
+else:
+    import database
 
 # Fix for Windows asyncio policy - Python 3.14 compatible
 if sys.platform == 'win32':
@@ -21,8 +34,6 @@ if sys.platform == 'win32':
     except AttributeError:
         pass  # Python 3.14+ doesn't need this
 
-# Load environment variables
-load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID_RAW = os.getenv("ADMIN_ID", "")
 ADMIN_IDS = [int(i.strip()) for i in ADMIN_ID_RAW.split(",") if i.strip()]
@@ -1056,7 +1067,7 @@ def main():
     # Add fallback handler for messages outside conversation
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, fallback_handler))
 
-    logger.info("Bot started...")
+    logger.info(f"Bot started using {DB_BACKEND} backend...")
     
     # Set bot commands after starting
     async def post_init(application):
@@ -1078,4 +1089,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

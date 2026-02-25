@@ -6,7 +6,7 @@ const LoadingScreen = () => {
       <div className="loader">
         <div className="loader-ring"></div>
         <div className="loader-text">
-          Smart Trash System<br />
+          Toza Hudud AI<br />
           <small>Yuklanmoqda...</small>
         </div>
       </div>

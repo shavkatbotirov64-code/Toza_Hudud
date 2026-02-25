@@ -24,33 +24,86 @@ export class BinsService {
 
   async create(createBinDto: CreateBinDto): Promise<ApiResponse<Bin>> {
     try {
-      // Check if bin code already exists
-      const existingBin = await this.binsRepository.findOne({
-        where: { code: createBinDto.code },
-      });
+      const normalizedCode = createBinDto.code.trim().toUpperCase();
+      const normalizedAddress = createBinDto.address.trim();
+      const normalizedDistrict = createBinDto.district.trim();
+      const fillLevel = Number.isFinite(Number(createBinDto.fillLevel))
+        ? Math.max(0, Math.min(100, Number(createBinDto.fillLevel)))
+        : 15;
+      const operationalStatus = fillLevel >= 90 ? 'FULL' : 'EMPTY';
 
-      if (existingBin) {
+      // Check both code and binId uniqueness for the shared bins table.
+      const existingBin = await this.binsRepository.query(
+        'SELECT id FROM bins WHERE code = $1 OR "binId" = $1 LIMIT 1',
+        [normalizedCode],
+      );
+
+      if (Array.isArray(existingBin) && existingBin.length > 0) {
         throw new ConflictException({
           success: false,
           message: 'Bin with this code already exists',
-          error: `Bin code ${createBinDto.code} is already in use`,
+          error: `Bin code ${normalizedCode} is already in use`,
           timestamp: new Date().toISOString(),
         });
       }
 
-      const bin = this.binsRepository.create({
-        ...createBinDto,
-        lastUpdate: new Date(),
-      });
+      // This endpoint writes into the same table that sensor/dispatcher uses.
+      // Ensure required shared columns (binId, location, EMPTY/FULL status) are populated.
+      const insertedRows = await this.binsRepository.query(
+        `
+          INSERT INTO bins (
+            "binId",
+            code,
+            location,
+            address,
+            district,
+            latitude,
+            longitude,
+            capacity,
+            type,
+            status,
+            "sensorId",
+            "isOnline",
+            "batteryLevel",
+            "fillLevel",
+            "isActive",
+            "createdAt",
+            "updatedAt"
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW()
+          )
+          RETURNING *
+        `,
+        [
+          normalizedCode,                                // binId
+          normalizedCode,                                // code
+          normalizedAddress,                             // location
+          normalizedAddress,                             // address
+          normalizedDistrict,                            // district
+          Number(createBinDto.latitude),                 // latitude
+          Number(createBinDto.longitude),                // longitude
+          Number(createBinDto.capacity),                 // capacity
+          String(createBinDto.type || 'standard'),       // type
+          operationalStatus,                             // status
+          String(createBinDto.sensorId || normalizedCode), // sensorId
+          true,                                          // isOnline
+          100,                                           // batteryLevel
+          fillLevel,                                     // fillLevel
+          true,                                          // isActive
+        ],
+      );
 
-      const savedBin = await this.binsRepository.save(bin);
+      const savedBin = insertedRows?.[0];
+      if (!savedBin?.id) {
+        throw new Error('Insert did not return created bin row');
+      }
 
       // Create history record
       await this.createHistoryRecord(
         savedBin.id,
         HistoryAction.STATUS_CHANGE,
-        'Bin created and activated',
-        { status: savedBin.status },
+        'Bin created',
+        { status: savedBin.status, binId: savedBin.binId, code: savedBin.code },
         'system',
       );
 
