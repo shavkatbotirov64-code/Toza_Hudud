@@ -321,17 +321,17 @@ body {
 }
 
 .logo-icon {
-    width: 48px;
-    height: 48px;
+    width: 64px;
+    height: 64px;
     background: transparent;
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
     flex-shrink: 0;
     overflow: hidden;
-    padding: 4px;
+    padding: 2px;
 }
 
 .logo-icon img {
@@ -347,7 +347,7 @@ body {
 }
 
 .logo-text h1 {
-    font-size: 1.3rem; /* Biroz kichikroq */
+    font-size: 1.4rem;
     font-weight: 700;
     line-height: 1.2;
     white-space: nowrap; /* Matnni bir qatorda saqlash */

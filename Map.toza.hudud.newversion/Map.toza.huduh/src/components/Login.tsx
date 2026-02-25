@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { FiLogIn, FiLock, FiUser, FiTruck } from 'react-icons/fi'
+import { FiLogIn, FiLock, FiUser } from 'react-icons/fi'
 
 const Login = () => {
   const [login, setLogin] = useState('')
@@ -36,8 +36,8 @@ const Login = () => {
             : 'bg-white/90 border-gray-200/50'
         }`}>
           <div className="text-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-blue-600 rounded-full mb-4">
-              <FiTruck className="text-white text-xl sm:text-2xl" />
+            <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-2xl mb-4 shadow-lg p-2 border border-blue-100">
+              <img src="/logo.png" alt="Toza Hudud" className="w-full h-full object-contain" />
             </div>
             <h1 className={`text-2xl sm:text-3xl font-bold mb-2 ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
@@ -127,4 +127,3 @@ const Login = () => {
 }
 
 export default Login
-

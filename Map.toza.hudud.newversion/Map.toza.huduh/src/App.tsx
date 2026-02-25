@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { 
-  FiUser, 
   FiSettings,
   FiLogOut,
   FiMenu,
@@ -114,18 +113,22 @@ function App() {
         {/* Driver Info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            width: '56px',
+            height: '56px',
+            borderRadius: '14px',
+            background: theme === 'dark' ? '#ffffff' : '#f8fafc',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            fontSize: '18px',
-            fontWeight: 'bold'
+            padding: '6px',
+            border: theme === 'dark' ? '1px solid #4b5563' : '1px solid #e5e7eb',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.12)'
           }}>
-            <FiUser />
+            <img
+              src="/logo.png"
+              alt="Toza Hudud"
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div>
             <div style={{ fontWeight: '600', fontSize: '14px' }}>Akmaljon Karimov</div>
