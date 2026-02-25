@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
   useEffect(() => {
@@ -21,7 +22,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
     xl: 'max-w-6xl'
   }
 
-  return (
+  const modalContent = (
     <div className="modal active" onClick={onClose}>
       <div 
         className={`modal-content ${sizeClasses[size]}`}
@@ -39,7 +40,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
 
 export default Modal
-
