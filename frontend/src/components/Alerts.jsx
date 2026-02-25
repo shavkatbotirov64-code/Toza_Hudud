@@ -1,169 +1,246 @@
-import React, { useState } from 'react'
+import React, { useMemo } from 'react'
 import { useAppContext } from '../context/AppContext'
-import { useErrorHandler } from '../hooks/useErrorHandler'
 import { useTranslation } from '../hooks/useTranslation'
-import ApiService from '../services/api'
+
+const HEALTH_PRIORITY = {
+  critical: 0,
+  warning: 1,
+  healthy: 2
+}
+
+const toPercent = (value) => {
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) return null
+  return Math.max(0, Math.min(100, Math.round(numericValue)))
+}
 
 const Alerts = () => {
-  const { alertsData, setAlertsData, showToast, apiConnected, refreshData } = useAppContext()
-  const { handleAsyncError } = useErrorHandler()
+  const { binsData } = useAppContext()
   const { t } = useTranslation()
-  const [filter, setFilter] = useState('all')
 
-  const filteredAlerts = alertsData.filter(alert => {
-    if (filter === 'all') return true
-    if (filter === 'unread') return !alert.read
-    return alert.type === filter
-  })
+  const devices = useMemo(() => {
+    return (binsData || [])
+      .map((bin, index) => {
+        const sensorId = bin?.sensorId || (bin?.id ? `ESP32-${bin.id}` : `ESP32-${index + 1}`)
+        const battery = toPercent(bin?.batteryLevel)
+        const fillLevel = toPercent(bin?.fillLevel ?? bin?.status)
+        const isOnline = typeof bin?.online === 'boolean' ? bin.online : false
+        const hasLocation = Array.isArray(bin?.location) && bin.location.length >= 2
+        const latitude = hasLocation ? Number(bin.location[0]) : null
+        const longitude = hasLocation ? Number(bin.location[1]) : null
+        const hasValidCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
 
-  const markAsRead = async (alertId) => {
-    if (apiConnected) {
-      await handleAsyncError(async () => {
-        const result = await ApiService.updateAlert(alertId, { isRead: true })
-        if (result.success) {
-          setAlertsData(prev => prev.map(alert =>
-            alert.id === alertId ? { ...alert, read: true } : alert
-          ))
-          showToast(t('alerts.markAsRead'), 'success')
-          refreshData()
-        } else {
-          throw new Error(result.error || t('alerts.markError'))
+        const batteryCritical = battery !== null && battery <= 20
+        const batteryWarning = battery !== null && battery <= 40
+        const fillCritical = fillLevel !== null && fillLevel >= 90
+        const fillWarning = fillLevel !== null && fillLevel >= 70
+
+        let health = 'healthy'
+        if (!isOnline || batteryCritical || fillCritical) {
+          health = 'critical'
+        } else if (batteryWarning || fillWarning) {
+          health = 'warning'
         }
-      }, 'MarkAlertAsRead')
-    } else {
-      // Mock mode
-      setAlertsData(prev => prev.map(alert =>
-        alert.id === alertId ? { ...alert, read: true } : alert
-      ))
-      showToast(t('alerts.markAsReadDemo'), 'success')
+
+        return {
+          sensorId,
+          binId: bin?.id || t('alerts.notLinked'),
+          battery,
+          fillLevel,
+          isOnline,
+          health,
+          lastUpdate: bin?.lastUpdate || t('alerts.unknown'),
+          locationText: hasValidCoordinates
+            ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+            : t('alerts.unknown')
+        }
+      })
+      .sort((firstDevice, secondDevice) => {
+        const firstPriority = HEALTH_PRIORITY[firstDevice.health] ?? 99
+        const secondPriority = HEALTH_PRIORITY[secondDevice.health] ?? 99
+        if (firstPriority !== secondPriority) return firstPriority - secondPriority
+        return firstDevice.sensorId.localeCompare(secondDevice.sensorId)
+      })
+  }, [binsData, t])
+
+  const stats = useMemo(() => {
+    const totalDevices = devices.length
+    const onlineDevices = devices.filter((device) => device.isOnline).length
+    const criticalDevices = devices.filter((device) => device.health === 'critical').length
+    const batteryValues = devices
+      .map((device) => device.battery)
+      .filter((battery) => battery !== null)
+    const averageBattery = batteryValues.length
+      ? Math.round(batteryValues.reduce((sum, battery) => sum + battery, 0) / batteryValues.length)
+      : null
+
+    return {
+      totalDevices,
+      onlineDevices,
+      criticalDevices,
+      averageBattery
     }
+  }, [devices])
+
+  const getBatteryColor = (battery) => {
+    if (battery === null) return '#94a3b8'
+    if (battery <= 20) return '#ef4444'
+    if (battery <= 40) return '#f59e0b'
+    return '#10b981'
   }
 
-  const clearAllAlerts = async () => {
-    if (!window.confirm(t('alerts.clearAllConfirm'))) return
-    
-    if (apiConnected) {
-      await handleAsyncError(async () => {
-        // Delete all alerts from backend
-        const deletePromises = alertsData.map(alert => 
-          ApiService.deleteAlert ? ApiService.deleteAlert(alert.id) : Promise.resolve()
-        )
-        await Promise.all(deletePromises)
-        
-        setAlertsData([])
-        showToast(t('alerts.allCleared'), 'success')
-        refreshData()
-      }, 'ClearAllAlerts')
-    } else {
-      // Mock mode
-      setAlertsData([])
-      showToast(t('alerts.allClearedDemo'), 'success')
-    }
+  const getFillColor = (fillLevel) => {
+    if (fillLevel === null) return '#94a3b8'
+    if (fillLevel >= 90) return '#ef4444'
+    if (fillLevel >= 70) return '#f59e0b'
+    if (fillLevel >= 30) return '#eab308'
+    return '#10b981'
   }
 
-  const getIconClass = (type) => {
-    switch (type) {
-      case 'danger':
-        return 'fa-exclamation-circle'
-      case 'warning':
-        return 'fa-exclamation-triangle'
-      case 'info':
-        return 'fa-info-circle'
-      default:
-        return 'fa-bell'
-    }
+  const getHealthLabel = (health) => {
+    if (health === 'critical') return t('alerts.critical')
+    if (health === 'warning') return t('alerts.warning')
+    return t('alerts.healthy')
   }
 
   return (
     <div id="alertsTab" className="tab-content active">
       <div className="section-header">
-        <h3><i className="fas fa-bell"></i> {t('alerts.title')}</h3>
-        <button className="btn btn-danger" onClick={clearAllAlerts}>
-          <i className="fas fa-trash"></i> {t('alerts.clearAll')}
-        </button>
+        <div className="header-left">
+          <h3><i className="fas fa-microchip"></i> {t('alerts.title')}</h3>
+          <p>{t('alerts.subtitle')}</p>
+        </div>
       </div>
 
-      <div className="alerts-container">
-        <div className="alert-filters">
-          <button
-            className={`filter-badge ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-            style={{ 
-              background: filter === 'all' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'var(--bg-secondary)',
-              color: filter === 'all' ? 'white' : 'var(--text-secondary)',
-              border: filter === 'all' ? 'none' : '1px solid var(--border-color)'
-            }}
-          >
-            {t('alerts.all')} ({alertsData.length})
-          </button>
-          <button
-            className={`filter-badge ${filter === 'unread' ? 'active' : ''}`}
-            onClick={() => setFilter('unread')}
-            style={{ 
-              background: filter === 'unread' ? 'linear-gradient(135deg, var(--primary), var(--secondary))' : 'var(--bg-secondary)',
-              color: filter === 'unread' ? 'white' : 'var(--text-secondary)',
-              border: filter === 'unread' ? 'none' : '1px solid var(--border-color)'
-            }}
-          >
-            {t('alerts.unread')} ({alertsData.filter(a => !a.read).length})
-          </button>
-          <button
-            className={`filter-badge filter-badge-danger ${filter === 'danger' ? 'active' : ''}`}
-            onClick={() => setFilter('danger')}
-            style={{ 
-              background: filter === 'danger' ? 'linear-gradient(135deg, var(--danger), #f87171)' : 'var(--bg-secondary)',
-              color: filter === 'danger' ? 'white' : 'var(--text-secondary)',
-              border: filter === 'danger' ? 'none' : '1px solid var(--border-color)'
-            }}
-          >
-            {t('alerts.critical')} ({alertsData.filter(a => a.type === 'danger').length})
-          </button>
-          <button
-            className={`filter-badge filter-badge-warning ${filter === 'warning' ? 'active' : ''}`}
-            onClick={() => setFilter('warning')}
-            style={{ 
-              background: filter === 'warning' ? 'linear-gradient(135deg, var(--warning), #fbbf24)' : 'var(--bg-secondary)',
-              color: filter === 'warning' ? 'white' : 'var(--text-secondary)',
-              border: filter === 'warning' ? 'none' : '1px solid var(--border-color)'
-            }}
-          >
-            {t('alerts.warning')} ({alertsData.filter(a => a.type === 'warning').length})
-          </button>
+      <div className="esp32-status-grid">
+        <div className="esp32-status-stat">
+          <div className="esp32-status-stat-icon total">
+            <i className="fas fa-microchip"></i>
+          </div>
+          <div className="esp32-status-stat-content">
+            <h4>{stats.totalDevices}</h4>
+            <p>{t('alerts.totalDevices')}</p>
+          </div>
         </div>
 
-        {filteredAlerts.length === 0 ? (
-          <div className="empty-state" style={{ padding: '40px', textAlign: 'center' }}>
-            <i className="fas fa-bell-slash" style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }}></i>
-            <p>{t('alerts.noAlerts')}</p>
+        <div className="esp32-status-stat">
+          <div className="esp32-status-stat-icon online">
+            <i className="fas fa-wifi"></i>
           </div>
-        ) : (
-          filteredAlerts.map((alert) => (
-            <div key={alert.id} className={`alert-item ${!alert.read ? 'unread' : ''}`}>
-              <div className={`alert-icon ${alert.type}`}>
-                <i className={`fas ${getIconClass(alert.type)}`}></i>
-              </div>
-              <div className="alert-content">
-                <div className="alert-title">{alert.title}</div>
-                <div className="alert-message">{alert.message}</div>
-                <div className="alert-meta">
-                  <span><i className="fas fa-map-marker-alt"></i> {alert.location}</span>
-                  <span><i className="fas fa-clock"></i> {alert.time}</span>
-                </div>
-              </div>
-              <div className="alert-actions">
-                {!alert.read && (
-                  <button className="btn-icon" onClick={() => markAsRead(alert.id)}>
-                    <i className="fas fa-check"></i>
-                  </button>
-                )}
-              </div>
+          <div className="esp32-status-stat-content">
+            <h4>{stats.onlineDevices}</h4>
+            <p>{t('alerts.onlineDevices')}</p>
+          </div>
+        </div>
+
+        <div className="esp32-status-stat">
+          <div className="esp32-status-stat-icon battery">
+            <i className="fas fa-battery-three-quarters"></i>
+          </div>
+          <div className="esp32-status-stat-content">
+            <h4>{stats.averageBattery !== null ? `${stats.averageBattery}%` : '--'}</h4>
+            <p>{t('alerts.avgBattery')}</p>
+          </div>
+        </div>
+
+        <div className="esp32-status-stat">
+          <div className="esp32-status-stat-icon critical">
+            <i className="fas fa-triangle-exclamation"></i>
+          </div>
+          <div className="esp32-status-stat-content">
+            <h4>{stats.criticalDevices}</h4>
+            <p>{t('alerts.criticalDevices')}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="content-card">
+        <div className="card-body">
+          {devices.length === 0 ? (
+            <div className="empty-state" style={{ padding: '40px', textAlign: 'center' }}>
+              <i
+                className="fas fa-microchip"
+                style={{ fontSize: '48px', color: 'var(--text-muted)', marginBottom: '16px' }}
+              ></i>
+              <p>{t('alerts.noDevices')}</p>
             </div>
-          ))
-        )}
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('alerts.deviceId')}</th>
+                    <th>{t('alerts.binId')}</th>
+                    <th>{t('alerts.battery')}</th>
+                    <th>{t('alerts.fillLevel')}</th>
+                    <th>{t('alerts.connectivity')}</th>
+                    <th>{t('alerts.health')}</th>
+                    <th>{t('alerts.lastUpdate')}</th>
+                    <th>{t('alerts.location')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {devices.map((device) => (
+                    <tr key={`${device.sensorId}-${device.binId}`}>
+                      <td>
+                        <div className="esp32-status-device-id">{device.sensorId}</div>
+                      </td>
+                      <td>{device.binId}</td>
+                      <td>
+                        <div className="esp32-status-progress-cell">
+                          <div className="esp32-status-progress-label">
+                            {device.battery !== null ? `${device.battery}%` : '--'}
+                          </div>
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{
+                                width: `${device.battery ?? 0}%`,
+                                background: getBatteryColor(device.battery)
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="esp32-status-progress-cell">
+                          <div className="esp32-status-progress-label">
+                            {device.fillLevel !== null ? `${device.fillLevel}%` : '--'}
+                          </div>
+                          <div className="progress-bar">
+                            <div
+                              className="progress-fill"
+                              style={{
+                                width: `${device.fillLevel ?? 0}%`,
+                                background: getFillColor(device.fillLevel)
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`esp32-status-connectivity ${device.isOnline ? 'online' : 'offline'}`}>
+                          <i className={`fas fa-${device.isOnline ? 'wifi' : 'times-circle'}`}></i>
+                          {device.isOnline ? t('alerts.online') : t('alerts.offline')}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`esp32-status-health-badge ${device.health}`}>
+                          {getHealthLabel(device.health)}
+                        </span>
+                      </td>
+                      <td>{device.lastUpdate}</td>
+                      <td className="esp32-status-location">{device.locationText}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
 export default Alerts
-

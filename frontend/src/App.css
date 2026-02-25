@@ -700,3 +700,137 @@ input:checked + .slider:before {
     opacity: 1 !important;
   }
 }
+
+.esp32-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.esp32-status-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.esp32-status-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.esp32-status-stat-icon.total {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.esp32-status-stat-icon.online {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+}
+
+.esp32-status-stat-icon.battery {
+  background: linear-gradient(135deg, #10b981, #34d399);
+}
+
+.esp32-status-stat-icon.critical {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+}
+
+.esp32-status-stat-content h4 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.esp32-status-stat-content p {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.esp32-status-device-id {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.esp32-status-progress-cell {
+  min-width: 150px;
+}
+
+.esp32-status-progress-label {
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.esp32-status-connectivity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.esp32-status-connectivity.online {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.esp32-status-connectivity.offline {
+  background: rgba(148, 163, 184, 0.16);
+  color: #475569;
+}
+
+.esp32-status-health-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.esp32-status-health-badge.healthy {
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+}
+
+.esp32-status-health-badge.warning {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.esp32-status-health-badge.critical {
+  background: rgba(239, 68, 68, 0.16);
+  color: #dc2626;
+}
+
+.esp32-status-location {
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 768px) {
+  .esp32-status-progress-cell {
+    min-width: 120px;
+  }
+
+  .esp32-status-location {
+    white-space: normal;
+  }
+}

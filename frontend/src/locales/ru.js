@@ -6,7 +6,7 @@ export const ru = {
     vehicles: "Машины",
     routes: "Маршруты", 
     reports: "Отчеты",
-    alerts: "Уведомления",
+    alerts: "Статус ESP32",
     settings: "Настройки",
     telegram: "Telegram Бот"
   },
