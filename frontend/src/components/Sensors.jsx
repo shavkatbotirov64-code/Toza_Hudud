@@ -5,7 +5,6 @@ import { useTranslation } from '../hooks/useTranslation'
 const Sensors = () => {
   const { showToast } = useAppContext()
   const { t } = useTranslation()
-  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('realtime')
   
   // State'lar
@@ -22,8 +21,6 @@ const Sensors = () => {
   // API'dan ma'lumotlarni olish
   const loadSensorData = async () => {
     try {
-      setLoading(true)
-      
       const API_BASE_URL = window.location.hostname === 'localhost' 
         ? 'http://localhost:3002'
         : 'https://tozahudud-production-d73f.up.railway.app'
@@ -61,8 +58,6 @@ const Sensors = () => {
     } catch (error) {
       console.error('Sensor ma\'lumotlarini yuklashda xatolik:', error)
       showToast('Ma\'lumotlar yuklanmadi', 'error')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -109,7 +104,6 @@ const Sensors = () => {
           <button 
             className="btn-secondary" 
             onClick={refreshData}
-            disabled={loading}
           >
             <i className="fas fa-sync-alt"></i>
             Yangilash
@@ -192,7 +186,7 @@ const Sensors = () => {
         {/* Tab Content */}
         <div style={{ background: 'white', padding: '20px', borderRadius: '0 0 8px 8px', minHeight: '400px' }}>
           {/* Real-time Ma'lumotlar Tab */}
-          {activeTab === 'realtime' && !loading && (
+          {activeTab === 'realtime' && (
             <div>
               <h4 style={{ margin: '0 0 20px 0', color: '#333' }}>📡 Oxirgi Sensor Ma'lumotlari</h4>
               <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
@@ -253,7 +247,7 @@ const Sensors = () => {
           )}
 
           {/* Alertlar Tab */}
-          {activeTab === 'alerts' && !loading && (
+          {activeTab === 'alerts' && (
             <div>
               <h4 style={{ margin: '0 0 20px 0', color: '#333' }}>🚨 Sensor Alertlari</h4>
               <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
