@@ -10,7 +10,6 @@ const Bins = () => {
   const { t } = useTranslation()
   const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [areaFilter, setAreaFilter] = useState('all')
   const [selectedBin, setSelectedBin] = useState(null)
   const [showBinDetail, setShowBinDetail] = useState(false)
@@ -94,24 +93,13 @@ const Bins = () => {
       )
     }
 
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(bin => {
-        if (statusFilter === 'empty') return bin.status < 30
-        if (statusFilter === 'half') return bin.status >= 30 && bin.status < 70
-        if (statusFilter === 'warning') return bin.status >= 70 && bin.status < 90
-        if (statusFilter === 'full') return bin.status >= 90
-        return true
-      })
-    }
-
     // Area filter
     if (areaFilter !== 'all') {
       filtered = filtered.filter(bin => bin.district === areaFilter)
     }
 
     return filtered
-  }, [binsData, searchTerm, statusFilter, areaFilter])
+  }, [binsData, searchTerm, areaFilter])
 
   const totalPages = Math.ceil(filteredBins.length / itemsPerPage)
   const paginatedBins = filteredBins.slice(
@@ -136,18 +124,6 @@ const Bins = () => {
   const clearSearch = () => {
     setSearchTerm('')
     showToast(t('messages.searchCleared'), 'info')
-  }
-
-  const exportBinsData = () => {
-    showToast(t('messages.dataExporting'), 'info')
-    const dataStr = JSON.stringify(binsData, null, 2)
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
-    const exportFileDefaultName = `smart-trash-bins-${new Date().toISOString().slice(0, 10)}.json`
-    const linkElement = document.createElement('a')
-    linkElement.setAttribute('href', dataUri)
-    linkElement.setAttribute('download', exportFileDefaultName)
-    linkElement.click()
-    showToast(t('messages.dataExported'), 'success')
   }
 
   const handleViewBin = (bin) => {
@@ -182,14 +158,6 @@ const Bins = () => {
           }}>
             <i className="fas fa-plus"></i> {t('bins.addNew')}
           </button>
-          <button className="btn btn-secondary" onClick={exportBinsData}>
-            <i className="fas fa-download"></i> {t('bins.export')}
-          </button>
-          {apiConnected && (
-            <button className="btn btn-info" onClick={refreshData}>
-              <i className="fas fa-sync-alt"></i> {t('common.refresh')}
-            </button>
-          )}
         </div>
       </div>
 
@@ -214,21 +182,6 @@ const Bins = () => {
         </div>
 
         <div className="filter-group">
-          <select
-            className="filter-select"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
-              setCurrentPage(1)
-            }}
-          >
-            <option value="all">{t('bins.allStatuses')}</option>
-            <option value="empty">{t('bins.empty')}</option>
-            <option value="half">{t('bins.half')}</option>
-            <option value="warning">{t('bins.warning')}</option>
-            <option value="full">{t('bins.full')}</option>
-          </select>
-
           <select
             className="filter-select"
             value={areaFilter}
@@ -374,4 +327,3 @@ const Bins = () => {
 }
 
 export default Bins
-
