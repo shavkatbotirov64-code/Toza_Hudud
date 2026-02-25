@@ -27,7 +27,7 @@ interface AssignmentOptions {
 export class DispatchService implements OnModuleDestroy {
   private readonly logger = new Logger(DispatchService.name);
 
-  private readonly FULL_DISTANCE_THRESHOLD_CM = 20;
+  private readonly FULL_DISTANCE_THRESHOLD_CM = 30;
   private readonly DEFAULT_BIN_ID = 'ESP32-IBN-SINO';
   private readonly DEFAULT_LOCATION = "Ibn Sino ko'chasi 17A, Samarqand";
   private readonly DEFAULT_LAT = 39.6742637;
@@ -65,70 +65,84 @@ export class DispatchService implements OnModuleDestroy {
   }
 
   async handleSensorDistance(payload: IncomingSensorPayload) {
-    const distance = Number(payload.distance);
-    if (!Number.isFinite(distance)) {
-      throw new Error('Invalid sensor distance value');
-    }
-
-    const binId = (payload.binId || this.DEFAULT_BIN_ID).trim();
-    const location = (payload.location || this.DEFAULT_LOCATION).trim();
-    const readingTimestamp = this.resolveReadingTimestamp(payload.timestamp);
-
-    const savedReading = await this.sensorReadingRepository.save(
-      this.sensorReadingRepository.create({
-        distance,
-        binId,
-        location,
-        isAlert: distance <= this.FULL_DISTANCE_THRESHOLD_CM,
-        timestamp: readingTimestamp,
-      }),
-    );
-
-    this.sensorsGateway.emitSensorData({
-      id: savedReading.id,
-      distance: Number(savedReading.distance),
-      binId,
-      location,
-      timestamp: savedReading.timestamp,
-    });
-
-    const bin = await this.ensureBin(binId, location);
-    const wasFull = bin.status === 'FULL';
-    const isFull = distance <= this.FULL_DISTANCE_THRESHOLD_CM;
-
-    bin.lastDistance = distance;
-    bin.isOnline = true;
-
-    if (isFull) {
-      bin.status = 'FULL';
-      bin.fillLevel = this.FULL_FILL_LEVEL;
-    } else if (bin.status !== 'FULL') {
-      bin.status = 'EMPTY';
-      bin.fillLevel = this.estimateFillLevel(distance);
-    }
-
-    const updatedBin = await this.binRepository.save(bin);
-    this.broadcastBinUpdate(updatedBin);
-
-    let assignment: any = null;
-    if (isFull) {
-      if (!wasFull) {
-        await this.createFullAlert(binId, location, distance);
-        await this.safeLogActivity('bin_full', `Quti #${binId} to'ldi`, '95% to\'ldi. Dispecher ishga tushdi.', binId, undefined, location);
+    try {
+      const distance = Number(payload.distance);
+      if (!Number.isFinite(distance)) {
+        throw new Error('Invalid sensor distance value');
       }
 
-      assignment = await this.assignNearestVehicleToBin(binId, { trigger: 'sensor' });
-    }
+      const binId = (payload.binId || this.DEFAULT_BIN_ID).trim();
+      const location = (payload.location || this.DEFAULT_LOCATION).trim();
+      const readingTimestamp = this.resolveReadingTimestamp(payload.timestamp);
 
-    return {
-      success: true,
-      message: 'Sensor data processed successfully',
-      data: {
-        reading: savedReading,
-        bin: this.toBinPayload(updatedBin),
-        assignment,
-      },
-    };
+      const savedReading = await this.sensorReadingRepository.save(
+        this.sensorReadingRepository.create({
+          distance,
+          binId,
+          location,
+          isAlert: distance <= this.FULL_DISTANCE_THRESHOLD_CM,
+          timestamp: readingTimestamp,
+        }),
+      );
+
+      this.sensorsGateway.emitSensorData({
+        id: savedReading.id,
+        distance: Number(savedReading.distance),
+        binId,
+        location,
+        timestamp: savedReading.timestamp,
+      });
+
+      const bin = await this.ensureBin(binId, location);
+      const wasFull = bin.status === 'FULL';
+      const isFull = distance <= this.FULL_DISTANCE_THRESHOLD_CM;
+
+      bin.lastDistance = distance;
+      bin.isOnline = true;
+
+      if (isFull) {
+        bin.status = 'FULL';
+        bin.fillLevel = this.FULL_FILL_LEVEL;
+      } else if (bin.status !== 'FULL') {
+        bin.status = 'EMPTY';
+        bin.fillLevel = this.estimateFillLevel(distance);
+      }
+
+      const updatedBin = await this.binRepository.save(bin);
+      this.broadcastBinUpdate(updatedBin);
+
+      let assignment: any = null;
+      if (isFull) {
+        if (!wasFull) {
+          await this.createFullAlert(binId, location, distance);
+          await this.safeLogActivity(
+            'bin_full',
+            `Quti #${binId} to'ldi`,
+            "95% to'ldi. Dispecher ishga tushdi.",
+            binId,
+            undefined,
+            location,
+          );
+        }
+
+        assignment = await this.assignNearestVehicleToBin(binId, { trigger: 'sensor' });
+      }
+
+      return {
+        success: true,
+        message: 'Sensor data processed successfully',
+        data: {
+          reading: savedReading,
+          bin: this.toBinPayload(updatedBin),
+          assignment,
+        },
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Sensor distance processing failed: ${errorMessage}`);
+      console.error('[DispatchService] handleSensorDistance error:', error);
+      throw error;
+    }
   }
 
   async assignNearestVehicleToBin(binId: string, options: AssignmentOptions = {}) {
@@ -265,6 +279,7 @@ export class DispatchService implements OnModuleDestroy {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Assignment transaction failed: ${error.message}`);
+      console.error('[DispatchService] assignNearestVehicleToBin error:', error);
       throw error;
     } finally {
       await queryRunner.release();
@@ -493,6 +508,7 @@ export class DispatchService implements OnModuleDestroy {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       this.logger.error(`Complete cleaning transaction failed: ${error.message}`);
+      console.error('[DispatchService] completeCleaningByVehicle error:', error);
       throw error;
     } finally {
       await queryRunner.release();
@@ -531,6 +547,7 @@ export class DispatchService implements OnModuleDestroy {
       });
     } catch (error) {
       this.logger.error(`Failed to create cleaning history record: ${error.message}`);
+      console.error('[DispatchService] cleaning history save error:', error);
     }
 
     this.sensorsGateway.emitBinStatusChange(bin.binId, 'EMPTY');
@@ -654,6 +671,7 @@ export class DispatchService implements OnModuleDestroy {
         await this.handleAssignmentTimeout(routeId, vehicleId, binId);
       } catch (error) {
         this.logger.error(`Assignment timeout handler error (${routeId}): ${error.message}`);
+        console.error('[DispatchService] handleAssignmentTimeout error:', error);
       }
     }, this.ASSIGNMENT_TIMEOUT_MS);
 

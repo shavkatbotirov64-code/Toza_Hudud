@@ -54,6 +54,7 @@ export class ESP32Controller {
       return await this.handleDistanceInternal(data);
     } catch (error) {
       this.logger.error(`ESP32 distance processing failed: ${error.message}`);
+      console.error('[ESP32Controller] receiveDistance error:', error);
       return {
         success: false,
         error: error.message,
@@ -68,6 +69,7 @@ export class ESP32Controller {
       return await this.handleDistanceInternal(query);
     } catch (error) {
       this.logger.error(`ESP32 GET distance processing failed: ${error.message}`);
+      console.error('[ESP32Controller] receiveDistanceGet error:', error);
       return {
         success: false,
         error: error.message,

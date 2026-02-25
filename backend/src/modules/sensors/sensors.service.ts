@@ -21,7 +21,7 @@ export class SensorsService {
         distance: sensorData.distance,
         binId: sensorData.binId || 'ESP32-001',
         location: sensorData.location || 'Sensor Location',
-        isAlert: sensorData.distance <= 20,
+        isAlert: sensorData.distance <= 30,
       });
 
       const savedReading = await this.sensorReadingRepository.save(reading);
@@ -30,6 +30,7 @@ export class SensorsService {
       return savedReading;
     } catch (error) {
       this.logger.error(`❌ Error saving sensor data to database: ${error.message}`);
+      console.error('[SensorsService] saveSensorData error:', error);
       throw error;
     }
   }
@@ -50,6 +51,7 @@ export class SensorsService {
       return savedAlert;
     } catch (error) {
       this.logger.error(`❌ Error creating alert in database: ${error.message}`);
+      console.error('[SensorsService] createAlert error:', error);
       throw error;
     }
   }
@@ -65,6 +67,7 @@ export class SensorsService {
       return readings;
     } catch (error) {
       this.logger.error(`❌ Error getting latest data from database: ${error.message}`);
+      console.error('[SensorsService] getLatestData error:', error);
       return [];
     }
   }
@@ -80,6 +83,7 @@ export class SensorsService {
       return alerts;
     } catch (error) {
       this.logger.error(`❌ Error getting alerts from database: ${error.message}`);
+      console.error('[SensorsService] getAlerts error:', error);
       return [];
     }
   }
@@ -116,6 +120,7 @@ export class SensorsService {
       };
     } catch (error) {
       this.logger.error(`❌ Error getting stats from database: ${error.message}`);
+      console.error('[SensorsService] getStats error:', error);
       return {
         totalReadings: 0,
         totalAlerts: 0,
@@ -134,6 +139,7 @@ export class SensorsService {
       this.logger.log('🗑️ Barcha sensor ma\'lumotlari va alertlar NEON DATABASE dan tozalandi');
     } catch (error) {
       this.logger.error(`❌ Ma'lumotlarni tozalashda xatolik: ${error.message}`);
+      console.error('[SensorsService] clearAllData error:', error);
       throw error;
     }
   }

@@ -29,6 +29,7 @@ export class SensorsController {
       return await this.dispatchService.handleSensorDistance(data);
     } catch (error) {
       this.logger.error(`Sensor distance processing failed: ${error.message}`);
+      console.error('[SensorsController] receiveDistance error:', error);
       return {
         success: false,
         error: error.message,
@@ -50,6 +51,7 @@ export class SensorsController {
       return await this.dispatchService.handleSensorDistance(payload);
     } catch (error) {
       this.logger.error(`Sensor distance GET processing failed: ${error.message}`);
+      console.error('[SensorsController] receiveDistanceGet error:', error);
       return {
         success: false,
         error: error.message,
@@ -69,6 +71,7 @@ export class SensorsController {
       };
     } catch (error) {
       this.logger.error(`Latest sensor data fetch failed: ${error.message}`);
+      console.error('[SensorsController] getLatestData error:', error);
       return {
         success: false,
         error: error.message,
@@ -89,6 +92,7 @@ export class SensorsController {
       };
     } catch (error) {
       this.logger.error(`Alerts fetch failed: ${error.message}`);
+      console.error('[SensorsController] getAlerts error:', error);
       return {
         success: false,
         error: error.message,
@@ -109,6 +113,7 @@ export class SensorsController {
       };
     } catch (error) {
       this.logger.error(`Sensor stats fetch failed: ${error.message}`);
+      console.error('[SensorsController] getStats error:', error);
       return {
         success: false,
         error: error.message,
@@ -135,6 +140,7 @@ export class SensorsController {
       };
     } catch (error) {
       this.logger.error(`Sensor clear failed: ${error.message}`);
+      console.error('[SensorsController] clearAllData error:', error);
       return {
         success: false,
         error: error.message,
