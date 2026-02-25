@@ -228,21 +228,6 @@ function AppContent() {
               {renderTabContent()}
             </ErrorBoundary>
           </main>
-          <footer className="footer">
-            <div className="footer-left">
-              <span>© 2024 Smart Trash System</span>
-              <span className="footer-divider">|</span>
-              <span>Version 3.0.0</span>
-            </div>
-            <div className="footer-right">
-              <span className="system-status">
-                <i className="fas fa-circle online"></i>
-                Tizim faol
-              </span>
-              <span className="footer-divider">|</span>
-              <span>So'nggi yangilanish: <span id="lastUpdateTime">14:30</span></span>
-            </div>
-          </footer>
         </div>
         <ToastContainer />
       </div>
