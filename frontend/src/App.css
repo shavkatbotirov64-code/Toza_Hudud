@@ -23,9 +23,34 @@
 }
 
 /* Live Map Styles */
+.content-row.map-row,
+.content-row.map-row .content-card {
+  min-width: 0;
+}
+
+.map-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.map-card .card-body {
+  position: relative;
+  overflow: hidden;
+}
+
 .live-map {
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  z-index: 1;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.map-card .live-map .leaflet-pane,
+.map-card .live-map .leaflet-control-container {
+  z-index: 2;
 }
 
 .bin-marker {
