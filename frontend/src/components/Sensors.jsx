@@ -111,7 +111,7 @@ const Sensors = () => {
             onClick={refreshData}
             disabled={loading}
           >
-            <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+            <i className="fas fa-sync-alt"></i>
             Yangilash
           </button>
         </div>
@@ -191,12 +191,6 @@ const Sensors = () => {
 
         {/* Tab Content */}
         <div style={{ background: 'white', padding: '20px', borderRadius: '0 0 8px 8px', minHeight: '400px' }}>
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#007bff' }}></i>
-            </div>
-          )}
-
           {/* Real-time Ma'lumotlar Tab */}
           {activeTab === 'realtime' && !loading && (
             <div>
