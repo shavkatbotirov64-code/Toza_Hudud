@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef } from 'react'
+﻿import React, { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
@@ -20,6 +20,7 @@ const LiveMapSimple = ({ expanded = false }) => {
   const patrolExtendLockRef = useRef({}) // Bir mashina uchun parallel route extend'ni bloklash
   const lastPatrolTargetRef = useRef({}) // Bir xil random target qayta-qayta tushmasligi uchun
   const lastPatrolAngleRef = useRef({}) // Bir xil yo'nalish takrorlanishini kamaytirish uchun
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
 
   const MOVEMENT_STEP_METERS = 8
@@ -685,7 +686,34 @@ const LiveMapSimple = ({ expanded = false }) => {
     }
   }
 
-  const mapHeight = expanded ? 'clamp(520px, 70vh, 900px)' : '400px'
+  const toggleFullscreen = () => {
+    setIsFullscreen((prev) => !prev)
+  }
+
+  useEffect(() => {
+    if (!isFullscreen) return
+
+    const previousOverflow = document.body.style.overflow
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsFullscreen(false)
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [isFullscreen])
+
+  const mapHeight = isFullscreen
+    ? 'calc(100vh - 220px)'
+    : expanded
+      ? 'clamp(520px, 70vh, 900px)'
+      : '400px'
 
   useEffect(() => {
     if (!mapInstanceRef.current) return
@@ -695,10 +723,10 @@ const LiveMapSimple = ({ expanded = false }) => {
     }, 120)
 
     return () => clearTimeout(resizeTimer)
-  }, [expanded])
+  }, [expanded, isFullscreen])
 
   return (
-    <div className={`content-card map-card ${expanded ? 'map-card-expanded' : ''}`}>
+    <div className={`content-card map-card ${expanded ? 'map-card-expanded' : ''} ${isFullscreen ? 'map-card-fullscreen' : ''}`}>
       <div className="card-header">
         <h3><i className="fas fa-map-marked-alt"></i> {t('liveMap.title')}</h3>
         <div className="card-actions">
@@ -708,7 +736,17 @@ const LiveMapSimple = ({ expanded = false }) => {
         </div>
       </div>
       <div className="card-body">
-        <div ref={mapRef} className="live-map" style={{ height: mapHeight }}></div>
+        <div className="live-map-container">
+          <div ref={mapRef} className="live-map" style={{ height: mapHeight }}></div>
+          <button
+            type="button"
+            className="map-fullscreen-btn"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Kichraytirish' : "To'liq ekran"}
+          >
+            <i className={`fas fa-${isFullscreen ? 'compress' : 'expand'}`}></i>
+          </button>
+        </div>
         <div className="map-legend">
           <div style={{ marginBottom: '8px', fontWeight: '600', color: '#555' }}>Qutilar:</div>
           <div className="legend-item">
@@ -741,3 +779,4 @@ const LiveMapSimple = ({ expanded = false }) => {
 }
 
 export default LiveMapSimple
+
