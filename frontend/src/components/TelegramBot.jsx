@@ -189,10 +189,9 @@ const TelegramBot = () => {
           <button 
             className="btn-secondary" 
             onClick={refreshData}
-            disabled={loading}
           >
-            <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
-            {loading ? t('common.loading') : t('dashboard.refresh')}
+            <i className="fas fa-sync-alt"></i>
+            {t('dashboard.refresh')}
           </button>
           <button 
             className={`btn ${botStatus === 'active' ? 'btn-danger' : 'btn-success'}`}
@@ -297,19 +296,11 @@ const TelegramBot = () => {
           <div style={{ marginBottom: '20px', padding: '15px', background: '#fff3cd', borderRadius: '8px', border: '1px solid #ffeaa7' }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>🔥 DEBUG MA'LUMOTLAR</h4>
             <p style={{ margin: '5px 0' }}><strong>{t('common.activeTab') || 'Faol Tab'}:</strong> <span style={{ color: '#007bff', fontSize: '18px' }}>{activeTab}</span></p>
-            <p style={{ margin: '5px 0' }}><strong>{t('common.loading') || 'Yuklanmoqda'}:</strong> {loading.toString()}</p>
             <p style={{ margin: '5px 0' }}><strong>{t('telegram.messages')} {t('common.count') || 'Soni'}:</strong> {messages.length}</p>
             <p style={{ margin: '5px 0' }}><strong>{t('telegram.feedback')} {t('common.count') || 'Soni'}:</strong> {feedback.length}</p>
             <p style={{ margin: '5px 0' }}><strong>Ro'yxatdan o'tgan foydalanuvchilar:</strong> {users.length}</p>
             <p style={{ margin: '5px 0' }}><strong>{t('telegram.statistics')}:</strong> {t('telegram.totalUsers')}: {stats.totalUsers}, {t('common.reports') || 'Murojaatlar'}: {stats.totalReports}, {t('telegram.feedback')}: {stats.totalFeedbacks}</p>
           </div>
-
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <i className="fas fa-spinner fa-spin" style={{ fontSize: '2rem', color: '#007bff' }}></i>
-              <p>{t('common.loading')}</p>
-            </div>
-          )}
 
           {/* Statistika Tab */}
           {activeTab === 'statistics' && (
