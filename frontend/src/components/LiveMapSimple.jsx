@@ -9,6 +9,7 @@ import 'leaflet/dist/leaflet.css'
 const LiveMapSimple = ({ expanded = false }) => {
   const { t } = useTranslation()
   const mapRef = useRef(null)
+  const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const binMarkersRef = useRef([]) // Barcha quti markerlari
   const vehicleMarkersRef = useRef([]) // Barcha mashina markerlari
@@ -687,30 +688,31 @@ const LiveMapSimple = ({ expanded = false }) => {
   }
 
   const toggleFullscreen = () => {
-    setIsFullscreen((prev) => !prev)
+    const container = mapContainerRef.current
+    if (!container) return
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {})
+      return
+    }
+
+    container.requestFullscreen?.().catch(() => {})
   }
 
   useEffect(() => {
-    if (!isFullscreen) return
-
-    const previousOverflow = document.body.style.overflow
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setIsFullscreen(false)
-      }
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === mapContainerRef.current)
     }
 
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleEscape)
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
 
     return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
     }
-  }, [isFullscreen])
+  }, [])
 
   const mapHeight = isFullscreen
-    ? 'calc(100vh - 220px)'
+    ? 'calc(100vh - 32px)'
     : expanded
       ? 'clamp(520px, 70vh, 900px)'
       : '400px'
@@ -726,7 +728,7 @@ const LiveMapSimple = ({ expanded = false }) => {
   }, [expanded, isFullscreen])
 
   return (
-    <div className={`content-card map-card ${expanded ? 'map-card-expanded' : ''} ${isFullscreen ? 'map-card-fullscreen' : ''}`}>
+    <div className={`content-card map-card ${expanded ? 'map-card-expanded' : ''}`}>
       <div className="card-header">
         <h3><i className="fas fa-map-marked-alt"></i> {t('liveMap.title')}</h3>
         <div className="card-actions">
@@ -736,7 +738,7 @@ const LiveMapSimple = ({ expanded = false }) => {
         </div>
       </div>
       <div className="card-body">
-        <div className="live-map-container">
+        <div ref={mapContainerRef} className="live-map-container">
           <div ref={mapRef} className="live-map" style={{ height: mapHeight }}></div>
           <button
             type="button"
