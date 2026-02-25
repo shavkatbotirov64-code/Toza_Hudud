@@ -33,6 +33,24 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
     return '#94a3b8'
   }
 
+  const handleShowOnMap = () => {
+    onClose()
+
+    if (!safeVehicle.id || safeVehicle.id === '---' || typeof window === 'undefined') return
+
+    window.dispatchEvent(
+      new CustomEvent('navigateToTab', {
+        detail: {
+          tab: 'liveMap',
+          mapTarget: {
+            type: 'vehicle',
+            id: safeVehicle.id
+          }
+        }
+      })
+    )
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`${t('vehicleDetail.vehicleTitle')} #${safeVehicle.id}`} size="large">
       <div className="modal-grid">
@@ -132,10 +150,7 @@ const VehicleDetailModal = ({ isOpen, onClose, vehicle }) => {
         <button className="btn btn-secondary" onClick={onClose}>
           {t('common.close')}
         </button>
-        <button className="btn btn-primary" onClick={() => {
-          onClose()
-          // Navigate to map
-        }}>
+        <button className="btn btn-primary" onClick={handleShowOnMap}>
           <i className="fas fa-map"></i> {t('vehicleDetail.showOnMap')}
         </button>
         <button className="btn btn-primary" onClick={() => {

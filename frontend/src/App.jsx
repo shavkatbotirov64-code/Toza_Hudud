@@ -36,6 +36,7 @@ function AppContent() {
   })
   const [currentTab, setCurrentTab] = useState('dashboard')
   const [displayTab, setDisplayTab] = useState('dashboard')
+  const [mapFocusTarget, setMapFocusTarget] = useState(null)
   const [tabTransitionPhase, setTabTransitionPhase] = useState('idle')
   const [tabTransitionDirection, setTabTransitionDirection] = useState('forward')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -84,6 +85,30 @@ function AppContent() {
       if (settleTimerRef.current) {
         clearTimeout(settleTimerRef.current)
       }
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleNavigateToTab = (event) => {
+      const requestedTab = event?.detail?.tab
+      const requestedMapTarget = event?.detail?.mapTarget
+
+      if (requestedMapTarget) {
+        setMapFocusTarget({
+          ...requestedMapTarget,
+          requestId: Date.now()
+        })
+      }
+
+      if (requestedTab && TAB_SEQUENCE.includes(requestedTab)) {
+        setCurrentTab(requestedTab)
+      }
+    }
+
+    window.addEventListener('navigateToTab', handleNavigateToTab)
+
+    return () => {
+      window.removeEventListener('navigateToTab', handleNavigateToTab)
     }
   }, [])
 
@@ -246,7 +271,13 @@ function AppContent() {
       case 'vehicles':
         return <Vehicles />
       case 'liveMap':
-        return <LiveMapSimple expanded />
+        return (
+          <LiveMapSimple
+            expanded
+            focusTarget={mapFocusTarget}
+            onFocusHandled={() => setMapFocusTarget(null)}
+          />
+        )
       case 'routes':
         return <Routes />
       case 'reports':

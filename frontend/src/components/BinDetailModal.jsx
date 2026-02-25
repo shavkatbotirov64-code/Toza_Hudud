@@ -21,6 +21,24 @@ const BinDetailModal = ({ isOpen, onClose, bin }) => {
     return t('status.empty')
   }
 
+  const handleShowOnMap = () => {
+    onClose()
+
+    if (!bin?.id || typeof window === 'undefined') return
+
+    window.dispatchEvent(
+      new CustomEvent('navigateToTab', {
+        detail: {
+          tab: 'liveMap',
+          mapTarget: {
+            type: 'bin',
+            id: bin.id
+          }
+        }
+      })
+    )
+  }
+
   const color = getStatusColor(bin.status)
 
   return (
@@ -137,10 +155,7 @@ const BinDetailModal = ({ isOpen, onClose, bin }) => {
         <button className="btn btn-secondary" onClick={onClose}>
           {t('common.close')}
         </button>
-        <button className="btn btn-primary" onClick={() => {
-          onClose()
-          // Navigate to map or show on map
-        }}>
+        <button className="btn btn-primary" onClick={handleShowOnMap}>
           <i className="fas fa-map"></i> {t('binDetail.showOnMap')}
         </button>
       </div>
@@ -149,4 +164,3 @@ const BinDetailModal = ({ isOpen, onClose, bin }) => {
 }
 
 export default BinDetailModal
-

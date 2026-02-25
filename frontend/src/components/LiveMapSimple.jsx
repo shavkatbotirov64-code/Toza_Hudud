@@ -6,7 +6,7 @@ import api from '../services/api'
 import VehicleManager from '../utils/VehicleManager'
 import 'leaflet/dist/leaflet.css'
 
-const LiveMapSimple = ({ expanded = false }) => {
+const LiveMapSimple = ({ expanded = false, focusTarget = null, onFocusHandled = null }) => {
   const { t } = useTranslation()
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
@@ -22,6 +22,7 @@ const LiveMapSimple = ({ expanded = false }) => {
   const lastPatrolTargetRef = useRef({}) // Bir xil random target qayta-qayta tushmasligi uchun
   const lastPatrolAngleRef = useRef({}) // Bir xil yo'nalish takrorlanishini kamaytirish uchun
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isMapReady, setIsMapReady] = useState(false)
   const { showToast, binsData, setBinsData, binStatus, setBinStatus, vehiclesData, updateVehicleState, routesData, setRoutesData, updateRoute } = useAppContext() // AppContext dan quti va mashina ma'lumotlari
 
   const MOVEMENT_STEP_METERS = 8
@@ -577,6 +578,7 @@ const LiveMapSimple = ({ expanded = false }) => {
 
     const map = L.map(mapRef.current).setView([39.6742637, 66.9737814], 16) // Ibn Sino ko'chasi 17A
     mapInstanceRef.current = map
+    setIsMapReady(true)
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: 'Â© OpenStreetMap contributors',
@@ -590,9 +592,49 @@ const LiveMapSimple = ({ expanded = false }) => {
       if (animation2IntervalRef.current) {
         clearInterval(animation2IntervalRef.current)
       }
+      setIsMapReady(false)
       map.remove()
     }
   }, [])
+
+  useEffect(() => {
+    if (!isMapReady || !focusTarget || !mapInstanceRef.current) return
+
+    const map = mapInstanceRef.current
+
+    const focusOnVehicle = () => {
+      if (focusTarget.type !== 'vehicle') return false
+      const selectedVehicle = vehiclesData.find((vehicle) => vehicle.id === focusTarget.id)
+      if (!selectedVehicle || !Array.isArray(selectedVehicle.position) || selectedVehicle.position.length < 2) {
+        return false
+      }
+
+      map.setView(selectedVehicle.position, Math.max(map.getZoom(), 17), { animate: true })
+      showToast?.(`${selectedVehicle.id} xaritada ko'rsatildi`, 'info')
+      return true
+    }
+
+    const focusOnBin = () => {
+      if (focusTarget.type !== 'bin') return false
+      const selectedBin = binsData.find((bin) => bin.id === focusTarget.id)
+      if (!selectedBin || !Array.isArray(selectedBin.location) || selectedBin.location.length < 2) {
+        return false
+      }
+
+      map.setView(selectedBin.location, Math.max(map.getZoom(), 17), { animate: true })
+      showToast?.(`${selectedBin.id} xaritada ko'rsatildi`, 'info')
+      return true
+    }
+
+    const focusTimer = setTimeout(() => {
+      const focused = focusOnVehicle() || focusOnBin()
+      if (focused && typeof onFocusHandled === 'function') {
+        onFocusHandled()
+      }
+    }, 150)
+
+    return () => clearTimeout(focusTimer)
+  }, [isMapReady, focusTarget, vehiclesData, binsData, onFocusHandled, showToast])
 
   // Markerlarni yangilash
   useEffect(() => {
