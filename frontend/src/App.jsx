@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import LoadingScreen from './components/LoadingScreen'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
@@ -39,6 +39,8 @@ function AppContent() {
   const [tabTransitionPhase, setTabTransitionPhase] = useState('idle')
   const [tabTransitionDirection, setTabTransitionDirection] = useState('forward')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const swapTimerRef = useRef(null)
+  const settleTimerRef = useRef(null)
 
   useEffect(() => {
     // Simulate loading
@@ -50,6 +52,13 @@ function AppContent() {
   useEffect(() => {
     if (currentTab === displayTab) return
 
+    if (swapTimerRef.current) {
+      clearTimeout(swapTimerRef.current)
+    }
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current)
+    }
+
     const currentIndex = TAB_SEQUENCE.indexOf(displayTab)
     const nextIndex = TAB_SEQUENCE.indexOf(currentTab)
     const isForward = nextIndex === -1 || currentIndex === -1 || nextIndex >= currentIndex
@@ -57,20 +66,26 @@ function AppContent() {
     setTabTransitionDirection(isForward ? 'forward' : 'backward')
     setTabTransitionPhase('exit')
 
-    const swapTimer = setTimeout(() => {
+    swapTimerRef.current = setTimeout(() => {
       setDisplayTab(currentTab)
       setTabTransitionPhase('enter')
+
+      settleTimerRef.current = setTimeout(() => {
+        setTabTransitionPhase('idle')
+      }, 320)
     }, 130)
-
-    const settleTimer = setTimeout(() => {
-      setTabTransitionPhase('idle')
-    }, 320)
-
-    return () => {
-      clearTimeout(swapTimer)
-      clearTimeout(settleTimer)
-    }
   }, [currentTab, displayTab])
+
+  useEffect(() => {
+    return () => {
+      if (swapTimerRef.current) {
+        clearTimeout(swapTimerRef.current)
+      }
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current)
+      }
+    }
+  }, [])
 
   const handleLogin = (username, password) => {
     // Simple authentication - just check if username is "admin"
