@@ -1,23 +1,21 @@
 import React, { useMemo } from 'react'
-import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 
 const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
-  const { binsData, vehiclesData, alertsData } = useAppContext()
   const { t } = useTranslation()
 
   const navItems = useMemo(() => [
     { id: 'dashboard', icon: 'fa-chart-line', text: t('nav.dashboard') },
-    { id: 'bins', icon: 'fa-trash-alt', text: t('nav.bins'), badge: binsData.filter(b => b.status >= 90).length },
-    { id: 'vehicles', icon: 'fa-truck', text: t('nav.vehicles'), badge: vehiclesData.filter(v => v.status === 'active' || v.status === 'moving').length, badgeClass: 'online' },
+    { id: 'bins', icon: 'fa-trash-alt', text: t('nav.bins') },
+    { id: 'vehicles', icon: 'fa-truck', text: t('nav.vehicles') },
     { id: 'liveMap', icon: 'fa-map-marked-alt', text: 'Jonli Xarita' },
     { id: 'routes', icon: 'fa-route', text: t('nav.routes') },
     { id: 'reports', icon: 'fa-chart-bar', text: t('nav.reports') },
-    { id: 'alerts', icon: 'fa-bell', text: t('nav.alerts'), badge: alertsData.filter(a => !a.read).length, badgeClass: 'alert' },
+    { id: 'alerts', icon: 'fa-bell', text: t('nav.alerts') },
     { id: 'sensors', icon: 'fa-microchip', text: 'ESP32 Sensors' },
     { id: 'telegram', icon: 'fa-paper-plane', text: t('nav.telegram') },
     { id: 'settings', icon: 'fa-cog', text: t('nav.settings') }
-  ], [binsData, vehiclesData, alertsData, t])
+  ], [t])
 
   const handleLogout = () => {
     if (window.confirm(t('sidebar.logoutConfirm') || 'Chiqishni tasdiqlaysizmi?')) {
@@ -88,4 +86,3 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
 }
 
 export default Sidebar
-
