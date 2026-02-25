@@ -63,9 +63,11 @@ const Header = ({ currentTab, onLogout }) => {
     dashboard: t('nav.dashboard'),
     bins: t('nav.bins'),
     vehicles: t('nav.vehicles'),
+    liveMap: t('liveMap.title'),
     routes: t('nav.routes'),
     reports: t('nav.reports'),
     alerts: t('nav.alerts'),
+    sensors: 'ESP32 Sensors',
     telegram: t('nav.telegram'),
     settings: t('nav.settings')
   }
@@ -145,4 +147,3 @@ const Header = ({ currentTab, onLogout }) => {
 }
 
 export default Header
-
