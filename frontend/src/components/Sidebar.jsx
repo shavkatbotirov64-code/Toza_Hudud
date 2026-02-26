@@ -30,7 +30,7 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
 
     const buttonRect = navButton.getBoundingClientRect()
     const ripple = document.createElement('span')
-    ripple.className = 'nav-item-ripple'
+    ripple.className = 'nav-item-water-ripple'
 
     const clickX = Number.isFinite(event.clientX)
       ? event.clientX - buttonRect.left
@@ -39,17 +39,37 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
       ? event.clientY - buttonRect.top
       : buttonRect.height / 2
 
-    const rippleSize = Math.max(buttonRect.width, buttonRect.height) * 1.6
+    const rippleSize = Math.max(buttonRect.width, buttonRect.height) * 1.9
 
     ripple.style.left = `${clickX}px`
     ripple.style.top = `${clickY}px`
-    ripple.style.width = `${rippleSize}px`
-    ripple.style.height = `${rippleSize}px`
+    ripple.style.setProperty('--ripple-size', `${rippleSize}px`)
+
+    const layers = ['core', 'ring-primary', 'ring-secondary', 'ring-tertiary', 'highlight']
+    layers.forEach((layer) => {
+      const layerElement = document.createElement('span')
+      layerElement.className = `nav-item-water-layer ${layer}`
+      ripple.appendChild(layerElement)
+    })
+
+    for (let index = 0; index < 7; index += 1) {
+      const droplet = document.createElement('span')
+      droplet.className = 'nav-item-water-droplet'
+      const angle = Math.round((360 / 7) * index + Math.random() * 18 - 9)
+      const distance = Math.round(rippleSize * (0.2 + Math.random() * 0.18))
+      const delay = (Math.random() * 0.18).toFixed(2)
+      const scale = (0.75 + Math.random() * 0.55).toFixed(2)
+      droplet.style.setProperty('--droplet-angle', `${angle}deg`)
+      droplet.style.setProperty('--droplet-distance', `${distance}px`)
+      droplet.style.setProperty('--droplet-delay', `${delay}s`)
+      droplet.style.setProperty('--droplet-scale', scale)
+      ripple.appendChild(droplet)
+    }
 
     navButton.appendChild(ripple)
-    ripple.addEventListener('animationend', () => {
+    window.setTimeout(() => {
       ripple.remove()
-    }, { once: true })
+    }, 1300)
   }
 
   const handleNavItemClick = (itemId, event) => {

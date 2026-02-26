@@ -418,10 +418,30 @@ body {
     isolation: isolate;
 }
 
+.nav-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    background:
+      radial-gradient(circle at 18% 38%, rgba(125, 211, 252, 0.24) 0%, rgba(125, 211, 252, 0) 46%),
+      radial-gradient(circle at 82% 60%, rgba(147, 197, 253, 0.22) 0%, rgba(147, 197, 253, 0) 44%),
+      linear-gradient(110deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.04) 52%, rgba(99, 102, 241, 0.1));
+    transition: opacity 260ms ease;
+}
+
 .nav-item:hover {
     background: rgba(255, 255, 255, 0.1);
     color: white;
     transform: translateX(8px);
+}
+
+.nav-item:hover::after,
+.nav-item.active::after {
+    opacity: 0.95;
+    animation: navWaterSurfaceShift 2.8s ease-in-out infinite alternate;
 }
 
 .nav-item.active {
@@ -474,43 +494,169 @@ body {
     z-index: 3;
 }
 
-.nav-item-ripple {
+.nav-item-water-ripple {
     position: absolute;
-    transform: translate(-50%, -50%) scale(0);
-    border-radius: 50%;
+    left: 0;
+    top: 0;
+    width: var(--ripple-size, 120px);
+    height: var(--ripple-size, 120px);
+    transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 1;
-    background: radial-gradient(
-      circle,
-      rgba(125, 211, 252, 0.5) 0%,
-      rgba(56, 189, 248, 0.35) 30%,
-      rgba(59, 130, 246, 0.18) 55%,
-      rgba(59, 130, 246, 0) 75%
-    );
-    box-shadow:
-      0 0 0 0 rgba(125, 211, 252, 0.35),
-      0 0 24px rgba(56, 189, 248, 0.28);
-    mix-blend-mode: screen;
-    animation: navWaterRipple 760ms cubic-bezier(0.22, 0.75, 0.24, 1) forwards;
 }
 
-@keyframes navWaterRipple {
+.nav-item-water-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    transform: scale(0);
+    opacity: 0;
+}
+
+.nav-item-water-layer.core {
+    background: radial-gradient(
+      circle,
+      rgba(186, 230, 253, 0.68) 0%,
+      rgba(125, 211, 252, 0.45) 28%,
+      rgba(56, 189, 248, 0.18) 56%,
+      rgba(56, 189, 248, 0) 76%
+    );
+    filter: blur(0.2px);
+    animation: navWaterCoreImpact 1020ms cubic-bezier(0.15, 0.7, 0.14, 1) forwards;
+}
+
+.nav-item-water-layer.ring-primary,
+.nav-item-water-layer.ring-secondary,
+.nav-item-water-layer.ring-tertiary {
+    border: 1.5px solid rgba(186, 230, 253, 0.72);
+    box-shadow:
+      0 0 0 1px rgba(56, 189, 248, 0.25) inset,
+      0 0 12px rgba(56, 189, 248, 0.28);
+}
+
+.nav-item-water-layer.ring-primary {
+    animation: navWaterRingOne 1150ms cubic-bezier(0.19, 0.75, 0.22, 1) forwards;
+}
+
+.nav-item-water-layer.ring-secondary {
+    border-color: rgba(191, 219, 254, 0.62);
+    animation: navWaterRingTwo 1200ms cubic-bezier(0.19, 0.75, 0.22, 1) 90ms forwards;
+}
+
+.nav-item-water-layer.ring-tertiary {
+    border-color: rgba(191, 219, 254, 0.5);
+    animation: navWaterRingThree 1250ms cubic-bezier(0.19, 0.75, 0.22, 1) 170ms forwards;
+}
+
+.nav-item-water-layer.highlight {
+    background: radial-gradient(
+      ellipse at 30% 30%,
+      rgba(255, 255, 255, 0.54) 0%,
+      rgba(255, 255, 255, 0.16) 26%,
+      rgba(255, 255, 255, 0) 58%
+    );
+    mix-blend-mode: screen;
+    animation: navWaterHighlight 820ms ease-out forwards;
+}
+
+.nav-item-water-droplet {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    margin-left: -4.5px;
+    margin-top: -4.5px;
+    border-radius: 50%;
+    border: 1px solid rgba(191, 219, 254, 0.72);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(125, 211, 252, 0.3));
+    box-shadow: 0 0 8px rgba(125, 211, 252, 0.38);
+    opacity: 0;
+    transform: rotate(var(--droplet-angle, 0deg)) translateX(0) scale(var(--droplet-scale, 1));
+    animation: navWaterDroplet 920ms cubic-bezier(0.24, 0.74, 0.3, 1) var(--droplet-delay, 0s) forwards;
+}
+
+@keyframes navWaterSurfaceShift {
     0% {
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0.9;
-      box-shadow:
-        0 0 0 0 rgba(125, 211, 252, 0.35),
-        0 0 20px rgba(56, 189, 248, 0.22);
-    }
-    60% {
-      opacity: 0.42;
+      transform: translate3d(0, 0, 0) scale(1);
+      filter: saturate(1);
     }
     100% {
-      transform: translate(-50%, -50%) scale(1);
+      transform: translate3d(-4px, 0, 0) scale(1.02);
+      filter: saturate(1.08);
+    }
+}
+
+@keyframes navWaterCoreImpact {
+    0% {
+      transform: scale(0.03);
+      opacity: 0.96;
+    }
+    24% {
+      transform: scale(0.18);
+      opacity: 0.82;
+    }
+    100% {
+      transform: scale(0.94);
       opacity: 0;
-      box-shadow:
-        0 0 0 18px rgba(125, 211, 252, 0),
-        0 0 40px rgba(56, 189, 248, 0);
+    }
+}
+
+@keyframes navWaterRingOne {
+    0% {
+      transform: scale(0.02);
+      opacity: 0.88;
+    }
+    100% {
+      transform: scale(0.74);
+      opacity: 0;
+    }
+}
+
+@keyframes navWaterRingTwo {
+    0% {
+      transform: scale(0.02);
+      opacity: 0.76;
+    }
+    100% {
+      transform: scale(0.96);
+      opacity: 0;
+    }
+}
+
+@keyframes navWaterRingThree {
+    0% {
+      transform: scale(0.03);
+      opacity: 0.58;
+    }
+    100% {
+      transform: scale(1.12);
+      opacity: 0;
+    }
+}
+
+@keyframes navWaterHighlight {
+    0% {
+      transform: scale(0.12);
+      opacity: 0.74;
+    }
+    100% {
+      transform: scale(0.84);
+      opacity: 0;
+    }
+}
+
+@keyframes navWaterDroplet {
+    0% {
+      opacity: 0.8;
+      transform: rotate(var(--droplet-angle, 0deg)) translateX(2px) scale(calc(var(--droplet-scale, 1) * 0.6));
+    }
+    35% {
+      opacity: 0.62;
+    }
+    100% {
+      opacity: 0;
+      transform: rotate(var(--droplet-angle, 0deg)) translateX(var(--droplet-distance, 26px)) scale(calc(var(--droplet-scale, 1) * 1.1));
     }
 }
 
