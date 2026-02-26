@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAppContext } from '../context/AppContext'
 import { useTranslation } from '../hooks/useTranslation'
 import LanguageSelector from './LanguageSelector'
@@ -8,13 +8,9 @@ const Header = ({ currentTab, onLogout }) => {
   const { t } = useTranslation()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [refreshing, setRefreshing] = useState(false)
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+  const [shatteredTime, setShatteredTime] = useState(null)
+  const [timeAnimationKey, setTimeAnimationKey] = useState(0)
+  const shardTimeoutRef = useRef(null)
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('uz-UZ', { 
@@ -23,6 +19,38 @@ const Header = ({ currentTab, onLogout }) => {
       second: '2-digit'
     })
   }
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime((previousDate) => {
+        const nextDate = new Date()
+        const oldTime = formatTime(previousDate)
+        const newTime = formatTime(nextDate)
+
+        if (oldTime !== newTime) {
+          setShatteredTime({ id: Date.now(), text: oldTime })
+          setTimeAnimationKey((value) => value + 1)
+
+          if (shardTimeoutRef.current) {
+            clearTimeout(shardTimeoutRef.current)
+          }
+
+          shardTimeoutRef.current = setTimeout(() => {
+            setShatteredTime(null)
+            shardTimeoutRef.current = null
+          }, 850)
+        }
+
+        return nextDate
+      })
+    }, 1000)
+    return () => {
+      clearInterval(timer)
+      if (shardTimeoutRef.current) {
+        clearTimeout(shardTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const formattedTime = formatTime(currentTime)
 
@@ -139,8 +167,24 @@ const Header = ({ currentTab, onLogout }) => {
           </button>
           
           <div className="time-display">
-            <div className="time-slot">
-              <div key={formattedTime} className="time time-animated">{formattedTime}</div>
+            <div className="time-slot time-breaker">
+              {shatteredTime && (
+                <div className="time-fragments" aria-hidden="true">
+                  {shatteredTime.text.split('').map((char, index) => (
+                    <span
+                      key={`${shatteredTime.id}-${index}`}
+                      className="time-fragment"
+                      style={{
+                        '--fragment-index': index,
+                        '--fragment-drift': `${(index % 2 === 0 ? -1 : 1) * (7 + (index % 4) * 3)}px`
+                      }}
+                    >
+                      {char === ' ' ? '\u00A0' : char}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div key={`${formattedTime}-${timeAnimationKey}`} className="time time-animated-break">{formattedTime}</div>
             </div>
             <div className="date">{formatDate(currentTime)}</div>
           </div>
