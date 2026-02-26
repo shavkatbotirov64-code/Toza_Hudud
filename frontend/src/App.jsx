@@ -92,6 +92,8 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
+    if (!isAuthenticated) return undefined
+
     const container = contentRef.current
     if (!container || typeof window === 'undefined') return undefined
 
@@ -139,12 +141,12 @@ function AppContent() {
       wheelTargetRef.current = target
 
       const distance = target - container.scrollTop
-      const easing = Math.min(0.24, Math.max(0.12, Math.abs(distance) / 700))
+      const easing = Math.min(0.18, Math.max(0.08, Math.abs(distance) / 900))
       const nextScroll = container.scrollTop + distance * easing
 
       container.scrollTop = nextScroll
 
-      if (Math.abs(distance) <= 0.6) {
+      if (Math.abs(distance) <= 0.3) {
         container.scrollTop = target
         wheelFrameRef.current = null
         return
@@ -177,7 +179,7 @@ function AppContent() {
         wheelTargetRef.current = container.scrollTop
       }
 
-      wheelTargetRef.current = clamp(wheelTargetRef.current + event.deltaY * 0.95, 0, maxScroll)
+      wheelTargetRef.current = clamp(wheelTargetRef.current + event.deltaY * 1.15, 0, maxScroll)
 
       if (!wheelFrameRef.current) {
         wheelFrameRef.current = requestAnimationFrame(animate)
@@ -199,7 +201,7 @@ function AppContent() {
       container.removeEventListener('scroll', onScroll)
       stopAnimation()
     }
-  }, [])
+  }, [isAuthenticated])
 
   useEffect(() => {
     const handleNavigateToTab = (event) => {
