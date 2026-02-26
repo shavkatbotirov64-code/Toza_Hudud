@@ -24,6 +24,39 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
     }
   }
 
+  const createWaterRipple = (event) => {
+    const navButton = event.currentTarget
+    if (!navButton) return
+
+    const buttonRect = navButton.getBoundingClientRect()
+    const ripple = document.createElement('span')
+    ripple.className = 'nav-item-ripple'
+
+    const clickX = Number.isFinite(event.clientX)
+      ? event.clientX - buttonRect.left
+      : buttonRect.width / 2
+    const clickY = Number.isFinite(event.clientY)
+      ? event.clientY - buttonRect.top
+      : buttonRect.height / 2
+
+    const rippleSize = Math.max(buttonRect.width, buttonRect.height) * 1.6
+
+    ripple.style.left = `${clickX}px`
+    ripple.style.top = `${clickY}px`
+    ripple.style.width = `${rippleSize}px`
+    ripple.style.height = `${rippleSize}px`
+
+    navButton.appendChild(ripple)
+    ripple.addEventListener('animationend', () => {
+      ripple.remove()
+    }, { once: true })
+  }
+
+  const handleNavItemClick = (itemId, event) => {
+    createWaterRipple(event)
+    setCurrentTab(itemId)
+  }
+
   return (
     <aside id="sidebar" className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
@@ -50,7 +83,7 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
           <button
             key={item.id}
             className={`nav-item ${currentTab === item.id ? 'active' : ''}`}
-            onClick={() => setCurrentTab(item.id)}
+            onClick={(event) => handleNavItemClick(item.id, event)}
             data-tab={item.id}
           >
             <div className="nav-icon">
