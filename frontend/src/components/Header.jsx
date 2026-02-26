@@ -24,6 +24,8 @@ const Header = ({ currentTab, onLogout }) => {
     })
   }
 
+  const formattedTime = formatTime(currentTime)
+
   const formatDate = (date) => {
     return date.toLocaleDateString('uz-UZ', { 
       day: 'numeric',
@@ -137,7 +139,9 @@ const Header = ({ currentTab, onLogout }) => {
           </button>
           
           <div className="time-display">
-            <div className="time">{formatTime(currentTime)}</div>
+            <div className="time-slot">
+              <div key={formattedTime} className="time time-animated">{formattedTime}</div>
+            </div>
             <div className="date">{formatDate(currentTime)}</div>
           </div>
         </div>
