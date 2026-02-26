@@ -1097,6 +1097,10 @@ body {
     .time-fragment {
         animation: none;
     }
+
+    .content {
+        scroll-behavior: auto;
+    }
 }
 
 /* ===== CONTENT AREA ===== */
@@ -1104,6 +1108,12 @@ body {
     flex: 1;
     padding: var(--space-xl);
     background: var(--bg-secondary);
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tab-content {

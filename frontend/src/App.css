@@ -5,7 +5,9 @@
 
 .main-content {
   margin-left: 280px;
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: var(--transition);
