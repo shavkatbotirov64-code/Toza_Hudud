@@ -28,6 +28,34 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
     const navButton = event.currentTarget
     if (!navButton) return
 
+    const speedFactor = 0.95 + Math.random() * 0.18
+    const timing = {
+      disturb: Math.round(1500 * speedFactor),
+      core: Math.round(1080 * speedFactor),
+      ring1: Math.round(1420 * speedFactor),
+      ring2: Math.round(1650 * speedFactor),
+      ring3: Math.round(1880 * speedFactor),
+      ring4: Math.round(2140 * speedFactor),
+      wake: Math.round(1760 * speedFactor),
+      highlight: Math.round(1180 * speedFactor),
+      micro: Math.round(1320 * speedFactor),
+      droplet: Math.round(1540 * speedFactor),
+      ring2Delay: Math.round(130 * speedFactor),
+      ring3Delay: Math.round(230 * speedFactor),
+      ring4Delay: Math.round(320 * speedFactor),
+      wakeDelay: Math.round(110 * speedFactor),
+      cleanup: Math.round(2450 * speedFactor)
+    }
+
+    if (navButton.__waterDisturbTimer) {
+      window.clearTimeout(navButton.__waterDisturbTimer)
+    }
+
+    navButton.classList.add('nav-item-water-disturbed')
+    navButton.__waterDisturbTimer = window.setTimeout(() => {
+      navButton.classList.remove('nav-item-water-disturbed')
+    }, timing.disturb)
+
     const buttonRect = navButton.getBoundingClientRect()
     const ripple = document.createElement('span')
     ripple.className = 'nav-item-water-ripple'
@@ -39,37 +67,60 @@ const Sidebar = ({ currentTab, setCurrentTab, collapsed, setCollapsed }) => {
       ? event.clientY - buttonRect.top
       : buttonRect.height / 2
 
-    const rippleSize = Math.max(buttonRect.width, buttonRect.height) * 1.9
+    const rippleSize = Math.max(buttonRect.width, buttonRect.height) * 2.25
 
     ripple.style.left = `${clickX}px`
     ripple.style.top = `${clickY}px`
     ripple.style.setProperty('--ripple-size', `${rippleSize}px`)
+    ripple.style.setProperty('--core-duration', `${timing.core}ms`)
+    ripple.style.setProperty('--ring1-duration', `${timing.ring1}ms`)
+    ripple.style.setProperty('--ring2-duration', `${timing.ring2}ms`)
+    ripple.style.setProperty('--ring3-duration', `${timing.ring3}ms`)
+    ripple.style.setProperty('--ring4-duration', `${timing.ring4}ms`)
+    ripple.style.setProperty('--wake-duration', `${timing.wake}ms`)
+    ripple.style.setProperty('--highlight-duration', `${timing.highlight}ms`)
+    ripple.style.setProperty('--micro-duration', `${timing.micro}ms`)
+    ripple.style.setProperty('--droplet-duration', `${timing.droplet}ms`)
+    ripple.style.setProperty('--ring2-delay', `${timing.ring2Delay}ms`)
+    ripple.style.setProperty('--ring3-delay', `${timing.ring3Delay}ms`)
+    ripple.style.setProperty('--ring4-delay', `${timing.ring4Delay}ms`)
+    ripple.style.setProperty('--wake-delay', `${timing.wakeDelay}ms`)
 
-    const layers = ['core', 'ring-primary', 'ring-secondary', 'ring-tertiary', 'highlight']
+    const layers = ['core', 'ring-primary', 'ring-secondary', 'ring-tertiary', 'ring-quaternary', 'wake', 'highlight']
     layers.forEach((layer) => {
       const layerElement = document.createElement('span')
       layerElement.className = `nav-item-water-layer ${layer}`
       ripple.appendChild(layerElement)
     })
 
-    for (let index = 0; index < 7; index += 1) {
+    for (let index = 0; index < 6; index += 1) {
+      const microRipple = document.createElement('span')
+      microRipple.className = 'nav-item-water-micro'
+      microRipple.style.setProperty('--micro-delay', `${(index * 0.082).toFixed(3)}s`)
+      microRipple.style.setProperty('--micro-target', `${(0.22 + index * 0.1).toFixed(2)}`)
+      ripple.appendChild(microRipple)
+    }
+
+    for (let index = 0; index < 11; index += 1) {
       const droplet = document.createElement('span')
       droplet.className = 'nav-item-water-droplet'
-      const angle = Math.round((360 / 7) * index + Math.random() * 18 - 9)
-      const distance = Math.round(rippleSize * (0.2 + Math.random() * 0.18))
-      const delay = (Math.random() * 0.18).toFixed(2)
-      const scale = (0.75 + Math.random() * 0.55).toFixed(2)
+      const angle = Math.round((360 / 11) * index + Math.random() * 22 - 11)
+      const distance = Math.round(rippleSize * (0.18 + Math.random() * 0.26))
+      const delay = (Math.random() * 0.32).toFixed(3)
+      const scale = (0.65 + Math.random() * 0.55).toFixed(2)
+      const lift = Math.round(Math.random() * 14 - 7)
       droplet.style.setProperty('--droplet-angle', `${angle}deg`)
       droplet.style.setProperty('--droplet-distance', `${distance}px`)
       droplet.style.setProperty('--droplet-delay', `${delay}s`)
       droplet.style.setProperty('--droplet-scale', scale)
+      droplet.style.setProperty('--droplet-lift', `${lift}px`)
       ripple.appendChild(droplet)
     }
 
     navButton.appendChild(ripple)
     window.setTimeout(() => {
       ripple.remove()
-    }, 1300)
+    }, timing.cleanup)
   }
 
   const handleNavItemClick = (itemId, event) => {
