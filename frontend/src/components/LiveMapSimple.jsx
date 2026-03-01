@@ -27,7 +27,7 @@ const LiveMapSimple = ({ expanded = false, focusTarget = null, onFocusHandled = 
 
   const MOVEMENT_STEP_METERS = 8
   const MOVEMENT_INTERVAL_MS = 1000
-  const ENABLE_FAKE_PATROL = false
+  const ENABLE_FAKE_PATROL = true
 
   const hasRoutePoints = (routePath) => Array.isArray(routePath) && routePath.length > 0
   const toRadians = (value) => (value * Math.PI) / 180
