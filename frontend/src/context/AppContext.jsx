@@ -13,6 +13,14 @@ export const useAppContext = () => {
 }
 
 export const AppProvider = ({ children }) => {
+  const DEFAULT_SOCKET_URL =
+    window.location.hostname === 'localhost' ? 'http://localhost:3002' : window.location.origin
+  const SOCKET_URL = (
+    import.meta.env.VITE_SOCKET_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    DEFAULT_SOCKET_URL
+  ).replace(/\/+$/, '')
 
   const normalizeRoutePath = (routePath) => {
     if (Array.isArray(routePath) && routePath.length === 0) return null
@@ -220,13 +228,9 @@ export const AppProvider = ({ children }) => {
                     const existing = prevVehicles.find((prev) => prev.id === vehicle.id)
                     if (!existing) return vehicle
 
-                    const hasExistingPosition =
-                      Array.isArray(existing.position) && existing.position.length >= 2
-                    const keepRuntimePosition = hasExistingPosition && (existing.isMoving || existing.isPatrolling)
-
                     return {
                       ...vehicle,
-                      position: keepRuntimePosition ? existing.position : vehicle.position,
+                      position: vehicle.position,
                       routePath:
                         Array.isArray(existing.routePath) && existing.routePath.length > 0
                           ? existing.routePath
@@ -386,7 +390,7 @@ export const AppProvider = ({ children }) => {
     console.log('🔧 AppContext: WebSocket initializing...')
     
     // WebSocket ulanish
-    const socket = io('https://tozahudud-production-d73f.up.railway.app', {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
